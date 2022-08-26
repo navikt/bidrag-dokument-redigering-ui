@@ -47,6 +47,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: static_files
+          path: ./dist
       - name: Login GCP dev
         uses: google-github-actions/auth@v0.8.0
         with:
@@ -77,6 +78,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: static_files
+          path: ./dist
       - name: Login GCP dev
         uses: google-github-actions/auth@v0.8.0
         with:
