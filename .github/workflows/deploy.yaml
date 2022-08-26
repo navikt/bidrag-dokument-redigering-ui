@@ -1,0 +1,88 @@
+name: Build and deploy
+on:
+  push:
+    branches:
+      - '**'
+env:
+  bucket_name_dev: bidrag-static-files-dev
+  bucket_name_prod: bidrag-static-files-prod
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 16.x
+      - uses: actions/cache@v2
+        id: yarn-cache
+        with:
+          path: .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Install yarn dependencies
+        run: yarn --immutable
+      - name: Lint
+        run: yarn lint
+      - name: Test
+        run: yarn test
+      - name: Build app
+        run: yarn build
+        uses: actions/upload-artifact@v3
+        with:
+          name: static_files
+          path: ./dist
+
+  deploy-to-dev:
+    name: deploy to nais dev
+    needs: build
+    if: github.ref != 'refs/heads/release'
+
+    steps:
+      - name: Download static files
+        uses: actions/download-artifact@v3
+        with:
+          name: static_files
+      - name: Login GCP dev
+        uses: google-github-actions/auth@v0.8.0
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY }}
+      - name: Upload static files to dev GCP bucket
+        if: github.ref == 'refs/heads/main'
+        uses: google-github-actions/upload-cloud-storage@v0.10.2
+        with:
+          path: ./dist
+          parent: false
+          destination: bidrag-static-files-dev/bidrag-dokument-redigering-ui/main/static
+      - name: Upload static files to feature GCP bucket
+        if: github.ref == 'refs/heads/main'
+        uses: google-github-actions/upload-cloud-storage@v0.10.2
+        with:
+          path: ./dist
+          parent: false
+          destination: bidrag-static-files-dev/bidrag-dokument-redigering-ui/feature/static
+
+  deploy-to-prod:
+    name: deploy to nais dev
+    needs: build
+    if: github.ref == 'refs/heads/release'
+
+    steps:
+      - name: Download static files
+        uses: actions/download-artifact@v3
+        with:
+          name: static_files
+      - name: Login GCP dev
+        uses: google-github-actions/auth@v0.8.0
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY }}
+      - name: Upload static files to feature GCP bucket
+        if: github.ref == 'refs/heads/main'
+        uses: google-github-actions/upload-cloud-storage@v0.10.2
+        with:
+          path: ./dist
+          parent: false
+          destination: bidrag-static-files-prod/bidrag-dokument-redigering-ui/static
