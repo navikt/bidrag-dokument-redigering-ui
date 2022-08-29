@@ -27,11 +27,11 @@ jobs:
       - name: Set environment variables for frontend build
         run: |
           if $IS_FEATURE ; then
-              $(cat env/.env.dev | xargs) >> $GITHUB_ENV
+              cat env/.env.dev >> $GITHUB_ENV
           elif $IS_DEV ; then
-             $(cat env/.env.main | xargs) >> $GITHUB_ENV
+             cat env/.env.dev >> $GITHUB_ENV
           else
-             $(cat env/.env.prod | xargs)  >> $GITHUB_ENV
+             cat env/.env.dev  >> $GITHUB_ENV
           fi
       - name: Install yarn dependencies
         run: yarn --immutable
