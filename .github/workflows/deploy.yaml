@@ -4,6 +4,7 @@ on:
     branches:
       - '**'
 env:
+  app_name: bidrag_dokument_redigering_ui
   bucket_name_dev: bidrag-static-files-dev
   bucket_name_prod: bidrag-static-files-prod
   IS_FEATURE: ${{ github.ref != 'refs/heads/release' && github.ref != 'refs/heads/main'}}
@@ -67,7 +68,7 @@ jobs:
         with:
           path: ./dist
           parent: false
-          destination: bidrag-ui-static-files-dev/bidrag-dokument-redigering-ui/feature/static
+          destination: $bucket_name_dev/$app_name/feature/static
 
   deploy-to-main:
     name: Deploy to main
@@ -89,7 +90,7 @@ jobs:
         with:
           path: ./dist
           parent: false
-          destination: bidrag-ui-static-files-dev/bidrag-dokument-redigering-ui/main/static
+          destination: $bucket_name_dev/$app_name/main/static
 
   deploy-to-prod:
     name: Deploy to prod
@@ -113,4 +114,4 @@ jobs:
         with:
           path: ./dist
           parent: false
-          destination: bidrag-ui-static-files-prod/bidrag-dokument-redigering-ui/static
+          destination: $bucket_name_prod/$app_name/static
