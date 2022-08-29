@@ -6,7 +6,8 @@ on:
 env:
   bucket_name_dev: bidrag-static-files-dev
   bucket_name_prod: bidrag-static-files-prod
-
+  IS_FEATURE: ${{ github.ref != 'refs/heads/release' && github.ref != 'refs/heads/main'}}
+  IS_DEV: ${{ github.ref == 'refs/heads/main' }}
 jobs:
   build:
     name: Build
@@ -23,6 +24,15 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
+      - name: Set environment variables for frontend build
+        run: |
+          if $IS_FEATURE ; then
+              $(cat env/.env.dev | xargs) >> $GITHUB_ENV
+          elif $IS_DEV ; then
+             $(cat env/.env.main | xargs) >> $GITHUB_ENV
+          else
+             $(cat env/.env.prod | xargs)  >> $GITHUB_ENV
+          fi
       - name: Install yarn dependencies
         run: yarn --immutable
       - name: Lint

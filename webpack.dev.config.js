@@ -21,5 +21,5 @@ module.exports = merge(webpackCommon, {
             "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization",
         },
     },
-    plugins: [new Dotenv({ path: ".env.local" })],
+    plugins: [new Dotenv({ path: "env/.env.local" })],
 });
