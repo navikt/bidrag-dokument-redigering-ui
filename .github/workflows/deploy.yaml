@@ -114,4 +114,4 @@ jobs:
         with:
           path: ./dist
           parent: false
-          destination: ${{env.$bucket_name_prod}}/${{env.app_name}}/static
+          destination: ${{env.bucket_name_prod}}/${{env.app_name}}/static
