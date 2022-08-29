@@ -29,9 +29,9 @@ jobs:
           if $IS_FEATURE ; then
               cat env/.env.dev >> $GITHUB_ENV
           elif $IS_DEV ; then
-             cat env/.env.dev >> $GITHUB_ENV
+             cat env/.env.main >> $GITHUB_ENV
           else
-             cat env/.env.dev  >> $GITHUB_ENV
+             cat env/.env.prod  >> $GITHUB_ENV
           fi
       - name: Install yarn dependencies
         run: yarn --immutable

@@ -7,13 +7,7 @@ module.exports = merge(webpackCommon, {
     plugins: [
         // Defined as variable: default-value
         new EnvironmentPlugin({
-            BIDRAG_ORGANISASJON_URL: "",
-            BIDRAG_DOKUMENT_URL: "",
-            BIDRAG_DOKUMENT_ARKIVERING_URL: "",
-            BIDRAG_PERSON_URL: "",
-            BIDRAG_SAK_URL: "",
-            BISYS_URL: "",
-            BIDRAGDOKUMENTUI_URL: "",
+            STATIC_FILES_URL: "",
         }),
     ],
 });

@@ -16,7 +16,7 @@ import { PdfDocumentContext } from "./PdfDocumentContext";
 import PdfUtils, { ScrollDirection } from "./PdfUtils";
 const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.entry");
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.js";
+pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.STATIC_FILES_URL}/pdf.worker.js`;
 
 export interface PdfDocumentRef {
     documentElement: HTMLDivElement;
