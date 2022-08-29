@@ -2,8 +2,6 @@ const path = require("path");
 const webpack = require("webpack");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-const { WebpackManifestPlugin } = require("webpack-manifest-plugin");
-const { ESBuildMinifyPlugin } = require("esbuild-loader");
 const CopyPlugin = require("copy-webpack-plugin");
 const { ModuleFederationPlugin } = require("webpack").container;
 const deps = require("./package.json").dependencies;
@@ -66,7 +64,7 @@ module.exports = {
             ignoreOrder: true,
         }),
         new ModuleFederationPlugin({
-            name: "bidrag_redigering_ui",
+            name: "bidrag_dokument_redigering_ui",
             filename: "remoteEntry.js",
             exposes: {
                 "./DokumentRedigering": "./src/pages/redigeringsklient/DokumentRedigeringPage.tsx",
@@ -75,6 +73,9 @@ module.exports = {
                 react: { singleton: true, requiredVersion: deps.react },
                 "react-dom": { singleton: true, requiredVersion: deps.react },
             },
+        }),
+        new CopyPlugin({
+            patterns: [{ from: "node_modules/pdfjs-dist/build/pdf.worker.js", to: "" }],
         }),
     ],
 };
