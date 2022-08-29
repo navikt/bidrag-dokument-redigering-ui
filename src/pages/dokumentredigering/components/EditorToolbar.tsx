@@ -4,9 +4,9 @@ import { Hamburger } from "@navikt/ds-icons";
 import { Button } from "@navikt/ds-react";
 import React from "react";
 
-import { usePdfEditorContext } from "../../pages/redigeringsklient/PdfEditorContext";
-import { PdfProducerService } from "../../pages/redigeringsklient/PdfProducerService";
-import { PdfDocumentType } from "../pdfview/types";
+import { PdfDocumentType } from "../../../components/pdfview/types";
+import { PdfProducerService } from "../pdfproducer/PdfProducerService";
+import { usePdfEditorContext } from "./PdfEditorContext";
 
 interface EditorToolbarProps {
     document: PdfDocumentType;

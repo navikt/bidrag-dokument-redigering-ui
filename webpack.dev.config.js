@@ -14,7 +14,7 @@ module.exports = merge(webpackCommon, {
         },
         webSocketServer: "ws",
         port: 5173,
-        hot: false,
+        hot: true,
         headers: {
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",

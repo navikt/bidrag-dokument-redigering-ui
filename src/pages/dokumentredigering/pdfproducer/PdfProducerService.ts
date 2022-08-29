@@ -1,7 +1,7 @@
 import { PDFDocument } from "pdf-lib";
 
-import { PdfDocumentType } from "../../components/pdfview/types";
-import {FileUtils} from "../../components/utils/FileUtils";
+import { PdfDocumentType } from "../../../components/pdfview/types";
+import { FileUtils } from "../../../components/utils/FileUtils";
 
 export class PdfProducerService {
     static async removePagesAndOpen(pdfBlob: PdfDocumentType, removePages: number[]) {

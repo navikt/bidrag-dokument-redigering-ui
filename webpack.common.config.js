@@ -7,9 +7,6 @@ const { ModuleFederationPlugin } = require("webpack").container;
 const deps = require("./package.json").dependencies;
 
 module.exports = {
-    entry: {
-        dokument_redigering: "/src/pages/redigeringsklient/index.tsx",
-    },
     output: {
         filename: "[name].js",
         path: path.resolve(__dirname, "./dist"),
@@ -70,7 +67,7 @@ module.exports = {
             name: "bidrag_dokument_redigering_ui",
             filename: "remoteEntry.js",
             exposes: {
-                "./DokumentRedigering": "./src/pages/redigeringsklient/DokumentRedigeringPage.tsx",
+                "./DokumentRedigering": "./src/pages/dokumentredigering/DokumentRedigeringPage.tsx",
             },
             shared: {
                 react: { singleton: true, requiredVersion: deps.react },

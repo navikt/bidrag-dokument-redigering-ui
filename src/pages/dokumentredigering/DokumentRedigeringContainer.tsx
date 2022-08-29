@@ -1,15 +1,15 @@
-import "./Redigeringsklient.less";
+import "./DokumentRedigering.less";
 
+import { Loader } from "@navikt/ds-react";
 import React from "react";
 import { useState } from "react";
 import { PropsWithChildren } from "react";
 
-import EditorToolbar from "../../components/pdfeditor/EditorToolbar";
-import ThumbnailPageDecorator from "../../components/pdfeditor/ThumbnailPageDecorator";
 import { PdfDocumentType } from "../../components/pdfview/types";
 import PdfViewer from "../../components/pdfviewer/PdfViewer";
-import { PdfEditorContext, usePdfEditorContext } from "./PdfEditorContext";
-import {Loader} from "@navikt/ds-react";
+import EditorToolbar from "./components/EditorToolbar";
+import { PdfEditorContext, usePdfEditorContext } from "./components/PdfEditorContext";
+import ThumbnailPageDecorator from "./components/ThumbnailPageDecorator";
 
 interface DokumentRedigeringContainerProps {
     document: PdfDocumentType;

@@ -2,10 +2,9 @@ import { Loader } from "@navikt/ds-react";
 import React from "react";
 import { useEffect, useState } from "react";
 
-// import PageLoadingSpinner from "../../common/components/loadingspinner/PageLoadingSpinner";
-// import DokumentService from "../../services/DokumentService";
 import { PdfDocumentType } from "../../components/pdfview/types";
 import DokumentService from "../../service/DokumentService";
+import PageWrapper from "../PageWrapper";
 import DokumentRedigeringContainer from "./DokumentRedigeringContainer";
 
 const url = "http://localhost:5173/test4.pdf";
@@ -27,6 +26,8 @@ export default function DokumentRedigeringPage({
     useEffect(() => {
         lastDokument();
     }, []);
+
+    console.log("HERE");
 
     async function lastDokument() {
         if (dokumenter && dokumenter.length > 0) {
@@ -52,5 +53,9 @@ export default function DokumentRedigeringPage({
         return <div>Det skjedde en feil ved lasting av dokument</div>;
     }
 
-    return <DokumentRedigeringContainer document={document} />;
+    return (
+        <PageWrapper>
+            <DokumentRedigeringContainer document={document} />
+        </PageWrapper>
+    );
 }

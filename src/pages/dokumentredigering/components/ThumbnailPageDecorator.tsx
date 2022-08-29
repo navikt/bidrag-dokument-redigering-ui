@@ -3,7 +3,7 @@ import "./ThumbnailPageDecorator.less";
 import { AddCircleFilled, DeleteFilled } from "@navikt/ds-icons";
 import React, { CSSProperties, PropsWithChildren, useRef, useState } from "react";
 
-import { usePdfEditorContext } from "../../pages/redigeringsklient/PdfEditorContext";
+import { usePdfEditorContext } from "./PdfEditorContext";
 
 interface ThumbnailPageDecoratorProps extends PropsWithChildren<unknown> {
     pageNumber: number;
