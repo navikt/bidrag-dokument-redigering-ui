@@ -5,8 +5,8 @@ on:
       - '**'
 env:
   app_name: bidrag_dokument_redigering_ui
-  bucket_name_dev: bidrag-static-files-dev
-  bucket_name_prod: bidrag-static-files-prod
+  bucket_name_dev: bidrag-ui-static-files-dev
+  bucket_name_prod: bidrag-ui-static-files-prod
   IS_FEATURE: ${{ github.ref != 'refs/heads/release' && github.ref != 'refs/heads/main'}}
   IS_DEV: ${{ github.ref == 'refs/heads/main' }}
 jobs:
@@ -63,14 +63,12 @@ jobs:
         uses: google-github-actions/auth@v0.8.0
         with:
           credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY }}
-      - name: Test script
-        run: echo "${{env.bucket_name_dev}}/${{env.app_name}}/feature/static"
       - name: Upload static files to feature GCP bucket
         uses: google-github-actions/upload-cloud-storage@v0.10.2
         with:
           path: ./dist
           parent: false
-          destination: bidrag-static-files-dev/bidrag_dokument_redigering_ui/feature/static
+          destination: ${{env.bucket_name_dev}}/${{env.app_name}}/feature/static
 
   deploy-to-main:
     name: Deploy to main
