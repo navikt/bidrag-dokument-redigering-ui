@@ -77,11 +77,10 @@ const PdfPageMemo = React.memo(
                     pdfPageViewRef.current.draw();
                     isDrawed.current = true;
                 } else if (!shouldRenderPage(renderPageIndexes) && isDrawed.current) {
-                    pdfPageViewRef.current.cancelRendering();
                     setTimeout(() => {
                         pdfPageViewRef.current?.destroy();
                     }, 100);
-
+                    divRef.current?.querySelector(".page")?.remove();
                     isDrawed.current = false;
                 }
             }

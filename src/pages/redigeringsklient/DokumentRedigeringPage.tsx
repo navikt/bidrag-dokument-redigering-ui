@@ -21,7 +21,7 @@ export default function DokumentRedigeringPage({
     dokumentreferanse,
     dokumenter,
 }: DokumentRedigeringPageProps) {
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     const [document, setDocument] = useState<PdfDocumentType>();
     useEffect(() => {
