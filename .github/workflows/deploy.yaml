@@ -48,7 +48,7 @@ jobs:
           path: ./dist
 
   deploy-to-feature:
-    name: Deploy to dev
+    name: Deploy to feature
     runs-on: ubuntu-latest
     needs: build
     if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/release'
@@ -70,7 +70,7 @@ jobs:
           destination: bidrag-ui-static-files-dev/bidrag-dokument-redigering-ui/feature/static
 
   deploy-to-main:
-    name: Deploy to dev
+    name: Deploy to main
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/main'
