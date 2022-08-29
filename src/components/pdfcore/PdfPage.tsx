@@ -73,14 +73,12 @@ const PdfPageMemo = React.memo(
         function drawOrDestroyPage(renderPageIndexes: number[]) {
             if (pdfPageViewRef.current) {
                 if (shouldRenderPage(renderPageIndexes) && !isDrawed.current) {
-                    divRef.current?.querySelector(".page")?.remove();
                     pdfPageViewRef.current.draw();
                     isDrawed.current = true;
                 } else if (!shouldRenderPage(renderPageIndexes) && isDrawed.current) {
                     setTimeout(() => {
                         pdfPageViewRef.current?.destroy();
                     }, 100);
-                    divRef.current?.querySelector(".page")?.remove();
                     isDrawed.current = false;
                 }
             }
