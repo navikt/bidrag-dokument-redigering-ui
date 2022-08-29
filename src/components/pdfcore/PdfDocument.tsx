@@ -15,8 +15,8 @@ import { createArrayWithLength, removeDuplicates } from "../utils/ObjectUtils";
 import { TimerUtils } from "../utils/TimerUtils";
 import { PdfDocumentContext } from "./PdfDocumentContext";
 import PdfUtils, { ScrollDirection } from "./PdfUtils";
-const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.entry");
 
+console.log(`${environment.url.static_url}/pdf.worker.js`);
 pdfjsLib.GlobalWorkerOptions.workerSrc = `${environment.url.static_url}/pdf.worker.js`;
 
 export interface PdfDocumentRef {
