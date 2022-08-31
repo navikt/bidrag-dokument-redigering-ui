@@ -37,7 +37,7 @@ jobs:
       - name: Install yarn dependencies
         run: yarn --immutable
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.READER_TOKEN }}
+          NPM_TOKEN: ${{ secrets.READER_TOKEN }}
       - name: Lint
         run: yarn lint
       - name: Test
