@@ -27,8 +27,6 @@ export default function DokumentRedigeringPage({
         lastDokument();
     }, []);
 
-    console.log("HERE");
-
     async function lastDokument() {
         if (dokumenter && dokumenter.length > 0) {
             await new DokumentService()

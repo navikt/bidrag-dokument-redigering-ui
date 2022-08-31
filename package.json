@@ -16,6 +16,7 @@
     "@navikt/ds-react": "0.19.25",
     "@navikt/ds-react-internal": "0.14.26",
     "@navikt/ds-tailwind": "0.2.8",
+    "@navikt/bidrag-ui-common": "1.0.1",
     "express": "^4.18.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^2.15.349",
