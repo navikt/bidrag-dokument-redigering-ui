@@ -2,6 +2,7 @@ const { merge } = require("webpack-merge");
 const webpackCommon = require("./webpack.common.config.js");
 const Dotenv = require("dotenv-webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const { EnvironmentPlugin } = require("webpack");
 
 module.exports = merge(webpackCommon, {
     mode: "development",
@@ -27,6 +28,9 @@ module.exports = merge(webpackCommon, {
         new HtmlWebpackPlugin({
             publicPath: "/",
             template: "./src/index.html",
+        }),
+        new EnvironmentPlugin({
+            ENABLE_MOCK: "",
         }),
     ],
 });

@@ -1,6 +1,11 @@
 import "../index.css";
 
 import React, { PropsWithChildren } from "react";
+
+import { initMock } from "../mock";
+
+initMock();
+
 interface PageWrapperProps {
     name: string;
 }
