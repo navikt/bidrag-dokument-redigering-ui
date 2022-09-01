@@ -7,7 +7,7 @@ const { ModuleFederationPlugin } = require("webpack").container;
 const deps = require("./package.json").dependencies;
 
 module.exports = {
-    entry: "./src/main.tsx",
+    entry: "./src/index.tsx",
     output: {
         filename: "[name].js",
         path: path.resolve(__dirname, "./dist"),
