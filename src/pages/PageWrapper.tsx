@@ -1,7 +1,9 @@
 import "../index.css";
 
 import React, { PropsWithChildren } from "react";
-type PageWrapperProps = PropsWithChildren;
-export default function PageWrapper({ children }: PageWrapperProps) {
-    return <div>{children}</div>;
+interface PageWrapperProps {
+    name: string;
+}
+export default function PageWrapper({ children, name }: PropsWithChildren<PageWrapperProps>) {
+    return <div className={name}>{children}</div>;
 }

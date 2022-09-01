@@ -87,20 +87,20 @@ export default function PdfThumbnailViewer({
         currentPageNumberRef.current = pageNumber;
     }
 
-    function _onDocumentLoaded(pagesCount: number, pages: number[]) {
+    function _onDocumentLoaded(pagesCount: number, loadedPages: number[]) {
         updateFocusedPage(1);
         thumbnailDocumentRef.current = {
             ...documentRef.current,
             updateFocusedPage,
         };
         documentRef.current.scrollToPage(1);
-        onDocumentLoaded(pagesCount, pages);
+        onDocumentLoaded(pagesCount, loadedPages);
     }
 
     return (
         <div ref={containerRef} className={`thumbnail_viewer pagesize_${pageSize}`}>
             <PdfDocument
-                id={"pdf_document_pages"}
+                id={"pdf_thumbnail_pages"}
                 file={document}
                 documentRef={documentRef}
                 scale={getScale()}

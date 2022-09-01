@@ -1,5 +1,6 @@
 @import "@navikt/ds-css";
-
+@editor-background-color: var(--navds-semantic-color-component-background-inverted);
+@editor-height: calc(100vh - 125px);
 .page_decorator {
   &.deleted {
     .page {
@@ -12,63 +13,65 @@
 body {
   overflow-x: hidden;
   overflow: hidden;
+
+}
+.dokumentredigering {
+  .editor {
+    .pdfviewer_container .pdfrenderer_container {
+      background-color: @editor-background-color;
+    }
+    .thumbnail_viewer {
+      .thumbnail_page_container,
+      .thumbnail_decorator,
+      .pdfViewer,
+      .pdfrenderer_container{
+        background-color: var(--navds-global-color-gray-800) !important;
+      }
+    }
+    .thumbnail_viewer .pdfrenderer_container .pdfViewer .thumbnail_decorator .thumbnail_page_container .pagenumber {
+      color: white;
+    }
+
+    .pdfviewer .pdfrenderer_container {
+      height: @editor-height;
+    }
+    display: flex;
+    flex-direction: column;
+    .editor_toolbar {
+      background-color: var(--navds-global-color-gray-800);
+      height: max-content;
+      .divider {
+        height: 25px;
+        margin-bottom: 8px;
+        border-right: 1px solid white;
+      }
+      div {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 0px;
+        .buttons_left {
+          justify-content: flex-start;
+          align-items: flex-start;
+        }
+        .buttons_right {
+          justify-content: flex-end;
+          align-items: flex-end;
+        }
+        .pages_view {
+          align-items: center;
+          color: white;
+          justify-content: center;
+        }
+        button {
+          margin: 5px 10px;
+          color: black;
+        }
+      }
+    }
+  }
 }
 
-.editor {
-
-  .pdfviewer_container .pdfrenderer_container {
-    background-color: var(--navds-semantic-color-component-background-inverted);
-  }
-  .thumbnail_viewer {
-    .thumbnail_page_container,
-    .thumbnail_decorator,
-    .pdfViewer,
-    .pdfrenderer_container{
-      background-color: var(--navds-global-color-gray-800) !important;
-    }
-  }
-  .thumbnail_viewer .pdfrenderer_container .pdfViewer .thumbnail_decorator .thumbnail_page_container .pagenumber {
-    color: white;
-  }
-
-  .pdfviewer .pdfrenderer_container {
-    height: calc(100% - 50px);
-  }
-  display: flex;
-  flex-direction: column;
-  .editor_toolbar {
-    background-color: var(--navds-global-color-gray-800);
-    height: max-content;
-    .divider {
-      height: 25px;
-      margin-bottom: 8px;
-      border-right: 1px solid white;
-    }
-    div {
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      padding: 0px;
-      .buttons_left {
-        justify-content: flex-start;
-        align-items: flex-start;
-      }
-      .buttons_right {
-        justify-content: flex-end;
-        align-items: flex-end;
-      }
-      .pages_view {
-        align-items: center;
-        color: white;
-        justify-content: center;
-      }
-      button {
-        margin: 5px 10px;
-        color: black;
-      }
-    }
-  }
-}
 
 
 .thumbnail_decorator {

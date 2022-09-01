@@ -1,7 +1,7 @@
-import { Loader } from "@navikt/ds-react";
 import React from "react";
 import { useEffect, useState } from "react";
 
+import LoadingIndicator from "../../components/LoadingIndicator";
 import { PdfDocumentType } from "../../components/pdfview/types";
 import DokumentService from "../../service/DokumentService";
 import PageWrapper from "../PageWrapper";
@@ -43,17 +43,26 @@ export default function DokumentRedigeringPage({
         }
     }
 
+    return (
+        <PageWrapper name={"dokumentredigering"}>
+            <DokumentRedigering isLoading={isLoading} isError={!isLoading && !document} document={document} />
+        </PageWrapper>
+    );
+}
+
+interface DokumentRedigeringProps {
+    document: PdfDocumentType;
+    isLoading: boolean;
+    isError: boolean;
+}
+function DokumentRedigering({ isLoading, isError, document }: DokumentRedigeringProps) {
     if (isLoading) {
-        return <Loader variant="neutral" size="3xlarge" title="venter..." />;
+        return <LoadingIndicator title="Laster dokument..." />;
     }
 
-    if (!isLoading && !document) {
+    if (isError) {
         return <div>Det skjedde en feil ved lasting av dokument</div>;
     }
 
-    return (
-        <PageWrapper>
-            <DokumentRedigeringContainer document={document} />
-        </PageWrapper>
-    );
+    return <DokumentRedigeringContainer document={document} />;
 }
