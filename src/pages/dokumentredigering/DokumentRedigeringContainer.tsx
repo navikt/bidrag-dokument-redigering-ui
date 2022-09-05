@@ -45,6 +45,7 @@ export default function DokumentRedigeringContainer({ document }: DokumentRedige
             }
         });
     }
+
     return (
         <PdfEditorContext.Provider
             value={{

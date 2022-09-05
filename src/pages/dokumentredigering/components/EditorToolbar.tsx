@@ -2,10 +2,10 @@ import { SaveFile } from "@navikt/ds-icons";
 import { Add, Minus } from "@navikt/ds-icons";
 import { Hamburger } from "@navikt/ds-icons";
 import { Button } from "@navikt/ds-react";
-import React from "react";
+import React, { useState } from "react";
 
 import { PdfDocumentType } from "../../../components/pdfview/types";
-import { PdfProducerService } from "../pdfproducer/PdfProducerService";
+import { PdfProducer } from "../pdfproducer/PdfProducer";
 import { usePdfEditorContext } from "./PdfEditorContext";
 
 interface EditorToolbarProps {
@@ -58,16 +58,34 @@ interface SavePdfButtonProps {
 }
 function SavePdfButton({ dokumentSrc }: SavePdfButtonProps) {
     const { deletedPages } = usePdfEditorContext();
+    const [producingDocument, setProducingDocument] = useState(false);
     async function producePdf() {
+        setProducingDocument(true);
         let existingPdfBytes = dokumentSrc;
         if (typeof dokumentSrc == "string") {
             existingPdfBytes = await fetch(dokumentSrc).then((res) => res.arrayBuffer());
         }
-        await PdfProducerService.removePagesAndOpen(existingPdfBytes, deletedPages);
+
+        await new PdfProducer(existingPdfBytes)
+            .init()
+            .then((p) => p.removePages(deletedPages))
+            .then((p) => p.serializeToByte())
+            .then((p) => p.broadcast())
+            .then(window.close)
+            .finally(() => {
+                setProducingDocument(false);
+            });
     }
     return (
-        <Button size={"small"} onClick={producePdf} variant={"tertiary"} style={{ color: "white" }}>
-            <SaveFile />
+        <Button
+            loading={producingDocument}
+            size={"small"}
+            onClick={producePdf}
+            variant={"tertiary"}
+            style={{ color: "white" }}
+            icon={<SaveFile />}
+        >
+            Lagre endringer
         </Button>
     );
 }
