@@ -4,12 +4,9 @@ import { Hamburger } from "@navikt/ds-icons";
 import { Button } from "@navikt/ds-react";
 import React, { useState } from "react";
 
-import { PdfDocumentType } from "../../../components/pdfview/types";
-import { PdfProducer } from "../pdfproducer/PdfProducer";
 import { usePdfEditorContext } from "./PdfEditorContext";
 
 interface EditorToolbarProps {
-    document: PdfDocumentType;
     currentPage: number;
     pagesCount: number;
     onZoomIn: () => void;
@@ -19,7 +16,6 @@ interface EditorToolbarProps {
 export default function EditorToolbar({
     pagesCount,
     currentPage,
-    document,
     onZoomIn,
     onZoomOut,
     onToggleSidebar,
@@ -46,41 +42,28 @@ export default function EditorToolbar({
                     </Button>
 
                     <div className={"divider"}></div>
-                    <SavePdfButton dokumentSrc={document} />
+                    <SavePdfButton />
                 </div>
             </div>
         </div>
     );
 }
 
-interface SavePdfButtonProps {
-    dokumentSrc: PdfDocumentType;
-}
-function SavePdfButton({ dokumentSrc }: SavePdfButtonProps) {
-    const { deletedPages } = usePdfEditorContext();
+function SavePdfButton() {
+    const { producePdf } = usePdfEditorContext();
     const [producingDocument, setProducingDocument] = useState(false);
-    async function producePdf() {
+    async function _producePdf() {
         setProducingDocument(true);
-        let existingPdfBytes = dokumentSrc;
-        if (typeof dokumentSrc == "string") {
-            existingPdfBytes = await fetch(dokumentSrc).then((res) => res.arrayBuffer());
-        }
 
-        await new PdfProducer(existingPdfBytes)
-            .init()
-            .then((p) => p.removePages(deletedPages))
-            .then((p) => p.serializeToByte())
-            .then((p) => p.broadcast())
-            .then(window.close)
-            .finally(() => {
-                setProducingDocument(false);
-            });
+        await producePdf().finally(() => {
+            setProducingDocument(false);
+        });
     }
     return (
         <Button
             loading={producingDocument}
             size={"small"}
-            onClick={producePdf}
+            onClick={_producePdf}
             variant={"tertiary"}
             style={{ color: "white" }}
             icon={<SaveFile />}

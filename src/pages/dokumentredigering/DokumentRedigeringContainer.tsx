@@ -1,7 +1,8 @@
 import "./DokumentRedigering.less";
 
+import { EditorConfigStorage, queryParams } from "@navikt/bidrag-ui-common";
 import { Loader } from "@navikt/ds-react";
-import React from "react";
+import React, { useEffect } from "react";
 import { useState } from "react";
 import { PropsWithChildren } from "react";
 
@@ -10,6 +11,7 @@ import PdfViewer from "../../components/pdfviewer/PdfViewer";
 import EditorToolbar from "./components/EditorToolbar";
 import { PdfEditorContext, usePdfEditorContext } from "./components/PdfEditorContext";
 import ThumbnailPageDecorator from "./components/ThumbnailPageDecorator";
+import { PdfProducer } from "./pdfproducer/PdfProducer";
 
 interface DokumentRedigeringContainerProps {
     document: PdfDocumentType;
@@ -22,7 +24,32 @@ export default function DokumentRedigeringContainer({ document }: DokumentRedige
     const [pagesCount, setPagesCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [pages, setPages] = useState<number[]>([]);
-    const [deletedPages, setDeletePages] = useState<number[]>([]);
+    const [removedPages, setRemovedPages] = useState<number[]>([]);
+
+    useEffect(loadInitalConfig, []);
+
+    async function producePdfAndCloseWindow(): Promise<void> {
+        let existingPdfBytes = document;
+        if (typeof document == "string") {
+            existingPdfBytes = await fetch(document).then((res) => res.arrayBuffer());
+        }
+
+        return await new PdfProducer(existingPdfBytes)
+            .init({
+                removedPages: removedPages,
+            })
+            .then((p) => p.process())
+            .then((p) => p.saveChanges())
+            .then((p) => p.broadcast())
+            .then(window.close);
+    }
+
+    function loadInitalConfig() {
+        const config = EditorConfigStorage.get(queryParams().id);
+        if (config) {
+            setRemovedPages(config.removedPages);
+        }
+    }
 
     function onZoomIn() {
         setScale((prev) => prev + 0.2);
@@ -37,7 +64,7 @@ export default function DokumentRedigeringContainer({ document }: DokumentRedige
     }
 
     function toggleDeletedPage(pageNumber: number) {
-        setDeletePages((prev) => {
+        setRemovedPages((prev) => {
             if (prev.includes(pageNumber)) {
                 return prev.filter((p) => p !== pageNumber);
             } else {
@@ -49,7 +76,8 @@ export default function DokumentRedigeringContainer({ document }: DokumentRedige
     return (
         <PdfEditorContext.Provider
             value={{
-                deletedPages,
+                removedPages,
+                producePdf: producePdfAndCloseWindow,
                 toggleDeletedPage,
                 isDraggingThumbnail,
                 pages,
@@ -60,7 +88,6 @@ export default function DokumentRedigeringContainer({ document }: DokumentRedige
             <div className={"editor"} style={{ visibility: isLoading ? "hidden" : "unset" }}>
                 <EditorToolbar
                     onToggleSidebar={onToggleSidebar}
-                    document={document}
                     onZoomOut={onZoomOut}
                     onZoomIn={onZoomIn}
                     currentPage={currentPage}
@@ -89,7 +116,7 @@ export default function DokumentRedigeringContainer({ document }: DokumentRedige
 }
 
 function PageDecorator({ children, pageNumber }: PropsWithChildren<{ pageNumber: number }>) {
-    const { deletedPages } = usePdfEditorContext();
-    const isDeleted = deletedPages.includes(pageNumber);
+    const { removedPages } = usePdfEditorContext();
+    const isDeleted = removedPages.includes(pageNumber);
     return <div className={`page_decorator ${isDeleted ? "deleted" : ""}`}>{children}</div>;
 }

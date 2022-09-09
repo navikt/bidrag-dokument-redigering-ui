@@ -3,7 +3,9 @@ import {
     BroadcastMessage,
     BroadcastNames,
     EditDocumentBroadcastMessage,
+    EditDocumentConfig,
     FileUtils,
+    queryParams,
 } from "@navikt/bidrag-ui-common";
 import { PDFDocument } from "pdf-lib";
 
@@ -13,20 +15,25 @@ export class PdfProducer {
     private pdfDocument: PDFDocument;
     private pdfBlob: PdfDocumentType;
     private processedDocument: Uint8Array;
-    private removedPages: number[];
+    private config: EditDocumentConfig;
 
     constructor(pdfBlob: PdfDocumentType) {
         this.pdfBlob = pdfBlob;
     }
 
-    async init(): Promise<PdfProducer> {
+    async init(config: EditDocumentConfig): Promise<PdfProducer> {
+        this.config = config;
         this.pdfDocument = await PDFDocument.load(this.pdfBlob);
+        return this;
+    }
+
+    async process(): Promise<PdfProducer> {
+        this.removePages(this.config.removedPages);
         return this;
     }
 
     removePages(removePages: number[]): PdfProducer {
         let numberOfRemovedPages = 0;
-        this.removedPages = removePages;
         removePages.forEach((page) => {
             this.pdfDocument.removePage(Math.max(0, page - 1 - numberOfRemovedPages));
             numberOfRemovedPages += 1;
@@ -35,22 +42,21 @@ export class PdfProducer {
     }
 
     broadcast() {
-        const message: BroadcastMessage<EditDocumentBroadcastMessage> = Broadcast.convertToBroadcastMessage("someid", {
+        const params = queryParams();
+        const message: BroadcastMessage<EditDocumentBroadcastMessage> = Broadcast.convertToBroadcastMessage(params.id, {
             document: FileUtils._arrayBufferToBase64(this.processedDocument),
-            config: {
-                removedPages: this.removedPages,
-            },
+            config: this.config,
         });
         Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
     }
 
-    async serializeToByte(): Promise<PdfProducer> {
+    async saveChanges(): Promise<PdfProducer> {
         this.processedDocument = await this.pdfDocument.save();
         return this;
     }
 
     async openInNewTab() {
-        await this.serializeToByte();
+        await this.saveChanges();
         FileUtils.openFile(this.processedDocument, true);
         return this;
     }

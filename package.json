@@ -11,7 +11,7 @@
     "build": "webpack --config webpack.prod.config.js"
   },
   "dependencies": {
-    "@navikt/bidrag-ui-common": "1.1.0",
+    "@navikt/bidrag-ui-common": "1.2.1",
     "@navikt/ds-css": "^1.2.4",
     "@navikt/ds-css-internal": "^1.2.4",
     "@navikt/ds-icons": "^1.2.4",
@@ -26,6 +26,7 @@
     "react-router-dom": "^6.3.0"
   },
   "devDependencies": {
+    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",
     "@types/pdfjs-dist": "^2.10.378",
     "@types/react": "^18.0.17",
     "@types/react-dom": "^18.0.6",
@@ -59,6 +60,7 @@
     "postcss-loader": "^6.2.1",
     "prettier": "^2.4.1",
     "process": "^0.11.10",
+    "react-refresh": "^0.14.0",
     "tailwindcss": "^3.1.8",
     "typescript": "^4.6.4",
     "webpack": "^5.74.0",
