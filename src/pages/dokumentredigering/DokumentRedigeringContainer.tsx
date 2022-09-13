@@ -91,7 +91,7 @@ export default function DokumentRedigeringContainer({ document }: DokumentRedige
                     onZoomOut={onZoomOut}
                     onZoomIn={onZoomIn}
                     currentPage={currentPage}
-                    pagesCount={pagesCount}
+                    pagesCount={pagesCount - removedPages.length}
                 />
                 <PdfViewer
                     thumbnailsHidden={thumbnailsHidden}
