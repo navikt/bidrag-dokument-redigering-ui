@@ -73,6 +73,10 @@ export default function DokumentRedigeringContainer({ document }: DokumentRedige
         });
     }
 
+    function removedPagesBefore(pageNumber: number) {
+        return removedPages.filter((p) => p < pageNumber);
+    }
+    const editedPagesCount = pagesCount - removedPages.length;
     return (
         <PdfEditorContext.Provider
             value={{
@@ -90,8 +94,8 @@ export default function DokumentRedigeringContainer({ document }: DokumentRedige
                     onToggleSidebar={onToggleSidebar}
                     onZoomOut={onZoomOut}
                     onZoomIn={onZoomIn}
-                    currentPage={currentPage}
-                    pagesCount={pagesCount - removedPages.length}
+                    currentPage={currentPage - removedPagesBefore(currentPage).length} // 1, 2, x3, 4(3), x5, 6(4), 7(5), x8, 9(6)
+                    pagesCount={editedPagesCount}
                 />
                 <PdfViewer
                     thumbnailsHidden={thumbnailsHidden}
