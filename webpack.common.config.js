@@ -9,7 +9,7 @@ const deps = require("./package.json").dependencies;
 module.exports = {
     entry: "./src/index.tsx",
     output: {
-        filename: "[name].js",
+        filename: "[name].[fullhash].js",
         path: path.resolve(__dirname, "./dist"),
     },
     experiments: {
@@ -61,7 +61,7 @@ module.exports = {
         }),
         new CleanWebpackPlugin(),
         new MiniCssExtractPlugin({
-            filename: "[name].css",
+            filename: "[name].[fullhash].css",
             ignoreOrder: true,
         }),
         new ModuleFederationPlugin({
