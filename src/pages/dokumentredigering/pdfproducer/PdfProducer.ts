@@ -34,7 +34,7 @@ export class PdfProducer {
 
     removePages(removePages: number[]): PdfProducer {
         let numberOfRemovedPages = 0;
-        removePages.forEach((page) => {
+        removePages.sort().forEach((page) => {
             this.pdfDocument.removePage(Math.max(0, page - 1 - numberOfRemovedPages));
             numberOfRemovedPages += 1;
         });
