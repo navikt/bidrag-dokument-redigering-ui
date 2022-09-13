@@ -34,10 +34,12 @@ export class PdfProducer {
 
     removePages(removePages: number[]): PdfProducer {
         let numberOfRemovedPages = 0;
-        removePages.sort().forEach((page) => {
-            this.pdfDocument.removePage(Math.max(0, page - 1 - numberOfRemovedPages));
-            numberOfRemovedPages += 1;
-        });
+        removePages
+            .sort((a, b) => a - b)
+            .forEach((page) => {
+                this.pdfDocument.removePage(Math.max(0, page - 1 - numberOfRemovedPages));
+                numberOfRemovedPages += 1;
+            });
         return this;
     }
 
