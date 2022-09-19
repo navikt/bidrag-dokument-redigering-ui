@@ -110,7 +110,6 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY_PROD }}
       - name: Upload static files to feature GCP bucket
-        if: github.ref == 'refs/heads/main'
         uses: google-github-actions/upload-cloud-storage@v0.10.2
         with:
           path: ./dist
