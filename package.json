@@ -38,8 +38,8 @@
     "cross-env": "^7.0.3",
     "css-loader": "^6.4.0",
     "dotenv-webpack": "^7.0.3",
-    "esbuild-loader": "^2.16.0",
     "eslint": "^8.1.0",
+    "core-js": "^3.25.1",
     "eslint-config-eslint": "^7.0.0",
     "eslint-config-google": "^0.14.0",
     "eslint-config-prettier": "^8.5.0",
@@ -67,7 +67,10 @@
     "webpack-cli": "^4.10.0",
     "webpack-dev-server": "^4.10.0",
     "webpack-manifest-plugin": "^5.0.0",
-    "webpack-merge": "^5.8.0"
+    "webpack-merge": "^5.8.0",
+    "@swc/core": "^1.2.248",
+    "@swc/register": "^0.1.10",
+    "swc-loader": "^0.2.3"
   },
   "msw": {
     "workerDirectory": "public"

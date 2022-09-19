@@ -64,12 +64,10 @@ jobs:
         uses: google-github-actions/auth@v0.8.0
         with:
           credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY_DEV }}
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0
       - name: Upload static files to feature GCP bucket
-        uses: google-github-actions/upload-cloud-storage@v0.10.2
-        with:
-          path: ./dist
-          parent: false
-          destination: ${{env.bucket_name_dev}}/${{env.app_name}}/feature/static
+        run: gsutil -m rsync -R -d dist gs://${{env.bucket_name_dev}}/${{env.app_name}}/feature/static
 
   deploy-to-main:
     name: Deploy to main
@@ -86,13 +84,10 @@ jobs:
         uses: google-github-actions/auth@v0.8.0
         with:
           credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY_DEV }}
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0
       - name: Upload static files to dev GCP bucket
-        uses: google-github-actions/upload-cloud-storage@v0.10.2
-        with:
-          path: ./dist
-          parent: false
-          destination: ${{env.bucket_name_dev}}/${{env.app_name}}/main/static
-
+        run: gsutil -m rsync -R -d dist gs://${{env.bucket_name_dev}}/${{env.app_name}}/main/static
   deploy-to-prod:
     name: Deploy to prod
     runs-on: ubuntu-latest
@@ -109,9 +104,7 @@ jobs:
         uses: google-github-actions/auth@v0.8.0
         with:
           credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY_PROD }}
-      - name: Upload static files to feature GCP bucket
-        uses: google-github-actions/upload-cloud-storage@v0.10.2
-        with:
-          path: ./dist
-          parent: false
-          destination: ${{env.bucket_name_prod}}/${{env.app_name}}/static
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0
+      - name: Upload static files to prod GCP bucket
+        run: gsutil -m rsync -R -d dist gs://${{env.bucket_name_prod}}/${{env.app_name}}/static

@@ -5,6 +5,7 @@ const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 const { ModuleFederationPlugin } = require("webpack").container;
 const deps = require("./package.json").dependencies;
+const isDevelopment = process.env.NODE_ENV !== "production";
 
 module.exports = {
     entry: "./src/index.tsx",
@@ -26,13 +27,36 @@ module.exports = {
                 use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
             },
             {
-                test: /\.(ts|tsx)?$/,
-                loader: "esbuild-loader",
-                options: {
-                    minify: true,
-                    loader: "tsx", // Remove this if you're not using JSX
-                    target: "esnext", // Syntax to compile to (see options below for possible values)
-                },
+                test: /\.([jt]sx?)?$/,
+                exclude: /node_modules/,
+                use: [
+                    {
+                        loader: "swc-loader",
+                        options: {
+                            env: { mode: "usage" },
+                            minify: !isDevelopment,
+                            jsc: {
+                                target: "es2022",
+                                minify: {
+                                    compress: true,
+                                    mangle: true,
+                                },
+                                parser: {
+                                    syntax: "typescript",
+                                    tsx: true,
+                                    topLevelAwait: true,
+                                    dynamicImport: true,
+                                },
+                                transform: {
+                                    react: {
+                                        runtime: "automatic",
+                                        refresh: isDevelopment,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                ],
             },
             {
                 test: /\.less$/i,
