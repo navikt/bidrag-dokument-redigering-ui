@@ -37,7 +37,8 @@ export default function PdfViewer({
 
     const [_pages, setPages] = useState([]);
 
-    function _onThumbnailLoaded(pagesCount: number) {
+    function _onThumbnailLoaded(pagesCount: number, pages: number[]) {
+        setPages(pages);
         hasThumbnailsLoaded.current = true;
         if (hasDocumentLoaded.current) onDocumentLoaded(pagesCount, pages);
     }

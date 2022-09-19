@@ -4,10 +4,12 @@ on:
     branches:
       - '**'
 env:
-  bucket_name_dev: bidrag-static-files-dev
-  bucket_name_prod: bidrag-static-files-prod
+  app_name: bidrag_dokument_redigering_ui
+  bucket_name_dev: bidrag-ui-static-files-dev
+  bucket_name_prod: bidrag-ui-static-files-prod
   IS_FEATURE: ${{ github.ref != 'refs/heads/release' && github.ref != 'refs/heads/main'}}
   IS_DEV: ${{ github.ref == 'refs/heads/main' }}
+  NPM_TOKEN: ${{ secrets.READER_TOKEN }}
 jobs:
   build:
     name: Build
@@ -61,13 +63,13 @@ jobs:
       - name: Login GCP dev
         uses: google-github-actions/auth@v0.8.0
         with:
-          credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY }}
+          credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY_DEV }}
       - name: Upload static files to feature GCP bucket
         uses: google-github-actions/upload-cloud-storage@v0.10.2
         with:
           path: ./dist
           parent: false
-          destination: bidrag-ui-static-files-dev/bidrag-dokument-redigering-ui/feature/static
+          destination: ${{env.bucket_name_dev}}/${{env.app_name}}/feature/static
 
   deploy-to-main:
     name: Deploy to main
@@ -83,13 +85,13 @@ jobs:
       - name: Login GCP dev
         uses: google-github-actions/auth@v0.8.0
         with:
-          credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY }}
+          credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY_DEV }}
       - name: Upload static files to dev GCP bucket
         uses: google-github-actions/upload-cloud-storage@v0.10.2
         with:
           path: ./dist
           parent: false
-          destination: bidrag-ui-static-files-dev/bidrag-dokument-redigering-ui/main/static
+          destination: ${{env.bucket_name_dev}}/${{env.app_name}}/main/static
 
   deploy-to-prod:
     name: Deploy to prod
@@ -106,11 +108,11 @@ jobs:
       - name: Login GCP dev
         uses: google-github-actions/auth@v0.8.0
         with:
-          credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY }}
+          credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY_PROD }}
       - name: Upload static files to feature GCP bucket
         if: github.ref == 'refs/heads/main'
         uses: google-github-actions/upload-cloud-storage@v0.10.2
         with:
           path: ./dist
           parent: false
-          destination: bidrag-ui-static-files-prod/bidrag-dokument-redigering-ui/static
+          destination: ${{env.bucket_name_prod}}/${{env.app_name}}/static

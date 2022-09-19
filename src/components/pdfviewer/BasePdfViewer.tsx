@@ -42,7 +42,7 @@ export default function BasePdfViewer({
             onDocumentLoaded={_onDocumentLoaded}
         >
             {pages.map((pageNumber, index) => {
-                const pageToRender = <PdfPage pageNumber={pageNumber} index={index} key={"page_index_" + index} />;
+                const pageToRender = <PdfPage pageNumber={pageNumber} index={index} key={"doc_page_index_" + index} />;
                 return renderPage ? renderPage(pageNumber, pageToRender) : pageToRender;
             })}
         </PdfDocument>

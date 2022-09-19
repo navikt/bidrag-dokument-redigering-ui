@@ -7,11 +7,9 @@ const { ModuleFederationPlugin } = require("webpack").container;
 const deps = require("./package.json").dependencies;
 
 module.exports = {
-    entry: {
-        dokument_redigering: "/src/pages/redigeringsklient/index.tsx",
-    },
+    entry: "./src/index.tsx",
     output: {
-        filename: "[name].js",
+        filename: "[name].[fullhash].js",
         path: path.resolve(__dirname, "./dist"),
     },
     experiments: {
@@ -63,14 +61,14 @@ module.exports = {
         }),
         new CleanWebpackPlugin(),
         new MiniCssExtractPlugin({
-            filename: "[name].css",
+            filename: "[name].[fullhash].css",
             ignoreOrder: true,
         }),
         new ModuleFederationPlugin({
             name: "bidrag_dokument_redigering_ui",
             filename: "remoteEntry.js",
             exposes: {
-                "./DokumentRedigering": "./src/pages/redigeringsklient/DokumentRedigeringPage.tsx",
+                "./DokumentRedigering": "./src/pages/dokumentredigering/DokumentRedigeringPage.tsx",
             },
             shared: {
                 react: { singleton: true, requiredVersion: deps.react },

@@ -9,14 +9,14 @@ import { useEffect } from "react";
 import { PropsWithChildren } from "react";
 import { useState } from "react";
 
+import environment from "../../environment";
 import { PdfDocumentType } from "../pdfview/types";
 import { createArrayWithLength, removeDuplicates } from "../utils/ObjectUtils";
 import { TimerUtils } from "../utils/TimerUtils";
 import { PdfDocumentContext } from "./PdfDocumentContext";
 import PdfUtils, { ScrollDirection } from "./PdfUtils";
-const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.entry");
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `${process.env.STATIC_FILES_URL}/pdf.worker.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `${environment.url.static_url}/pdf.worker.js`;
 
 export interface PdfDocumentRef {
     documentElement: HTMLDivElement;

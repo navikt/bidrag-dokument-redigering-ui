@@ -41,12 +41,14 @@ const PdfPageMemo = React.memo(
         const divRef = useRef<HTMLDivElement>(null);
         const pdfPageViewRef = useRef<PDFPageView>();
         const isDrawed = useRef<boolean>(false);
+        const isPageRenderStarted = useRef<boolean>(false);
 
         useEffect(() => {
             if (hasPageNumberChanged()) {
                 divRef.current?.querySelector(".page")?.remove();
             }
-            if (pdfDocument) {
+            if (pdfDocument && !isPageRenderStarted.current) {
+                isPageRenderStarted.current = true;
                 renderPage()
                     .then(pageRendered)
                     .then(() => drawOrDestroyPage(renderPageIndexes))
@@ -73,14 +75,12 @@ const PdfPageMemo = React.memo(
         function drawOrDestroyPage(renderPageIndexes: number[]) {
             if (pdfPageViewRef.current) {
                 if (shouldRenderPage(renderPageIndexes) && !isDrawed.current) {
-                    divRef.current?.querySelector(".page")?.remove();
                     pdfPageViewRef.current.draw();
                     isDrawed.current = true;
                 } else if (!shouldRenderPage(renderPageIndexes) && isDrawed.current) {
                     setTimeout(() => {
                         pdfPageViewRef.current?.destroy();
                     }, 100);
-                    divRef.current?.querySelector(".page")?.remove();
                     isDrawed.current = false;
                 }
             }
@@ -93,7 +93,7 @@ const PdfPageMemo = React.memo(
             return pdfDocument.getPage(pageNumber).then((page) => {
                 const eventBus = new EventBus();
                 // @ts-ignore
-                const pdfPageView = new PDFPageView({
+                pdfPageViewRef.current = new PDFPageView({
                     container: divRef.current,
                     id: pageNumber,
                     scale,
@@ -108,20 +108,11 @@ const PdfPageMemo = React.memo(
                     xfaLayerFactory: renderText ? (pdfDocument.isPureXfa ? new DefaultXfaLayerFactory() : null) : null,
                     structTreeLayerFactory: renderText ? new DefaultStructTreeLayerFactory() : null,
                 });
-                pdfPageView.setPdfPage(page);
-                pdfPageViewRef.current = pdfPageView;
+                pdfPageViewRef.current.setPdfPage(page);
                 return true;
             });
         }
-        return (
-            <div
-                data-index={index}
-                style={style}
-                data-page-number={pageNumber}
-                className={"pagecontainer"}
-                ref={divRef}
-            ></div>
-        );
+        return <div data-index={index} style={style} className={"pagecontainer"} ref={divRef}></div>;
     },
     (prevProps, nextProps) =>
         !shouldRerenderPage(prevProps.renderPageIndexes, nextProps.renderPageIndexes, nextProps.index) &&
