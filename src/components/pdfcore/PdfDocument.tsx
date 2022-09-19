@@ -16,7 +16,6 @@ import { TimerUtils } from "../utils/TimerUtils";
 import { PdfDocumentContext } from "./PdfDocumentContext";
 import PdfUtils, { ScrollDirection } from "./PdfUtils";
 
-console.log(`${environment.url.static_url}/pdf.worker.js`);
 pdfjsLib.GlobalWorkerOptions.workerSrc = `${environment.url.static_url}/pdf.worker.js`;
 
 export interface PdfDocumentRef {
