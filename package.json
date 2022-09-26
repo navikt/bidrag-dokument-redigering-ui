@@ -11,7 +11,7 @@
     "build": "webpack --config webpack.prod.config.js"
   },
   "dependencies": {
-    "@navikt/bidrag-ui-common": "1.2.1",
+    "@navikt/bidrag-ui-common": "1.3.3",
     "@navikt/ds-css": "^1.2.4",
     "@navikt/ds-css-internal": "^1.2.4",
     "@navikt/ds-icons": "^1.2.4",
