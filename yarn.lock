@@ -163,10 +163,10 @@
     strict-event-emitter "^0.2.4"
     web-encoding "^1.1.5"
 
-"@navikt/bidrag-ui-common@1.2.1":
-  version "1.2.1"
-  resolved "https://npm.pkg.github.com/download/@navikt/bidrag-ui-common/1.2.1/ed783efc6633b7590b540341f3694f34cea3905f#ed783efc6633b7590b540341f3694f34cea3905f"
-  integrity sha512-JBN/OsDt34hldrCrOm4OaO1B1B8PromWdV4dKHNzRD89z5F1i3OzdIRg4rmSReuVD3frF/LD+I4V17EhAa971A==
+"@navikt/bidrag-ui-common@1.3.3":
+  version "1.3.3"
+  resolved "https://npm.pkg.github.com/download/@navikt/bidrag-ui-common/1.3.3/271c2395f67b0f80ccf0a9278ca4e5e9a9f9b193#271c2395f67b0f80ccf0a9278ca4e5e9a9f9b193"
+  integrity sha512-Rus9wRH4G/xN1NLX3L6xdlHRFPkolcS+8sAALwk3tvd0iVECjJb8/M2h6+8T1blCnQMid2hHDFz8bK3QISbX4A==
   dependencies:
     uuid "^8.3.2"
 
