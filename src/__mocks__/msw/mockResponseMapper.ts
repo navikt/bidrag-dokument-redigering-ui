@@ -1,6 +1,8 @@
 import { MockedResponse, ResponseFunction, RestContext } from "msw";
+import { compose } from "msw";
 
-import { isResponseData, ResponseData } from "./types";
+import { ResponseData } from "./types";
+import { isResponseData } from "./types";
 
 export function mapToMockedResponse<T>(
     res: ResponseFunction,
@@ -10,7 +12,14 @@ export function mapToMockedResponse<T>(
 ): MockedResponse<T> | Promise<MockedResponse<T>> {
     const delayResponse = ctx.delay(delay ?? 500);
     if (isResponseData(responseData)) {
-        return res(delayResponse, ctx.status(responseData?.status ?? 404), ctx.json(responseData?.data));
+        return res(
+            compose(
+                delayResponse,
+                ctx.set("Warning", responseData.errorMessage),
+                ctx.status(responseData?.status ?? 404),
+                ctx.json(responseData?.data)
+            )
+        );
     }
     return res(delayResponse, ctx.status(200), ctx.json(responseData));
 }
