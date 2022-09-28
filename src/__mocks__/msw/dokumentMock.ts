@@ -1,6 +1,6 @@
 import { rest, RestHandler } from "msw";
 
-import environment from "../environment";
+import environment from "../../environment";
 
 export default function documentMock(): RestHandler[] {
     const baseUrl = environment.url.bidragDokument;

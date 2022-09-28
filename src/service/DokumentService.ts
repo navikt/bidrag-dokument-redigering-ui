@@ -1,6 +1,6 @@
 import { ApiError, DefaultRestService, LoggerService } from "@navikt/bidrag-ui-common";
+import { FileData } from "@navikt/bidrag-ui-common";
 
-import { FileData } from "../components/utils/FileUtils";
 import environment from "../environment";
 
 export default class DokumentService extends DefaultRestService {

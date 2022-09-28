@@ -1,5 +1,5 @@
 import { Label, Loader } from "@navikt/ds-react";
-
+import React from "react";
 interface LoadingIndicatorProps {
     title: string;
     variant?: "neutral" | "interaction" | "inverted";

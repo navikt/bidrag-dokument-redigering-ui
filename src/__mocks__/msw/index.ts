@@ -1,7 +1,7 @@
-export async function initMock() {
+export function initMock() {
     if (process.env.NODE_ENV === "development" && process.env.ENABLE_MOCK == "true") {
-        const { worker } = require("../mock/browser");
-        await worker
+        const { worker } = require("./browser");
+        worker
             .start({
                 onUnhandledRequest: "warn",
                 waitUntilReady: true,
