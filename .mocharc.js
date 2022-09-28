@@ -6,4 +6,5 @@ module.exports = {
   package: './package.json',
   include: ["src/__tests__/*"],
   ignore: ["/node_modules/"],
+  exit: true
 }

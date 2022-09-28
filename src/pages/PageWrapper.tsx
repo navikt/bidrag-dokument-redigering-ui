@@ -4,9 +4,7 @@ import React, { PropsWithChildren } from "react";
 
 import { initMock } from "../__mocks__/msw";
 
-(async function () {
-    await initMock();
-})();
+initMock();
 
 interface PageWrapperProps {
     name: string;

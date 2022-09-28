@@ -5,12 +5,10 @@ import { describe } from "mocha";
 import React from "react";
 
 import DokumentRedigeringPage from "../../pages/dokumentredigering/DokumentRedigeringPage";
-export function sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
+
 describe("DokumentRedigeringPage", () => {
     it("should render", async () => {
-        render(<DokumentRedigeringPage journalpostId={"JPOAR"} />);
+        render(<DokumentRedigeringPage journalpostId={"JOARK-123213"} />);
         await waitFor(() => expect(document.querySelector(".pdfviewer")).not.to.be.null);
     });
 });
