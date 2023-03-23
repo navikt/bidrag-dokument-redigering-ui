@@ -18,6 +18,9 @@ module.exports = {
     },
     resolve: {
         extensions: [".tsx", ".ts", ".js", "jsx"],
+        fallback: {
+            fs: false,
+        },
     },
     module: {
         rules: [
@@ -38,8 +41,8 @@ module.exports = {
                             jsc: {
                                 target: "es2022",
                                 minify: {
-                                    compress: true,
-                                    mangle: true,
+                                    compress: !isDevelopment,
+                                    mangle: !isDevelopment,
                                 },
                                 parser: {
                                     syntax: "typescript",
@@ -93,6 +96,7 @@ module.exports = {
             filename: "remoteEntry.js",
             exposes: {
                 "./DokumentRedigering": "./src/pages/dokumentredigering/DokumentRedigeringPage.tsx",
+                "./DokumentMaskering": "./src/pages/dokumentmaskering/DokumentMaskeringPage.tsx",
             },
             shared: {
                 react: { singleton: true, requiredVersion: deps.react },

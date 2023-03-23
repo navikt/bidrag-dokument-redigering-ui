@@ -65,6 +65,7 @@ const PdfPageMemo = React.memo(
         useEffect(() => {
             if (pdfPageViewRef.current) {
                 pdfPageViewRef.current.update({ scale });
+                console.log("pdfPageViewRef", pdfPageViewRef.current.viewport.scale, "setting", scale);
             }
         }, [scale]);
 

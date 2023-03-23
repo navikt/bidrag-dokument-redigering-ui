@@ -2,12 +2,14 @@ import { useContext } from "react";
 import React from "react";
 
 interface PdfViewerProviderProps {
-    pages: number[];
+    currentPage: number;
+    pagesCount: number;
     removedPages: number[];
     toggleDeletedPage: (page: number) => void;
-    setIsDraggingThumbnail: (value: boolean) => void;
-    isDraggingThumbnail: boolean;
-    producePdf: () => Promise<void>;
+    savePdf: () => Promise<void>;
+    previewPdf: () => Promise<void>;
+    finishPdf: () => Promise<void>;
+    onToggleSidebar: () => void;
 }
 
 export const usePdfEditorContext = () => useContext(PdfEditorContext);

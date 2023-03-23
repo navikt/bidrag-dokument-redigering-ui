@@ -1,25 +1,33 @@
-import { SaveFile } from "@navikt/ds-icons";
+import { EraserIcon, EyeIcon } from "@navikt/aksel-icons";
 import { Add, Minus } from "@navikt/ds-icons";
 import { Hamburger } from "@navikt/ds-icons";
 import { Button } from "@navikt/ds-react";
-import React, { useState } from "react";
+import React from "react";
 
+import { useMaskingContainer } from "../../../components/masking/MaskingContainer";
+import FinishPdfButton from "./FinishPdfButton";
 import { usePdfEditorContext } from "./PdfEditorContext";
-
+import SavePdfButton from "./SavePdfButton";
 interface EditorToolbarProps {
-    currentPage: number;
     pagesCount: number;
+    showSubmitButton?: boolean;
     onZoomIn: () => void;
     onZoomOut: () => void;
     onToggleSidebar: () => void;
 }
 export default function EditorToolbar({
     pagesCount,
-    currentPage,
     onZoomIn,
     onZoomOut,
     onToggleSidebar,
+    showSubmitButton,
 }: EditorToolbarProps) {
+    const { addItem } = useMaskingContainer();
+    const { previewPdf, currentPage, removedPages } = usePdfEditorContext();
+    function removedPagesBefore(pageNumber: number) {
+        return removedPages.filter((p) => p < pageNumber);
+    }
+    const currentPageNotIncludingRemoved = currentPage - removedPagesBefore(currentPage).length;
     return (
         <div className={"editor_toolbar"}>
             <div className={"toolbar_content"}>
@@ -30,10 +38,24 @@ export default function EditorToolbar({
                 </div>
                 <div className={"pages_view"}>
                     <div>
-                        {currentPage} av {pagesCount}
+                        {currentPageNotIncludingRemoved} av {pagesCount}
                     </div>
                 </div>
                 <div className={"buttons_right"}>
+                    <Button
+                        onClick={previewPdf}
+                        size={"small"}
+                        variant={"tertiary"}
+                        style={{ color: "white" }}
+                        icon={<EyeIcon />}
+                    />
+                    <Button
+                        onClick={() => addItem(currentPage)}
+                        size={"small"}
+                        variant={"tertiary"}
+                        style={{ color: "white" }}
+                        icon={<EraserIcon />}
+                    />
                     <Button onClick={onZoomOut} size={"small"} variant={"tertiary"} style={{ color: "white" }}>
                         <Minus />
                     </Button>
@@ -43,32 +65,9 @@ export default function EditorToolbar({
 
                     <div className={"divider"}></div>
                     <SavePdfButton />
+                    {showSubmitButton && <FinishPdfButton />}
                 </div>
             </div>
         </div>
-    );
-}
-
-function SavePdfButton() {
-    const { producePdf } = usePdfEditorContext();
-    const [producingDocument, setProducingDocument] = useState(false);
-    async function _producePdf() {
-        setProducingDocument(true);
-
-        await producePdf().finally(() => {
-            setProducingDocument(false);
-        });
-    }
-    return (
-        <Button
-            loading={producingDocument}
-            size={"small"}
-            onClick={_producePdf}
-            variant={"tertiary"}
-            style={{ color: "white" }}
-            icon={<SaveFile />}
-        >
-            Lagre endringer
-        </Button>
     );
 }

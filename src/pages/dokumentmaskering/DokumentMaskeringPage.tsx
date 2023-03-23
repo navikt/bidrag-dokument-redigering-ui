@@ -7,33 +7,40 @@ import { BroadcastNames } from "@navikt/bidrag-ui-common";
 import { EditDocumentConfig } from "@navikt/bidrag-ui-common";
 import React from "react";
 import { useEffect, useState } from "react";
+import { useMutation } from "react-query";
 
+import { BIDRAG_FORSENDELSE_API } from "../../api/api";
 import { lastDokumenter } from "../../api/queries";
 import LoadingIndicator from "../../components/LoadingIndicator";
+import { MaskingContainer } from "../../components/masking/MaskingContainer";
+import DokumentRedigering from "../dokumentredigering/DokumentRedigering";
 import PageWrapper from "../PageWrapper";
-import DokumentRedigering from "./DokumentRedigering";
 
 const url = "http://localhost:5173/test4.pdf";
 
-interface DokumentRedigeringPageProps {
+interface DokumentMaskeringPageProps {
     journalpostId: string;
-    dokumentreferanse?: string;
-    dokumenter?: string[];
+    dokumentreferanse: string;
 }
 
-export default function DokumentRedigeringPage(props: DokumentRedigeringPageProps) {
+export default function DokumentMaskeringPage(props: DokumentMaskeringPageProps) {
     return (
         <PageWrapper name={"dokumentredigering"}>
-            <DokumentRedigeringContainer {...props} />
+            <DokumentMaskeringContainer {...props} />
         </PageWrapper>
     );
 }
 
-function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumenter }: DokumentRedigeringPageProps) {
+function DokumentMaskeringContainer({ journalpostId, dokumentreferanse }: DokumentMaskeringPageProps) {
     const [isLoading, setIsLoading] = useState(true);
 
-    const dokument = lastDokumenter(journalpostId, dokumentreferanse, dokumenter, true, false);
-
+    const dokument = lastDokumenter(journalpostId, dokumentreferanse, null, true, false);
+    const ferdigstillDokument = useMutation<any, any, { journalpostId: string; dokumentreferanse: string }>(
+        "ferdigstillDokument",
+        ({ journalpostId, dokumentreferanse }) => {
+            return BIDRAG_FORSENDELSE_API.api.ferdigstillDokument(journalpostId, dokumentreferanse);
+        }
+    );
     useEffect(() => {
         if (dokument) {
             setIsLoading(false);
@@ -60,5 +67,18 @@ function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumen
         window.close();
     }
 
-    return <DokumentRedigering dokument={dokument} onSave={broadcastAndCloseWindow} />;
+    function saveAndFinishDocument(document: Uint8Array, config: EditDocumentConfig) {
+        ferdigstillDokument.mutate(
+            { journalpostId, dokumentreferanse },
+            {
+                onSuccess: () => broadcastAndCloseWindow(document, config),
+            }
+        );
+    }
+
+    return (
+        <MaskingContainer>
+            <DokumentRedigering dokument={dokument} onSave={broadcastAndCloseWindow} onSubmit={saveAndFinishDocument} />
+        </MaskingContainer>
+    );
 }

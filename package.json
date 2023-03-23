@@ -8,24 +8,36 @@
     "start": "",
     "dev": "cross-env-shell NODE_ENV=development webpack serve --config webpack.dev.config.js",
     "dev:mock": "cross-env ENABLE_MOCK=true NODE_ENV=development webpack serve --config webpack.dev.config.js",
-    "build": "webpack --config webpack.prod.config.js"
+    "build": "webpack --config webpack.prod.config.js",
+    "types:dokument": "swagger-typescript-api -p https://bidrag-dokument-feature.dev.intern.nav.no/bidrag-dokument/v3/api-docs --axios -n BidragDokumentApi.ts -o src/api",
+    "types:forsendelse": "swagger-typescript-api -p https://bidrag-dokument-forsendelse-feature.dev.intern.nav.no/v3/api-docs --axios -n BidragDokumentForsendelseApi.ts -o src/api"
   },
   "dependencies": {
-    "@navikt/bidrag-ui-common": "1.3.3",
-    "@navikt/ds-css": "^1.2.4",
-    "@navikt/ds-css-internal": "^1.2.4",
-    "@navikt/ds-icons": "^1.2.4",
-    "@navikt/ds-react": "^1.2.4",
-    "@navikt/ds-react-internal": "^1.2.4",
-    "@navikt/ds-tailwind": "^1.2.4",
+    "@navikt/bidrag-ui-common": "1.4.2",
+    "@dnd-kit/modifiers": "^6.0.1",
+    "@dnd-kit/core": "^6.0.8",
+    "@navikt/ds-css": "^2.7.6",
+    "@hello-pangea/dnd": "^16.2.0",
+    "@navikt/ds-css-internal": "^2.7.6",
+    "@navikt/ds-icons": "^2.7.6",
+    "@navikt/ds-react": "^2.7.6",
+    "@navikt/ds-react-internal": "^2.7.6",
+    "@navikt/ds-tailwind": "^2.7.6",
     "express": "^4.18.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^2.15.349",
+    "re-resizable": "^6.9.9",
+    "core-js": "^3.29.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.3.0"
+    "react-router-dom": "^6.3.0",
+    "pdf-img-convert": "^1.2.0",
+    "react-query": "^3.39.3",
+    "@navikt/aksel-icons": "^2.7.7",
+    "assert": "^2.0.0"
   },
   "devDependencies": {
+    "swagger-typescript-api": "^12.0.3",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.7",
     "@types/pdfjs-dist": "^2.10.378",
     "@types/react": "^18.0.17",
@@ -59,20 +71,25 @@
     "postcss": "^8.4.16",
     "postcss-loader": "^6.2.1",
     "prettier": "^2.4.1",
-    "process": "^0.11.10",
     "react-refresh": "^0.14.0",
-    "tailwindcss": "^3.1.8",
-    "typescript": "^4.6.4",
-    "webpack": "^5.74.0",
-    "webpack-cli": "^4.10.0",
-    "webpack-dev-server": "^4.10.0",
+    "tailwindcss": "^3.2.7",
+    "typescript": "^4.9.5",
+    "webpack": "^5.76.1",
+    "webpack-cli": "^5.0.1",
+    "webpack-dev-server": "^4.11.1",
     "webpack-manifest-plugin": "^5.0.0",
     "webpack-merge": "^5.8.0",
-    "@swc/core": "^1.2.248",
+    "@swc/core": "^1.3.40",
     "@swc/register": "^0.1.10",
+    "process": "^0.11.10",
     "swc-loader": "^0.2.3"
   },
   "msw": {
     "workerDirectory": "public"
+  },
+  "browser": {
+    "fs": false,
+    "path": false,
+    "os": false
   }
 }
