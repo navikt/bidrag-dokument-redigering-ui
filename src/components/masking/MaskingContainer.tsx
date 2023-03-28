@@ -16,7 +16,8 @@ import { FocusKeyboardSensor } from "./GhostElementSensor";
 import { IMaskingItemProps } from "./MaskingItem";
 export interface MaskingContainerContextProps {
     items: IMaskingItemProps[];
-    addItem: (pageNumber: number) => void;
+    activeId: string;
+    addItem: (pageNumber: number, scale: number) => void;
     removeItem: (id: string) => void;
     updateItemDimensions: (itemId: string, width: number, height: number) => void;
     disableDrag: () => void;
@@ -42,6 +43,35 @@ function MaskingContainer({ children }: PropsWithChildren<unknown>) {
     function handleDragStart(event) {
         setActiveId(event.active.id);
     }
+    // useEffect(() => {
+    //     document.querySelector(".pdfviewer_container .pdfrenderer_container").addEventListener("scroll", () => {
+    //         console.log(document.querySelector(".pdfviewer_container .pdfrenderer_container").scrollTop);
+    //     });
+    // }, []);
+    function simulateMouseEvent(el, eventName) {
+        let event;
+        if (window.MouseEvent && typeof window.MouseEvent === "function") {
+            console.log("HERE", eventName);
+            event = new MouseEvent(eventName);
+            el.dispatchEvent(event);
+            const evt_2 = new DragEvent("dragstart");
+            el.dispatchEvent(evt_2);
+        }
+    }
+    // function onMouseMove(e) {
+    //     const ghosted = maskingItems.find((it) => it.ghosted);
+    //     console.log("HERsssE", ghosted);
+    //     if (ghosted) {
+    //         const itemElement = document.getElementById(ghosted.id).parentElement;
+    //         console.log("HERE", itemElement);
+    //         simulateMouseEvent(itemElement, "mousedown");
+    //     }
+    // }
+    // useEffect(() => {
+    //     const fun = (e) => onMouseMove(e);
+    //     document.addEventListener("mousemove", onMouseMove);
+    //     return () => document.removeEventListener("mousemove", onMouseMove);
+    // }, [maskingItems]);
     function updateItemDimensions(itemId: string, width: number, height: number) {
         setMaskingItems((items) => [
             ...items.map((item) => {
@@ -59,13 +89,14 @@ function MaskingContainer({ children }: PropsWithChildren<unknown>) {
             }),
         ]);
     }
-    function addItem(pageNumber: number) {
+    function addItem(pageNumber: number, scale: number) {
         const parentId = `droppable_page_${pageNumber}`;
-        const parentElement = document.getElementById(parentId).firstElementChild;
-        console.log(parentElement.clientHeight, parentElement.scrollHeight, parentId);
-        const x = parentElement.clientWidth / 2;
-        // const scrollTop = document.getElementById("pdf_document_pages").parentElement.scrollTop;
-        const y = -parentElement.clientHeight / 2;
+        const canvasElement = document.getElementById(parentId).querySelector("canvas");
+        const pdfContainer = document.querySelector(".pdfviewer_container .pdfrenderer_container");
+
+        const x = canvasElement.clientWidth / 2 / scale;
+        const scrollOffsett = pdfContainer.scrollTop - (pageNumber - 1) * canvasElement.clientHeight;
+        const y = (-canvasElement.clientHeight + scrollOffsett + 200) / scale;
         setMaskingItems((items) => [
             ...items,
             {
@@ -73,15 +104,12 @@ function MaskingContainer({ children }: PropsWithChildren<unknown>) {
                 id: uuidV4(),
                 coordinates: { x: x, y: y, height: 50, width: 200 },
                 pageNumber,
-                parentCoordinates: {
-                    maxHeight: parentElement.clientHeight,
-                    maxWidth: parentElement.clientWidth,
-                },
             },
         ]);
     }
 
     function removeItem(id: string) {
+        console.log("REMOVE", id);
         setMaskingItems((items) => [...items.filter((item) => item.id !== id)]);
     }
     function onDragEnd(event: DragEndEvent) {
@@ -92,7 +120,6 @@ function MaskingContainer({ children }: PropsWithChildren<unknown>) {
         setMaskingItems((items) => [
             ...items.map((item) => {
                 if (item.id == itemId) {
-                    console.log("PARENT", event.over?.id ?? item.parentId);
                     const isAnotherParent = event.over?.id;
                     return {
                         ...item,
@@ -144,15 +171,12 @@ function MaskingContainer({ children }: PropsWithChildren<unknown>) {
                 y: 0,
             };
         }
-        const scale = args.active?.data?.current?.scale ?? 1;
-        console.log("HERE", transform, scale);
         return {
             ...transform,
             x: transform.x,
             y: transform.y,
         };
     }
-    const draggingItem = maskingItems.find((item) => item.id == activeId);
     return (
         <DndContext
             onDragStart={handleDragStart}
@@ -163,6 +187,7 @@ function MaskingContainer({ children }: PropsWithChildren<unknown>) {
             <MaskingContainerContext.Provider
                 value={{
                     items: maskingItems,
+                    activeId,
                     addItem,
                     disableDrag: () => setDragDisabled(true),
                     enableDrag: () => setDragDisabled(false),
@@ -170,10 +195,14 @@ function MaskingContainer({ children }: PropsWithChildren<unknown>) {
                     updateItemDimensions,
                 }}
             >
-                <>
+                <div
+                    onClick={() => {
+                        setActiveId(null);
+                    }}
+                >
                     {/*<DragOverlay>{draggingItem ? <MaskingItem {...draggingItem} /> : null}</DragOverlay>*/}
                     {children}
-                </>
+                </div>
             </MaskingContainerContext.Provider>
         </DndContext>
     );

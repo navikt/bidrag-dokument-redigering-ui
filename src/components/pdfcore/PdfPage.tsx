@@ -1,5 +1,6 @@
+import { AnnotationMode } from "pdfjs-dist";
+import * as pdfjsLib from "pdfjs-dist";
 import {
-    DefaultAnnotationLayerFactory,
     DefaultStructTreeLayerFactory,
     DefaultTextLayerFactory,
     DefaultXfaLayerFactory,
@@ -25,7 +26,6 @@ const PdfPage = (props: PdfPageProps) => {
 };
 
 type PdfPageMemoProps = PdfPageProps & PdfDocumentContextProps;
-
 const PdfPageMemo = React.memo(
     ({
         pdfDocument,
@@ -64,8 +64,8 @@ const PdfPageMemo = React.memo(
 
         useEffect(() => {
             if (pdfPageViewRef.current) {
-                pdfPageViewRef.current.update({ scale });
-                console.log("pdfPageViewRef", pdfPageViewRef.current.viewport.scale, "setting", scale);
+                const scaleAdjusted = scale / pdfjsLib.PixelsPerInch.PDF_TO_CSS_UNITS;
+                pdfPageViewRef.current.update({ scale: scaleAdjusted });
             }
         }, [scale]);
 
@@ -93,19 +93,23 @@ const PdfPageMemo = React.memo(
         function renderPage() {
             return pdfDocument.getPage(pageNumber).then((page) => {
                 const eventBus = new EventBus();
+                const scaleAdjusted = scale / pdfjsLib.PixelsPerInch.PDF_TO_CSS_UNITS;
+
                 // @ts-ignore
                 pdfPageViewRef.current = new PDFPageView({
                     container: divRef.current,
                     id: pageNumber,
-                    scale,
-                    defaultViewport: page.getViewport({ scale }),
+                    scale: scaleAdjusted,
+                    defaultViewport: page.getViewport({ scale: scaleAdjusted }),
                     eventBus,
                     textLayerFactory: renderText
                         ? !pdfDocument.isPureXfa
                             ? new DefaultTextLayerFactory()
                             : null
                         : null,
-                    annotationLayerFactory: renderText ? new DefaultAnnotationLayerFactory() : null,
+                    useOnlyCssZoom: true,
+                    maxCanvasPixels: -1,
+                    annotationMode: AnnotationMode.ENABLE,
                     xfaLayerFactory: renderText ? (pdfDocument.isPureXfa ? new DefaultXfaLayerFactory() : null) : null,
                     structTreeLayerFactory: renderText ? new DefaultStructTreeLayerFactory() : null,
                 });

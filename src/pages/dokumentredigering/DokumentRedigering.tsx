@@ -9,6 +9,8 @@ import { Loader } from "@navikt/ds-react";
 import React, { useEffect } from "react";
 import { useState } from "react";
 import { PropsWithChildren } from "react";
+import { useRef } from "react";
+import { createPortal } from "react-dom";
 
 import { useMaskingContainer } from "../../components/masking/MaskingContainer";
 import MaskingItem from "../../components/masking/MaskingItem";
@@ -28,7 +30,7 @@ interface DokumentRedigeringContainerProps {
 export default function DokumentRedigering({ dokument, onSave, onSubmit }: DokumentRedigeringContainerProps) {
     const [isLoading, setIsLoading] = useState(true);
     const { items } = useMaskingContainer();
-    const [scale, setScale] = useState(1);
+    const [scale, setScale] = useState(1.4);
     const [thumbnailsHidden, setThumbnailsHidden] = useState(false);
     const [pagesCount, setPagesCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
@@ -43,9 +45,12 @@ export default function DokumentRedigering({ dokument, onSave, onSubmit }: Dokum
     function listener(e) {
         if (e.ctrlKey) {
             e.preventDefault();
-            console.log(e);
-            console.log(e.wheelDelta);
+            const mousePosition = { x: e.pageX, y: e.pageY };
+            // console.log("MOUSE POST", mousePosition);
             const wheelDelta = e.wheelDelta;
+            // document
+            //     .querySelector(".pdfviewer_container .pdfrenderer_container")
+            //     .scrollTo(mousePosition.x / 2, mousePosition.y / 2);
             if (wheelDelta > 0) {
                 onZoomOut();
             } else {
@@ -105,6 +110,10 @@ export default function DokumentRedigering({ dokument, onSave, onSubmit }: Dokum
         setScale((prev) => Math.max(0, prev - 0.2));
     }
 
+    function resetZoom() {
+        setScale(1.4);
+    }
+
     function onToggleSidebar() {
         setThumbnailsHidden((prev) => !prev);
     }
@@ -137,9 +146,11 @@ export default function DokumentRedigering({ dokument, onSave, onSubmit }: Dokum
             <div className={"editor"} style={{ visibility: isLoading ? "hidden" : "unset" }}>
                 <EditorToolbar
                     onToggleSidebar={onToggleSidebar}
+                    resetZoom={resetZoom}
                     onZoomOut={onZoomOut}
                     onZoomIn={onZoomIn}
                     pagesCount={editedPagesCount}
+                    scale={scale}
                     showSubmitButton={onSubmit != undefined}
                 />
                 <PdfViewer
@@ -166,6 +177,7 @@ export default function DokumentRedigering({ dokument, onSave, onSubmit }: Dokum
 
 function PageDecorator({ children, pageNumber, scale }: PropsWithChildren<{ pageNumber: number; scale: number }>) {
     const id = `droppable_page_${pageNumber}`;
+    const divRef = useRef<HTMLDivElement>(null);
     const { removedPages } = usePdfEditorContext();
     const { isOver, setNodeRef } = useDroppable({
         id,
@@ -174,7 +186,7 @@ function PageDecorator({ children, pageNumber, scale }: PropsWithChildren<{ page
     const getPageHeight = () => {
         const element = document.getElementById(id)?.getElementsByClassName("pagecontainer");
         if (element && element.length > 0) {
-            return element.item(0).clientHeight + 15;
+            return element.item(0).clientHeight;
         }
         return 0;
     };
@@ -193,13 +205,27 @@ function PageDecorator({ children, pageNumber, scale }: PropsWithChildren<{ page
     });
 
     return (
-        <div id={id} ref={setNodeRef} className={`page_decorator ${isDeleted ? "deleted" : ""}`} style={style}>
+        <div
+            id={id}
+            ref={(ref) => {
+                setNodeRef(ref);
+                divRef.current = ref;
+            }}
+            className={`page_decorator ${isDeleted ? "deleted" : ""}`}
+            style={style}
+        >
             {children}
-            {items
-                .filter((item) => item.parentId == id)
-                .map((item) => (
-                    <MaskingItem {...item} scale={scale} />
-                ))}
+            {divRef.current?.querySelector(".page") &&
+                createPortal(
+                    <>
+                        {items
+                            .filter((item) => item.parentId == id)
+                            .map((item) => (
+                                <MaskingItem {...item} scale={scale} />
+                            ))}
+                    </>,
+                    divRef.current.querySelector(".page")
+                )}
         </div>
     );
 }

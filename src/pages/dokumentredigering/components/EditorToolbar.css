@@ -1,0 +1,35 @@
+.editor_toolbar {
+  background-color: var(--a-gray-800);
+  height: max-content;
+}
+
+.editor_toolbar .divider {
+  height: 20px;
+  margin-bottom: 5px;
+  margin-right: 5px;
+  margin-left: 5px;
+  border-right: 1px solid var(--a-border-on-inverted);
+}
+.editor_toolbar div {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 0px;
+}
+.editor_toolbar div .buttons_left {
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+.editor_toolbar div .buttons_right {
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+.editor_toolbar div .pages_view {
+  align-items: center;
+  color: white;
+  justify-content: center;
+}
+.editor_toolbar div button {
+  margin: 5px 10px;
+  color: black;
+}

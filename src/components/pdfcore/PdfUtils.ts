@@ -1,6 +1,21 @@
 export type ScrollDirection = "up" | "down";
 
+export const PDF_MARGIN_PIXELS = 15;
 export default class PdfUtils {
+    static getCanvasSize(containerElement: HTMLElement): {
+        height: number;
+        width: number;
+        canvasHeight: number;
+        canvasWidth: number;
+    } {
+        const canvas = containerElement.querySelector(`.page canvas`) as HTMLCanvasElement;
+        return {
+            height: canvas.clientHeight,
+            width: canvas.clientWidth,
+            canvasHeight: canvas.height,
+            canvasWidth: canvas.width,
+        };
+    }
     static getPageElement(containerElement: HTMLDivElement, pageNumber: number) {
         return containerElement.querySelector(`.page[data-page-number="${pageNumber}"]`);
     }

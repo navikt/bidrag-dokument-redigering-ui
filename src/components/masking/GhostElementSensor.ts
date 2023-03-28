@@ -1,22 +1,17 @@
 import { PointerEventHandlers } from "@dnd-kit/core";
-import { MouseSensor } from "@dnd-kit/core";
-import { DraggableNode } from "@dnd-kit/core/dist/store";
+import { PointerSensor } from "@dnd-kit/core";
+import { PointerSensorOptions } from "@dnd-kit/core/dist/sensors/pointer/PointerSensor";
+import { PointerEvent } from "react";
 const events: PointerEventHandlers = {
     move: { name: "focus" },
     end: { name: "mouseup" },
 };
-export class FocusKeyboardSensor extends MouseSensor {
+export class FocusKeyboardSensor extends PointerSensor {
     static activators = [
         {
-            eventName: "onFocus" as const,
-            handler(
-                event: any,
-                options: any,
-                context: {
-                    active: DraggableNode;
-                }
-            ) {
-                console.log(context, event, options);
+            eventName: "onPointerDown" as const,
+            handler({ nativeEvent: event }: PointerEvent, { onActivation }: PointerSensorOptions) {
+                console.log("SENSOR", event, onActivation);
                 return true;
             },
         },

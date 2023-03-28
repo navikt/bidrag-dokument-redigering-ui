@@ -72,10 +72,10 @@ export class PdfProducer {
             .sort((a, b) => (a.pageNumber > b.pageNumber ? 1 : -1))
             .forEach((item) => {
                 const page = this.pdfDocument.getPage(item.pageNumber - 1);
-                const relativeScale = page.getHeight() / item.parentCoordinates.maxHeight;
+                const relativeScale = 1;
                 const coordinates = {
                     x: item.coordinates.x * relativeScale,
-                    y: (-item.coordinates.y - item.coordinates.height - 15) * relativeScale,
+                    y: (-item.coordinates.y - item.coordinates.height) * relativeScale,
                     width: item.coordinates.width * relativeScale,
                     height: item.coordinates.height * relativeScale,
                     color: rgb(1, 1, 1),

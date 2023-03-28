@@ -17,7 +17,6 @@ import { PdfDocumentContext } from "./PdfDocumentContext";
 import PdfUtils, { ScrollDirection } from "./PdfUtils";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `${environment.url.static_url}/pdf.worker.js`;
-
 export interface PdfDocumentRef {
     documentElement: HTMLDivElement;
     scrollToPage: (pageNumber: number) => void;

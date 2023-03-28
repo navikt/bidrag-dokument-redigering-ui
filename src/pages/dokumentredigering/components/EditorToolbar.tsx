@@ -1,5 +1,9 @@
+import "./EditorToolbar.css";
+
 import { EraserIcon, EyeIcon } from "@navikt/aksel-icons";
-import { Add, Minus } from "@navikt/ds-icons";
+import { ArrowUndoIcon } from "@navikt/aksel-icons";
+import { MinusIcon } from "@navikt/aksel-icons";
+import { Add } from "@navikt/ds-icons";
 import { Hamburger } from "@navikt/ds-icons";
 import { Button } from "@navikt/ds-react";
 import React from "react";
@@ -13,13 +17,17 @@ interface EditorToolbarProps {
     showSubmitButton?: boolean;
     onZoomIn: () => void;
     onZoomOut: () => void;
+    resetZoom: () => void;
     onToggleSidebar: () => void;
+    scale: number;
 }
 export default function EditorToolbar({
     pagesCount,
     onZoomIn,
     onZoomOut,
+    resetZoom,
     onToggleSidebar,
+    scale,
     showSubmitButton,
 }: EditorToolbarProps) {
     const { addItem } = useMaskingContainer();
@@ -37,33 +45,54 @@ export default function EditorToolbar({
                     </Button>
                 </div>
                 <div className={"pages_view"}>
-                    <div>
+                    <Button
+                        onClick={resetZoom}
+                        size={"small"}
+                        variant={"tertiary-neutral"}
+                        style={{ color: "white" }}
+                        icon={<ArrowUndoIcon />}
+                    />
+                    <Button
+                        onClick={onZoomOut}
+                        size={"small"}
+                        variant={"tertiary-neutral"}
+                        style={{ color: "white" }}
+                        icon={<MinusIcon />}
+                    />
+                    <Button
+                        onClick={onZoomIn}
+                        size={"small"}
+                        variant={"tertiary-neutral"}
+                        style={{ color: "white" }}
+                        icon={<Add />}
+                    />
+                    <div className={"divider"}></div>
+                    <div style={{ marginLeft: "10px", marginRight: "10px" }}>
                         {currentPageNotIncludingRemoved} av {pagesCount}
                     </div>
-                </div>
-                <div className={"buttons_right"}>
+                    <div className={"divider"}></div>
                     <Button
                         onClick={previewPdf}
                         size={"small"}
-                        variant={"tertiary"}
+                        variant={"tertiary-neutral"}
                         style={{ color: "white" }}
                         icon={<EyeIcon />}
-                    />
+                        iconPosition={"left"}
+                    >
+                        Vis
+                    </Button>
                     <Button
-                        onClick={() => addItem(currentPage)}
+                        onClick={() => addItem(currentPage, scale)}
                         size={"small"}
-                        variant={"tertiary"}
+                        variant={"tertiary-neutral"}
                         style={{ color: "white" }}
                         icon={<EraserIcon />}
-                    />
-                    <Button onClick={onZoomOut} size={"small"} variant={"tertiary"} style={{ color: "white" }}>
-                        <Minus />
+                        iconPosition={"left"}
+                    >
+                        Masker
                     </Button>
-                    <Button onClick={onZoomIn} size={"small"} variant={"tertiary"} style={{ color: "white" }}>
-                        <Add />
-                    </Button>
-
-                    <div className={"divider"}></div>
+                </div>
+                <div className={"buttons_right"}>
                     <SavePdfButton />
                     {showSubmitButton && <FinishPdfButton />}
                 </div>

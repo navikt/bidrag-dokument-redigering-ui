@@ -2,8 +2,10 @@ import "./ThumbnailPageDecorator.less";
 
 import { AddCircleFilled, DeleteFilled } from "@navikt/ds-icons";
 import React, { CSSProperties, PropsWithChildren, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useMaskingContainer } from "../../../components/masking/MaskingContainer";
+import MaskingItem from "../../../components/masking/MaskingItem";
 import { usePdfEditorContext } from "./PdfEditorContext";
 
 interface ThumbnailPageDecoratorProps extends PropsWithChildren<unknown> {
@@ -18,7 +20,6 @@ export default function ThumbnailPageDecorator({ children, pageNumber, isLoading
     const isDeleted = removedPages.includes(pageNumber);
     const [mouseOver, setMouseOver] = useState(false);
     const id = `thumbnail_page_${pageNumber}`;
-
     return (
         <div
             onMouseOver={() => setMouseOver(true)}
@@ -27,11 +28,18 @@ export default function ThumbnailPageDecorator({ children, pageNumber, isLoading
             className={`thumbnail_decorator ${isDeleted ? "deleted" : ""}`}
         >
             {children}
-            {/*{items*/}
-            {/*    .filter((item) => item.pageNumber == pageNumber)*/}
-            {/*    .map((item) => (*/}
-            {/*        <MaskingItem {...item} id={id} scale={0.1} />*/}
-            {/*    ))}*/}
+            {decoratorRef.current?.querySelector(".page") &&
+                createPortal(
+                    <>
+                        {items
+                            .filter((item) => item.pageNumber == pageNumber)
+                            .map((item) => (
+                                <MaskingItem {...item} id={id + "_" + item.id} scale={0.3} />
+                            ))}
+                    </>,
+                    decoratorRef.current.querySelector(".page")
+                )}
+
             <ThumbnailPageToolbar
                 hidden={!mouseOver}
                 onToggleDelete={() => toggleDeletedPage(pageNumber)}
