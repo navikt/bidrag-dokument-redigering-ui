@@ -14,6 +14,11 @@ interface ICoordinates {
     width: number;
     height: number;
 }
+
+interface IResizeDelta {
+    width: number;
+    height: number;
+}
 export interface IMaskingItemProps {
     id: string;
     ghosted?: boolean;
@@ -23,7 +28,6 @@ export interface IMaskingItemProps {
     pageNumber: number;
 }
 export default function MaskingItem({ id, coordinates, ghosted, scale }: IMaskingItemProps) {
-    const [height, setHeight] = useState(coordinates.height);
     const [coordinatesResizeStart, setCoordinatesResizeStart] = useState<ICoordinates>(coordinates);
     const disabled = useRef(false);
     const scaleRef = useRef(scale);
@@ -63,10 +67,17 @@ export default function MaskingItem({ id, coordinates, ghosted, scale }: IMaskin
         };
     };
 
-    const coordinatesScaled = getCoordinatesScaled();
-    // console.log("MaskinItem", id, coordinates.x, coordinates.y, scale, coordinatesScaled.x, coordinatesScaled.y);
-    const isHighlighted = activeId == id;
+    const getCoordinatesAfterResize = (delta: IResizeDelta): ICoordinates => {
+        return {
+            ...coordinatesResizeStart,
+            width: coordinatesResizeStart.width + delta.width / scale,
+            height: coordinatesResizeStart.height + delta.height / scale,
+        };
+    };
 
+    const coordinatesScaled = getCoordinatesScaled();
+    const isHighlighted = activeId == id;
+    console.log(id, coordinatesScaled, scale);
     return (
         <>
             {isHighlighted && !isDragging && <Toolbar id={id} coordinates={coordinatesScaled} />}
@@ -85,24 +96,23 @@ export default function MaskingItem({ id, coordinates, ghosted, scale }: IMaskin
                     left: `${coordinatesScaled.x}px`,
                     width: `${coordinatesScaled.width}px`,
                     height: `${coordinatesScaled.height}px`,
-                    marginBottom: `${-height * scale}px`,
+                    marginBottom: `${-coordinatesScaled.height}px`,
                     ...style,
                 }}
                 onResize={(e, direction, ref, d) => {
-                    setHeight(coordinates.height + d.height / scale);
+                    const coordinates = getCoordinatesAfterResize(d);
+                    updateItemDimensions(id, coordinates.width, coordinates.height);
+                    document.getElementById(id).style.marginBottom = `${-coordinates.height * scale}px`;
                 }}
                 onResizeStart={() => {
                     disabled.current = true;
                     disableDrag();
+                    setCoordinatesResizeStart(coordinates);
                 }}
                 size={{ width: `${coordinatesScaled.width}px`, height: `${coordinatesScaled.height}px` }}
                 onResizeStop={(e, direction, ref, d) => {
-                    updateItemDimensions(
-                        id,
-                        coordinates.width + d.width / scale,
-                        coordinates.height + d.height / scale
-                    );
-                    setHeight(coordinates.height + d.height / scale);
+                    const coordinates = getCoordinatesAfterResize(d);
+                    updateItemDimensions(id, coordinates.width, coordinates.height);
                     disabled.current = false;
                     enableDrag();
                 }}

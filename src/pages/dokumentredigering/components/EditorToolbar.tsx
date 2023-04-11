@@ -37,7 +37,12 @@ export default function EditorToolbar({
     }
     const currentPageNotIncludingRemoved = currentPage - removedPagesBefore(currentPage).length;
     return (
-        <div className={"editor_toolbar"}>
+        <div
+            className={"editor_toolbar"}
+            onClick={(e) => {
+                e.stopPropagation();
+            }}
+        >
             <div className={"toolbar_content"}>
                 <div className={"buttons_left"}>
                     <Button onClick={onToggleSidebar} size={"small"} variant={"tertiary"} style={{ color: "white" }}>

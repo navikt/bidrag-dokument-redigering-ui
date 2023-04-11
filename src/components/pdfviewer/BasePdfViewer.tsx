@@ -4,13 +4,17 @@ import PdfDocument, { PdfDocumentRef } from "../pdfcore/PdfDocument";
 import PdfPage from "../pdfcore/PdfPage";
 import { ScrollDirection } from "../pdfcore/PdfUtils";
 import { usePdfViewerContext } from "./PdfViewerContext";
+
+export type emptyFn = () => void;
+export type renderPageChildrenFn = (emptyFn) => ReactNode;
+export type renderPageFn = (pageNumber: number, children: renderPageChildrenFn) => ReactNode;
 interface BasePdfRendererProps {
     scale?: number;
     pages?: number[];
     baseDocumentRef: MutableRefObject<PdfDocumentRef>;
     onPageChange?: (pageNumber: number, previousPageNumber: number) => void;
     onDocumentLoaded?: (pagesCount: number, pages: number[]) => void;
-    renderPage?: (pageNumber: number, children: ReactNode) => ReactNode;
+    renderPage?: renderPageFn;
     onScroll?: (currentPageNumber: number, scrollDirection: ScrollDirection) => void;
 }
 export default function BasePdfViewer({
@@ -41,8 +45,16 @@ export default function BasePdfViewer({
             onDocumentLoaded={_onDocumentLoaded}
         >
             {pages.map((pageNumber, index) => {
-                const pageToRender = <PdfPage pageNumber={pageNumber} index={index} key={"doc_page_index_" + index} />;
-                return renderPage ? renderPage(pageNumber, pageToRender) : pageToRender;
+                const pageToRender = (onPageRendered?: emptyFn): ReactNode => (
+                    <PdfPage
+                        pageNumber={pageNumber}
+                        index={index}
+                        key={"doc_page_index_" + index}
+                        pageRendered={onPageRendered}
+                    />
+                );
+
+                return renderPage ? renderPage(pageNumber, pageToRender) : pageToRender();
             })}
         </PdfDocument>
     );

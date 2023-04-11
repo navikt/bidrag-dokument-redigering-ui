@@ -16,6 +16,7 @@ import { FocusKeyboardSensor } from "./GhostElementSensor";
 import { IMaskingItemProps } from "./MaskingItem";
 export interface MaskingContainerContextProps {
     items: IMaskingItemProps[];
+    init: (items: IMaskingItemProps[]) => void;
     activeId: string;
     addItem: (pageNumber: number, scale: number) => void;
     removeItem: (id: string) => void;
@@ -35,8 +36,8 @@ function useMaskingContainer() {
     return context;
 }
 
-function MaskingContainer({ children }: PropsWithChildren<unknown>) {
-    const [maskingItems, setMaskingItems] = useState<IMaskingItemProps[]>([]);
+function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMaskingItemProps[] }>) {
+    const [maskingItems, setMaskingItems] = useState<IMaskingItemProps[]>(items ?? []);
     const [activeId, setActiveId] = useState(null);
     const [dragDisabled, setDragDisabled] = useState(false);
     const sensors = useSensors(useSensor(FocusKeyboardSensor));
@@ -112,6 +113,7 @@ function MaskingContainer({ children }: PropsWithChildren<unknown>) {
         console.log("REMOVE", id);
         setMaskingItems((items) => [...items.filter((item) => item.id !== id)]);
     }
+    console.log(maskingItems);
     function onDragEnd(event: DragEndEvent) {
         setDragDisabled(false);
         const itemId = event.active.id;
@@ -188,6 +190,7 @@ function MaskingContainer({ children }: PropsWithChildren<unknown>) {
                 value={{
                     items: maskingItems,
                     activeId,
+                    init: setMaskingItems,
                     addItem,
                     disableDrag: () => setDragDisabled(true),
                     enableDrag: () => setDragDisabled(false),

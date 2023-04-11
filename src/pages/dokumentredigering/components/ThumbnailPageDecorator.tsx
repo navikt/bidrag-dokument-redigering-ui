@@ -1,25 +1,31 @@
 import "./ThumbnailPageDecorator.less";
 
 import { AddCircleFilled, DeleteFilled } from "@navikt/ds-icons";
+import { Checkbox, Heading } from "@navikt/ds-react";
 import React, { CSSProperties, PropsWithChildren, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { useMaskingContainer } from "../../../components/masking/MaskingContainer";
 import MaskingItem from "../../../components/masking/MaskingItem";
+import { renderPageChildrenFn } from "../../../components/pdfviewer/BasePdfViewer";
 import { usePdfEditorContext } from "./PdfEditorContext";
 
 interface ThumbnailPageDecoratorProps extends PropsWithChildren<unknown> {
     pageNumber: number;
     isLoading: boolean;
+
+    renderPageFn: renderPageChildrenFn;
 }
 
-export default function ThumbnailPageDecorator({ children, pageNumber, isLoading }: ThumbnailPageDecoratorProps) {
+export default function ThumbnailPageDecorator({ renderPageFn, pageNumber, isLoading }: ThumbnailPageDecoratorProps) {
     const { items } = useMaskingContainer();
     const decoratorRef = useRef<HTMLDivElement>();
+    const [pageRef, setPageRef] = useState<Element>(null);
     const { removedPages, toggleDeletedPage } = usePdfEditorContext();
     const isDeleted = removedPages.includes(pageNumber);
     const [mouseOver, setMouseOver] = useState(false);
     const id = `thumbnail_page_${pageNumber}`;
+
     return (
         <div
             onMouseOver={() => setMouseOver(true)}
@@ -27,8 +33,22 @@ export default function ThumbnailPageDecorator({ children, pageNumber, isLoading
             ref={decoratorRef}
             className={`thumbnail_decorator ${isDeleted ? "deleted" : ""}`}
         >
-            {children}
-            {decoratorRef.current?.querySelector(".page") &&
+            {pageNumber == 1 && (
+                <div className={"pl-2"}>
+                    <Checkbox
+                        onClick={() => {
+                            toggleDeletedPage(pageNumber);
+                            toggleDeletedPage(pageNumber + 1);
+                        }}
+                    >
+                        <Heading size={"xsmall"} style={{ color: "white" }}>
+                            Tittel på dokumentet
+                        </Heading>
+                    </Checkbox>
+                </div>
+            )}
+            {renderPageFn(() => setPageRef(decoratorRef.current?.querySelector(".page")))}
+            {pageRef &&
                 createPortal(
                     <>
                         {items
@@ -37,7 +57,8 @@ export default function ThumbnailPageDecorator({ children, pageNumber, isLoading
                                 <MaskingItem {...item} id={id + "_" + item.id} scale={0.3} />
                             ))}
                     </>,
-                    decoratorRef.current.querySelector(".page")
+                    pageRef,
+                    id + "_masking"
                 )}
 
             <ThumbnailPageToolbar

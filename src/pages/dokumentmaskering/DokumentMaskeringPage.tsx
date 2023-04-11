@@ -6,13 +6,13 @@ import { FileUtils } from "@navikt/bidrag-ui-common";
 import { BroadcastNames } from "@navikt/bidrag-ui-common";
 import { EditDocumentConfig } from "@navikt/bidrag-ui-common";
 import React from "react";
-import { useEffect, useState } from "react";
-import { useMutation } from "react-query";
 
-import { BIDRAG_FORSENDELSE_API } from "../../api/api";
-import { lastDokumenter } from "../../api/queries";
+import { ferdigstillDokument, lastDokumenter } from "../../api/queries";
+import { lagreEndringer } from "../../api/queries";
+import { hentRedigeringmetadata } from "../../api/queries";
 import LoadingIndicator from "../../components/LoadingIndicator";
 import { MaskingContainer } from "../../components/masking/MaskingContainer";
+import { uint8ToBase64 } from "../../components/utils/DocumentUtils";
 import DokumentRedigering from "../dokumentredigering/DokumentRedigering";
 import PageWrapper from "../PageWrapper";
 
@@ -32,20 +32,10 @@ export default function DokumentMaskeringPage(props: DokumentMaskeringPageProps)
 }
 
 function DokumentMaskeringContainer({ journalpostId, dokumentreferanse }: DokumentMaskeringPageProps) {
-    const [isLoading, setIsLoading] = useState(true);
-
-    const dokument = lastDokumenter(journalpostId, dokumentreferanse, null, true, false);
-    const ferdigstillDokument = useMutation<any, any, { journalpostId: string; dokumentreferanse: string }>(
-        "ferdigstillDokument",
-        ({ journalpostId, dokumentreferanse }) => {
-            return BIDRAG_FORSENDELSE_API.api.ferdigstillDokument(journalpostId, dokumentreferanse);
-        }
-    );
-    useEffect(() => {
-        if (dokument) {
-            setIsLoading(false);
-        }
-    }, [dokument]);
+    const { data: dokument, isLoading } = lastDokumenter(journalpostId, dokumentreferanse, null, true, false);
+    const defaultConfig = hentRedigeringmetadata(journalpostId, dokumentreferanse).data;
+    const lagreEndringerFn = lagreEndringer(journalpostId, dokumentreferanse);
+    const ferdigstillDokumentFn = ferdigstillDokument(journalpostId, dokumentreferanse);
 
     if (isLoading) {
         return <LoadingIndicator title="Laster dokument..." />;
@@ -67,18 +57,31 @@ function DokumentMaskeringContainer({ journalpostId, dokumentreferanse }: Dokume
         window.close();
     }
 
-    function saveAndFinishDocument(document: Uint8Array, config: EditDocumentConfig) {
-        ferdigstillDokument.mutate(
-            { journalpostId, dokumentreferanse },
+    function saveDocument(config: EditDocumentConfig) {
+        lagreEndringerFn.mutate(config);
+    }
+
+    function saveAndFinishDocument(fysiskDokument: Uint8Array, config: EditDocumentConfig) {
+        ferdigstillDokumentFn.mutate(
             {
-                onSuccess: () => broadcastAndCloseWindow(document, config),
+                fysiskDokument: uint8ToBase64(fysiskDokument),
+                redigeringMetadata: JSON.stringify(config),
+            },
+            {
+                onSuccess: () => broadcastAndCloseWindow(fysiskDokument, config),
             }
         );
     }
 
     return (
-        <MaskingContainer>
-            <DokumentRedigering dokument={dokument} onSave={broadcastAndCloseWindow} onSubmit={saveAndFinishDocument} />
+        // @ts-ignore
+        <MaskingContainer items={defaultConfig.items}>
+            <DokumentRedigering
+                dokument={dokument}
+                onSave={saveDocument}
+                onSubmit={saveAndFinishDocument}
+                defaultConfig={defaultConfig as EditDocumentConfig}
+            />
         </MaskingContainer>
     );
 }

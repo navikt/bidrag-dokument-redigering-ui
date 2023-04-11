@@ -32,7 +32,7 @@ export default function DokumentRedigeringPage(props: DokumentRedigeringPageProp
 function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumenter }: DokumentRedigeringPageProps) {
     const [isLoading, setIsLoading] = useState(true);
 
-    const dokument = lastDokumenter(journalpostId, dokumentreferanse, dokumenter, true, false);
+    const { data: dokument } = lastDokumenter(journalpostId, dokumentreferanse, dokumenter, true, false);
 
     useEffect(() => {
         if (dokument) {
@@ -55,7 +55,7 @@ function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumen
         });
         Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
     }
-    function broadcastAndCloseWindow(document: Uint8Array, config: EditDocumentConfig) {
+    function broadcastAndCloseWindow(config: EditDocumentConfig, document: Uint8Array) {
         broadcast(document, config);
         window.close();
     }

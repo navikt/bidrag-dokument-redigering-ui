@@ -8,13 +8,14 @@ import { queryParams } from "@navikt/bidrag-ui-common";
 import { Loader } from "@navikt/ds-react";
 import React, { useEffect } from "react";
 import { useState } from "react";
-import { PropsWithChildren } from "react";
 import { useRef } from "react";
 import { createPortal } from "react-dom";
 
 import { useMaskingContainer } from "../../components/masking/MaskingContainer";
 import MaskingItem from "../../components/masking/MaskingItem";
+import PdfUtils from "../../components/pdfcore/PdfUtils";
 import { PdfDocumentType } from "../../components/pdfview/types";
+import { renderPageChildrenFn } from "../../components/pdfviewer/BasePdfViewer";
 import PdfViewer from "../../components/pdfviewer/PdfViewer";
 import { PdfProducer } from "../../pdf/PdfProducer";
 import EditorToolbar from "./components/EditorToolbar";
@@ -23,13 +24,19 @@ import { usePdfEditorContext } from "./components/PdfEditorContext";
 import ThumbnailPageDecorator from "./components/ThumbnailPageDecorator";
 
 interface DokumentRedigeringContainerProps {
+    defaultConfig?: EditDocumentConfig;
     dokument: PdfDocumentType;
-    onSave: (document: Uint8Array, config: EditDocumentConfig) => void;
+    onSave: (config: EditDocumentConfig, document?: Uint8Array) => void;
     onSubmit?: (document: Uint8Array, config: EditDocumentConfig) => void;
 }
-export default function DokumentRedigering({ dokument, onSave, onSubmit }: DokumentRedigeringContainerProps) {
+export default function DokumentRedigering({
+    dokument,
+    onSave,
+    onSubmit,
+    defaultConfig,
+}: DokumentRedigeringContainerProps) {
     const [isLoading, setIsLoading] = useState(true);
-    const { items } = useMaskingContainer();
+    const { items, init: initMasking } = useMaskingContainer();
     const [scale, setScale] = useState(1.4);
     const [thumbnailsHidden, setThumbnailsHidden] = useState(false);
     const [pagesCount, setPagesCount] = useState(0);
@@ -48,23 +55,42 @@ export default function DokumentRedigering({ dokument, onSave, onSubmit }: Dokum
             const mousePosition = { x: e.pageX, y: e.pageY };
             // console.log("MOUSE POST", mousePosition);
             const wheelDelta = e.wheelDelta;
-            // document
-            //     .querySelector(".pdfviewer_container .pdfrenderer_container")
-            //     .scrollTo(mousePosition.x / 2, mousePosition.y / 2);
-            if (wheelDelta > 0) {
-                onZoomOut();
-            } else {
-                onZoomIn();
-            }
+            const containerElement = PdfUtils.getPdfContainerElement();
+            const scrollY = containerElement.scrollTop;
+            const scrollX = containerElement.scrollLeft;
+            const rect = containerElement.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const delta = e.deltaY;
+            const newZoom = scale + delta * 0.001;
+            const newScale = newZoom / scale;
+            const newScrollX = mouseX * newScale - mouseX;
+            const newScrollY = mouseY * newScale - mouseY;
+            console.log(
+                "scrollY",
+                newScrollY,
+                "scrollX",
+                newScrollX,
+                "delta",
+                mouseX,
+                mouseY,
+                newZoom,
+                newZoom / scale,
+                scale
+            );
+
+            // setScale(newScale);
+            // containerElement.scrollLeft += newScrollX;
+            // containerElement.scrollTop += newScrollY;
         }
     }
     useEffect(() => {
-        document.addEventListener("wheel", listener, {
+        PdfUtils.getPdfContainerElement().addEventListener("wheel", listener, {
             capture: true,
             passive: false,
         });
-        return () => document.removeEventListener("wheel", listener);
-    }, []);
+        return () => PdfUtils.getPdfContainerElement().removeEventListener("wheel", listener);
+    }, [scale]);
 
     async function getProcessedPdf(): Promise<{ dokument: Uint8Array; config: EditDocumentConfig }> {
         let existingPdfBytes = dokument;
@@ -92,13 +118,15 @@ export default function DokumentRedigering({ dokument, onSave, onSubmit }: Dokum
     }
     async function savePdf(): Promise<void> {
         const { dokument, config } = await getProcessedPdf();
-        onSave(dokument, config);
+        onSave(config, dokument);
     }
 
     function loadInitalConfig() {
-        const config = EditorConfigStorage.get(queryParams().id);
+        const config = defaultConfig ?? EditorConfigStorage.get(queryParams().id);
         if (config) {
-            setRemovedPages(config.removedPages);
+            setRemovedPages(config.removedPages ?? []);
+            // @ts-ignore
+            initMasking(config.items ?? []);
         }
     }
 
@@ -143,7 +171,13 @@ export default function DokumentRedigering({ dokument, onSave, onSubmit }: Dokum
             }}
         >
             {isLoading && <Loader />}
-            <div className={"editor"} style={{ visibility: isLoading ? "hidden" : "unset" }}>
+            <div
+                className={"editor"}
+                style={{ visibility: isLoading ? "hidden" : "unset" }}
+                onClick={() => {
+                    setThumbnailsHidden(true);
+                }}
+            >
                 <EditorToolbar
                     onToggleSidebar={onToggleSidebar}
                     resetZoom={resetZoom}
@@ -164,10 +198,15 @@ export default function DokumentRedigering({ dokument, onSave, onSubmit }: Dokum
                     onPageChange={setCurrentPage}
                     showThumbnails
                     renderPage={(pageNumber, children) => (
-                        <PageDecorator pageNumber={pageNumber} children={children} scale={scale} />
+                        <PageDecorator
+                            pageNumber={pageNumber}
+                            renderPageFn={children}
+                            scale={scale}
+                            isLoading={isLoading}
+                        />
                     )}
                     renderThumbnailPage={(pageNumber, children) => (
-                        <ThumbnailPageDecorator isLoading={isLoading} pageNumber={pageNumber} children={children} />
+                        <ThumbnailPageDecorator isLoading={isLoading} pageNumber={pageNumber} renderPageFn={children} />
                     )}
                 />
             </div>
@@ -175,13 +214,21 @@ export default function DokumentRedigering({ dokument, onSave, onSubmit }: Dokum
     );
 }
 
-function PageDecorator({ children, pageNumber, scale }: PropsWithChildren<{ pageNumber: number; scale: number }>) {
+interface IPageDecoratorProps {
+    pageNumber: number;
+    scale: number;
+    isLoading: boolean;
+    renderPageFn: renderPageChildrenFn;
+}
+function PageDecorator({ renderPageFn, pageNumber, scale, isLoading }: IPageDecoratorProps) {
     const id = `droppable_page_${pageNumber}`;
     const divRef = useRef<HTMLDivElement>(null);
+    const [pageRef, setPageRef] = useState<Element>(null);
     const { removedPages } = usePdfEditorContext();
     const { isOver, setNodeRef } = useDroppable({
         id,
     });
+    const { items } = useMaskingContainer();
     const [height, setHeight] = useState<number>(1000);
     const getPageHeight = () => {
         const element = document.getElementById(id)?.getElementsByClassName("pagecontainer");
@@ -191,7 +238,6 @@ function PageDecorator({ children, pageNumber, scale }: PropsWithChildren<{ page
         return 0;
     };
 
-    const { items } = useMaskingContainer();
     const isDeleted = removedPages.includes(pageNumber);
     const style = {
         color: isOver ? "green" : undefined,
@@ -214,18 +260,37 @@ function PageDecorator({ children, pageNumber, scale }: PropsWithChildren<{ page
             className={`page_decorator ${isDeleted ? "deleted" : ""}`}
             style={style}
         >
-            {children}
-            {divRef.current?.querySelector(".page") &&
-                createPortal(
-                    <>
-                        {items
-                            .filter((item) => item.parentId == id)
-                            .map((item) => (
-                                <MaskingItem {...item} scale={scale} />
-                            ))}
-                    </>,
-                    divRef.current.querySelector(".page")
-                )}
+            {renderPageFn(() => {
+                setPageRef(divRef.current?.querySelector(".page"));
+            })}
+            <MaskinItemPortal scale={scale} id={id} pageRef={pageRef} />
         </div>
     );
 }
+
+interface IMaskinItemPortalProps {
+    pageRef: Element;
+    scale: number;
+    id: string;
+}
+const MaskinItemPortal = React.memo(({ pageRef, scale, id }: IMaskinItemPortalProps) => {
+    const { items } = useMaskingContainer();
+
+    console.log(
+        "ITEMST",
+        items.filter((item) => item.parentId == id),
+        pageRef
+    );
+    if (!pageRef) return null;
+    return createPortal(
+        <>
+            {items
+                .filter((item) => item.parentId == id)
+                .map((item) => (
+                    <MaskingItem {...item} scale={scale} />
+                ))}
+        </>,
+        pageRef,
+        id + "_masking"
+    );
+});

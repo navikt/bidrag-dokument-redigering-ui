@@ -1,10 +1,12 @@
-import React, { ReactNode, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 
 import { PdfDocumentRef } from "../pdfcore/PdfDocument";
 import { PdfDocumentType } from "../pdfview/types";
 import BasePdfViewer from "./BasePdfViewer";
+import { renderPageFn } from "./BasePdfViewer";
 import PdfThumbnailViewer, { ThumbnailDocumentRef } from "./PdfThumbnailViewer";
 import { PdfViewerContext } from "./PdfViewerContext";
+
 interface PdfViewerProps {
     file: PdfDocumentType;
     scale?: number;
@@ -14,8 +16,9 @@ interface PdfViewerProps {
     showThumbnails?: boolean;
     onPageChange?: (pageNumber: number) => void;
     onDocumentLoaded?: (pagesCount: number, pages: number[]) => void;
-    renderPage?: (pageNumber: number, children: ReactNode) => ReactNode;
-    renderThumbnailPage?: (pageNumber: number, children: ReactNode) => ReactNode;
+    renderPage?: renderPageFn;
+    renderThumbnailPage?: renderPageFn;
+    renderSidebar?: renderPageFn;
 }
 
 export default function PdfViewer({
