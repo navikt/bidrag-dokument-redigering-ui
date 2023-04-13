@@ -21,7 +21,6 @@ export default function SavePdfButton() {
             size={"small"}
             onClick={_producePdf}
             variant={"tertiary-neutral"}
-            style={{ color: "white" }}
             icon={<FloppydiskIcon />}
         >
             Lagre endringer

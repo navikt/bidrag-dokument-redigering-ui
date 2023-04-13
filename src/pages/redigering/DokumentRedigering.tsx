@@ -1,7 +1,6 @@
 import "./DokumentRedigering.less";
 
 import { useDroppable } from "@dnd-kit/core";
-import { EditDocumentConfig } from "@navikt/bidrag-ui-common";
 import { FileUtils } from "@navikt/bidrag-ui-common";
 import { EditorConfigStorage } from "@navikt/bidrag-ui-common";
 import { queryParams } from "@navikt/bidrag-ui-common";
@@ -13,89 +12,51 @@ import { createPortal } from "react-dom";
 
 import { useMaskingContainer } from "../../components/masking/MaskingContainer";
 import MaskingItem from "../../components/masking/MaskingItem";
-import PdfUtils from "../../components/pdfcore/PdfUtils";
-import { PdfDocumentType } from "../../components/pdfview/types";
 import { renderPageChildrenFn } from "../../components/pdfviewer/BasePdfViewer";
 import PdfViewer from "../../components/pdfviewer/PdfViewer";
+import PdfViewerContextProvider from "../../components/pdfviewer/PdfViewerContext";
+import { PdfDocumentType } from "../../components/utils/types";
 import { PdfProducer } from "../../pdf/PdfProducer";
+import { EditDocumentInitialMetadata, EditDocumentMetadata } from "../../types/EditorTypes";
 import EditorToolbar from "./components/EditorToolbar";
 import { PdfEditorContext } from "./components/PdfEditorContext";
 import { usePdfEditorContext } from "./components/PdfEditorContext";
-import ThumbnailPageDecorator from "./components/ThumbnailPageDecorator";
+import Sidebar from "./components/Sidebar";
 
 interface DokumentRedigeringContainerProps {
-    defaultConfig?: EditDocumentConfig;
-    dokument: PdfDocumentType;
-    onSave: (config: EditDocumentConfig, document?: Uint8Array) => void;
-    onSubmit?: (document: Uint8Array, config: EditDocumentConfig) => void;
+    forsendelseId?: string;
+    dokumentreferanse?: string;
+    documentMetadata?: EditDocumentInitialMetadata;
+    documentFile: PdfDocumentType;
+    onSave: (config: EditDocumentMetadata, document?: Uint8Array) => void;
+    onSubmit?: (document: Uint8Array, config: EditDocumentMetadata) => void;
 }
 export default function DokumentRedigering({
-    dokument,
+    dokumentreferanse,
+    forsendelseId,
+    documentFile,
     onSave,
     onSubmit,
-    defaultConfig,
+    documentMetadata,
 }: DokumentRedigeringContainerProps) {
     const [isLoading, setIsLoading] = useState(true);
-    const { items, init: initMasking } = useMaskingContainer();
+    const { items } = useMaskingContainer();
     const [scale, setScale] = useState(1.4);
-    const [thumbnailsHidden, setThumbnailsHidden] = useState(false);
+    const [sidebarHidden, setSidebarHidden] = useState(true);
     const [pagesCount, setPagesCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [removedPages, setRemovedPages] = useState<number[]>([]);
 
     useEffect(loadInitalConfig, []);
     async function finishPdf(): Promise<void> {
-        const { dokument, config } = await getProcessedPdf();
-        onSubmit(dokument, config);
+        const { documentFile, config } = await getProcessedPdf();
+        onSubmit(documentFile, config);
     }
 
-    function listener(e) {
-        if (e.ctrlKey) {
-            e.preventDefault();
-            const mousePosition = { x: e.pageX, y: e.pageY };
-            // console.log("MOUSE POST", mousePosition);
-            const wheelDelta = e.wheelDelta;
-            const containerElement = PdfUtils.getPdfContainerElement();
-            const scrollY = containerElement.scrollTop;
-            const scrollX = containerElement.scrollLeft;
-            const rect = containerElement.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            const delta = e.deltaY;
-            const newZoom = scale + delta * 0.001;
-            const newScale = newZoom / scale;
-            const newScrollX = mouseX * newScale - mouseX;
-            const newScrollY = mouseY * newScale - mouseY;
-            console.log(
-                "scrollY",
-                newScrollY,
-                "scrollX",
-                newScrollX,
-                "delta",
-                mouseX,
-                mouseY,
-                newZoom,
-                newZoom / scale,
-                scale
-            );
-
-            // setScale(newScale);
-            // containerElement.scrollLeft += newScrollX;
-            // containerElement.scrollTop += newScrollY;
-        }
-    }
-    useEffect(() => {
-        PdfUtils.getPdfContainerElement().addEventListener("wheel", listener, {
-            capture: true,
-            passive: false,
-        });
-        return () => PdfUtils.getPdfContainerElement().removeEventListener("wheel", listener);
-    }, [scale]);
-
-    async function getProcessedPdf(): Promise<{ dokument: Uint8Array; config: EditDocumentConfig }> {
-        let existingPdfBytes = dokument;
-        if (typeof dokument == "string") {
-            existingPdfBytes = await fetch(dokument).then((res) => res.arrayBuffer());
+    async function getProcessedPdf(): Promise<{ documentFile: Uint8Array; config: EditDocumentMetadata }> {
+        let existingPdfBytes = documentFile;
+        if (typeof documentFile == "string") {
+            existingPdfBytes = await fetch(documentFile).then((res) => res.arrayBuffer());
         }
 
         const config = {
@@ -107,26 +68,25 @@ export default function DokumentRedigering({
             .then((p) => p.process())
             .then((p) => p.saveChanges())
             .then((p) => ({
-                dokument: p.getProcessedDocument(),
+                documentFile: p.getProcessedDocument(),
                 config,
             }));
     }
 
     async function previewPdf(): Promise<void> {
-        const { dokument, config } = await getProcessedPdf();
-        FileUtils.openFile(dokument);
+        const { documentFile } = await getProcessedPdf();
+        FileUtils.openFile(documentFile);
     }
     async function savePdf(): Promise<void> {
-        const { dokument, config } = await getProcessedPdf();
-        onSave(config, dokument);
+        const { documentFile, config } = await getProcessedPdf();
+        onSave(config, documentFile);
     }
 
     function loadInitalConfig() {
-        const config = defaultConfig ?? EditorConfigStorage.get(queryParams().id);
+        const config = documentMetadata ?? EditorConfigStorage.get(queryParams().id);
         if (config) {
-            setRemovedPages(config.removedPages ?? []);
-            // @ts-ignore
-            initMasking(config.items ?? []);
+            setRemovedPages(config.editorMetadata?.removedPages ?? []);
+            // initMasking(config.editorMetadata.items ?? []);
         }
     }
 
@@ -143,7 +103,7 @@ export default function DokumentRedigering({
     }
 
     function onToggleSidebar() {
-        setThumbnailsHidden((prev) => !prev);
+        setSidebarHidden((prev) => !prev);
     }
 
     function toggleDeletedPage(pageNumber: number) {
@@ -160,6 +120,8 @@ export default function DokumentRedigering({
     return (
         <PdfEditorContext.Provider
             value={{
+                forsendelseId,
+                dokumentreferanse,
                 removedPages,
                 previewPdf,
                 onToggleSidebar,
@@ -170,46 +132,55 @@ export default function DokumentRedigering({
                 finishPdf,
             }}
         >
-            {isLoading && <Loader />}
-            <div
-                className={"editor"}
-                style={{ visibility: isLoading ? "hidden" : "unset" }}
-                onClick={() => {
-                    setThumbnailsHidden(true);
+            <PdfViewerContextProvider
+                documentFile={documentFile}
+                onDocumentLoaded={(pagesCount) => {
+                    setIsLoading(false);
+                    setPagesCount(pagesCount);
                 }}
+                onPageChange={setCurrentPage}
             >
-                <EditorToolbar
-                    onToggleSidebar={onToggleSidebar}
-                    resetZoom={resetZoom}
-                    onZoomOut={onZoomOut}
-                    onZoomIn={onZoomIn}
-                    pagesCount={editedPagesCount}
-                    scale={scale}
-                    showSubmitButton={onSubmit != undefined}
-                />
-                <PdfViewer
-                    thumbnailsHidden={thumbnailsHidden}
-                    onDocumentLoaded={(pagesCount) => {
-                        setIsLoading(false);
-                        setPagesCount(pagesCount);
+                {isLoading && <Loader />}
+                <div
+                    className={"editor"}
+                    style={{ visibility: isLoading ? "hidden" : "unset" }}
+                    onClick={() => {
+                        setSidebarHidden(true);
                     }}
-                    scale={scale}
-                    file={dokument}
-                    onPageChange={setCurrentPage}
-                    showThumbnails
-                    renderPage={(pageNumber, children) => (
-                        <PageDecorator
-                            pageNumber={pageNumber}
-                            renderPageFn={children}
-                            scale={scale}
-                            isLoading={isLoading}
+                >
+                    <EditorToolbar
+                        documentMetadata={documentMetadata}
+                        onToggleSidebar={onToggleSidebar}
+                        resetZoom={resetZoom}
+                        onZoomOut={onZoomOut}
+                        onZoomIn={onZoomIn}
+                        pagesCount={editedPagesCount}
+                        scale={scale}
+                        showSubmitButton={onSubmit != undefined}
+                    />
+                    <div className={"pdfviewer"} style={{ display: "flex", flexDirection: "row" }}>
+                        <Sidebar
+                            onDocumentLoaded={() => {
+                                setIsLoading(false);
+                            }}
+                            documentDetails={documentMetadata?.documentDetails ?? []}
+                            hidden={sidebarHidden}
                         />
-                    )}
-                    renderThumbnailPage={(pageNumber, children) => (
-                        <ThumbnailPageDecorator isLoading={isLoading} pageNumber={pageNumber} renderPageFn={children} />
-                    )}
-                />
-            </div>
+                        <PdfViewer
+                            scale={scale}
+                            onScaleUpdated={setScale}
+                            renderPage={(pageNumber, children) => (
+                                <PageDecorator
+                                    pageNumber={pageNumber}
+                                    renderPageFn={children}
+                                    scale={scale}
+                                    isLoading={isLoading}
+                                />
+                            )}
+                        />
+                    </div>
+                </div>
+            </PdfViewerContextProvider>
         </PdfEditorContext.Provider>
     );
 }
@@ -220,7 +191,7 @@ interface IPageDecoratorProps {
     isLoading: boolean;
     renderPageFn: renderPageChildrenFn;
 }
-function PageDecorator({ renderPageFn, pageNumber, scale, isLoading }: IPageDecoratorProps) {
+function PageDecorator({ renderPageFn, pageNumber, scale }: IPageDecoratorProps) {
     const id = `droppable_page_${pageNumber}`;
     const divRef = useRef<HTMLDivElement>(null);
     const [pageRef, setPageRef] = useState<Element>(null);
@@ -276,11 +247,6 @@ interface IMaskinItemPortalProps {
 const MaskinItemPortal = React.memo(({ pageRef, scale, id }: IMaskinItemPortalProps) => {
     const { items } = useMaskingContainer();
 
-    console.log(
-        "ITEMST",
-        items.filter((item) => item.parentId == id),
-        pageRef
-    );
     if (!pageRef) return null;
     return createPortal(
         <>

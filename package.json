@@ -10,7 +10,7 @@
     "dev:mock": "cross-env ENABLE_MOCK=true NODE_ENV=development webpack serve --config webpack.dev.config.js",
     "build": "webpack --config webpack.prod.config.js",
     "types:dokument": "swagger-typescript-api -p https://bidrag-dokument-feature.dev.intern.nav.no/bidrag-dokument/v3/api-docs --axios -n BidragDokumentApi.ts -o src/api",
-    "types:forsendelse": "swagger-typescript-api -p https://bidrag-dokument-forsendelse-feature.dev.intern.nav.no/v3/api-docs --axios -n BidragDokumentForsendelseApi.ts -o src/api"
+    "types:forsendelse": "swagger-typescript-api -p http://localhost:8999/v3/api-docs --axios -n BidragDokumentForsendelseApi.ts -o src/api"
   },
   "dependencies": {
     "@navikt/bidrag-ui-common": "1.4.2",
@@ -26,6 +26,7 @@
     "express": "^4.18.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^2.15.349",
+    "immutable": "^4.3.0",
     "re-resizable": "^6.9.9",
     "core-js": "^3.29.1",
     "react": "^18.2.0",

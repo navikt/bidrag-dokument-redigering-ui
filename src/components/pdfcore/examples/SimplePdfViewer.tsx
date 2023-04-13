@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 
-import { PdfDocumentType } from "../../pdfview/types";
+import { PdfDocumentType } from "../.././basepdfviewer/types";
 import PdfDocument, { PdfDocumentRef } from "../PdfDocument";
 import PdfPage from "../PdfPage";
 

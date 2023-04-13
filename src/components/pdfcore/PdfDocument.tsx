@@ -10,7 +10,7 @@ import { PropsWithChildren } from "react";
 import { useState } from "react";
 
 import environment from "../../environment";
-import { PdfDocumentType } from "../pdfview/types";
+import { PdfDocumentType } from ".././basepdfviewer/types";
 import { createArrayWithLength, removeDuplicates } from "../utils/ObjectUtils";
 import { TimerUtils } from "../utils/TimerUtils";
 import { PdfDocumentContext } from "./PdfDocumentContext";
@@ -71,9 +71,9 @@ export default function PdfDocument({
     function getPageElements() {
         if (!divRef.current || !pdfDocumentRef.current) return;
         if (pageElements.current.length != pdfDocumentRef.current.numPages) {
-            pageElements.current = createArrayWithLength(pdfDocumentRef.current.numPages).map(
-                (i) => divRef.current!.querySelector(`[data-index="${i}"]`) as HTMLDivElement
-            );
+            pageElements.current = createArrayWithLength(pdfDocumentRef.current.numPages).map((i) => {
+                return divRef.current!.querySelector(`[data-index="${i}"]`) as HTMLDivElement;
+            });
         }
         return pageElements.current;
     }
@@ -81,7 +81,7 @@ export default function PdfDocument({
     function scrollToPage(pageNumber: number) {
         if (!divRef.current) return;
         const pageElement = PdfUtils.getPageElement(divRef.current, pageNumber);
-        pageElement?.scrollIntoView({ block: "center" });
+        pageElement?.scrollIntoView({ block: "center", behavior: "auto" });
     }
 
     async function loadDocument() {
@@ -172,7 +172,6 @@ export default function PdfDocument({
     }
 
     return (
-        // @ts-ignore
         <PdfDocumentContext.Provider value={{ renderPageIndexes, pdfDocument, scale, renderText }}>
             <div
                 ref={divRef}

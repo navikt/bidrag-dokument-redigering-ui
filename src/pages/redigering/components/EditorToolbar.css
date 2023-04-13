@@ -2,6 +2,28 @@
   background-color: var(--a-gray-800);
   height: max-content;
 }
+.editor_toolbar .toolbar_content button {
+  color: white;
+}
+
+.editor_toolbar .toolbar_content .navds-heading {
+  color: white;
+  align-self: center;
+}
+
+.editor_toolbar .document-title {
+  max-width: 300px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+/*.editor_toolbar .toolbar_content button:hover {*/
+/*  color: unset;*/
+/*}*/
+/*.editor_toolbar .toolbar_content button.navds-button--tertiary-neutral:hover {*/
+/*  background-color: var(--a-surface-subtle);*/
+/*  color: black;*/
+/*}*/
 
 .editor_toolbar .divider {
   height: 20px;

@@ -1,7 +1,5 @@
 import { DndContext } from "@dnd-kit/core";
 import { DragEndEvent } from "@dnd-kit/core";
-import { useSensors } from "@dnd-kit/core";
-import { useSensor } from "@dnd-kit/core";
 import { Modifier } from "@dnd-kit/core";
 import { ClientRect } from "@dnd-kit/core";
 import { Active } from "@dnd-kit/core/dist/store";
@@ -12,13 +10,13 @@ import { useContext } from "react";
 import { useState } from "react";
 import { v4 as uuidV4 } from "uuid";
 
-import { FocusKeyboardSensor } from "./GhostElementSensor";
+import History from "../history/History";
 import { IMaskingItemProps } from "./MaskingItem";
 export interface MaskingContainerContextProps {
     items: IMaskingItemProps[];
     init: (items: IMaskingItemProps[]) => void;
     activeId: string;
-    addItem: (pageNumber: number, scale: number) => void;
+    addItem: (pageNumber: number, scale: number, pageNumberNotIncludingRemoved: number) => void;
     removeItem: (id: string) => void;
     updateItemDimensions: (itemId: string, width: number, height: number) => void;
     disableDrag: () => void;
@@ -38,41 +36,33 @@ function useMaskingContainer() {
 
 function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMaskingItemProps[] }>) {
     const [maskingItems, setMaskingItems] = useState<IMaskingItemProps[]>(items ?? []);
+    const [maskingItemsHistory, setMaskingItemsHistory] = useState<History<IMaskingItemProps[]>>(
+        new History<IMaskingItemProps[]>()
+    );
     const [activeId, setActiveId] = useState(null);
     const [dragDisabled, setDragDisabled] = useState(false);
-    const sensors = useSensors(useSensor(FocusKeyboardSensor));
+    function undo(event) {
+        console.log("HERE", event.key, event.ctrlKey);
+        if (event.ctrlKey && event.key === "z") {
+            console.log("HERE");
+            const updatedHistory = maskingItemsHistory.undo(maskingItems);
+            setMaskingItems(updatedHistory.previous);
+            setMaskingItemsHistory(updatedHistory);
+        }
+    }
+    function redo(event) {
+        if (event.ctrlKey && event.key === "z") {
+            alert("Undo!");
+        }
+    }
+    // useEffect(() => {
+    //     document.addEventListener("keydown", undo);
+    //     return () => document.removeEventListener("keydown", undo);
+    // }, []);
     function handleDragStart(event) {
         setActiveId(event.active.id);
     }
-    // useEffect(() => {
-    //     document.querySelector(".pdfviewer_container .pdfrenderer_container").addEventListener("scroll", () => {
-    //         console.log(document.querySelector(".pdfviewer_container .pdfrenderer_container").scrollTop);
-    //     });
-    // }, []);
-    function simulateMouseEvent(el, eventName) {
-        let event;
-        if (window.MouseEvent && typeof window.MouseEvent === "function") {
-            console.log("HERE", eventName);
-            event = new MouseEvent(eventName);
-            el.dispatchEvent(event);
-            const evt_2 = new DragEvent("dragstart");
-            el.dispatchEvent(evt_2);
-        }
-    }
-    // function onMouseMove(e) {
-    //     const ghosted = maskingItems.find((it) => it.ghosted);
-    //     console.log("HERsssE", ghosted);
-    //     if (ghosted) {
-    //         const itemElement = document.getElementById(ghosted.id).parentElement;
-    //         console.log("HERE", itemElement);
-    //         simulateMouseEvent(itemElement, "mousedown");
-    //     }
-    // }
-    // useEffect(() => {
-    //     const fun = (e) => onMouseMove(e);
-    //     document.addEventListener("mousemove", onMouseMove);
-    //     return () => document.removeEventListener("mousemove", onMouseMove);
-    // }, [maskingItems]);
+
     function updateItemDimensions(itemId: string, width: number, height: number) {
         setMaskingItems((items) => [
             ...items.map((item) => {
@@ -90,13 +80,13 @@ function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMask
             }),
         ]);
     }
-    function addItem(pageNumber: number, scale: number) {
+    function addItem(pageNumber: number, scale: number, pageNumberNotIncludingRemoved: number) {
         const parentId = `droppable_page_${pageNumber}`;
         const canvasElement = document.getElementById(parentId).querySelector("canvas");
         const pdfContainer = document.querySelector(".pdfviewer_container .pdfrenderer_container");
 
         const x = canvasElement.clientWidth / 2 / scale;
-        const scrollOffsett = pdfContainer.scrollTop - (pageNumber - 1) * canvasElement.clientHeight;
+        const scrollOffsett = pdfContainer.scrollTop - (pageNumberNotIncludingRemoved - 1) * canvasElement.clientHeight;
         const y = (-canvasElement.clientHeight + scrollOffsett + 200) / scale;
         setMaskingItems((items) => [
             ...items,
@@ -110,15 +100,14 @@ function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMask
     }
 
     function removeItem(id: string) {
-        console.log("REMOVE", id);
         setMaskingItems((items) => [...items.filter((item) => item.id !== id)]);
     }
-    console.log(maskingItems);
     function onDragEnd(event: DragEndEvent) {
         setDragDisabled(false);
         const itemId = event.active.id;
         const delta = event.delta;
         const scale = event.active?.data?.current?.scale ?? 1;
+        // setMaskingItemsHistory(maskingItemsHistory.push(maskingItems));
         setMaskingItems((items) => [
             ...items.map((item) => {
                 if (item.id == itemId) {
@@ -203,7 +192,6 @@ function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMask
                         setActiveId(null);
                     }}
                 >
-                    {/*<DragOverlay>{draggingItem ? <MaskingItem {...draggingItem} /> : null}</DragOverlay>*/}
                     {children}
                 </div>
             </MaskingContainerContext.Provider>

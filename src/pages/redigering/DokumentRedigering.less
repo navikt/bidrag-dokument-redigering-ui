@@ -20,17 +20,7 @@ body {
     .pdfviewer_container .pdfrenderer_container {
       background-color: @editor-background-color;
     }
-    .thumbnail_viewer {
-      .thumbnail_page_container,
-      .thumbnail_decorator,
-      .pdfViewer,
-      .pdfrenderer_container{
-        background-color: var(--a-gray-800) !important;
-      }
-    }
-    .thumbnail_viewer .pdfrenderer_container .pdfViewer .thumbnail_decorator .thumbnail_page_container .pagenumber {
-      color: white;
-    }
+
 
     .pdfviewer .pdfrenderer_container {
       height: @editor-height;
@@ -47,7 +37,6 @@ body {
     .thumbnail_page_container {
       .pagecontainer {
         .page {
-          display: none;
           opacity: 4% !important;
 
           &.infocus {

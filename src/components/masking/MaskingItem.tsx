@@ -3,7 +3,7 @@ import "./MaskinItem.css";
 import { useDraggable } from "@dnd-kit/core";
 import { TrashIcon } from "@navikt/aksel-icons";
 import { Resizable } from "re-resizable";
-import { useState } from "react";
+import { CSSProperties, useState } from "react";
 import { useEffect } from "react";
 import { useRef } from "react";
 
@@ -21,21 +21,21 @@ interface IResizeDelta {
 }
 export interface IMaskingItemProps {
     id: string;
-    ghosted?: boolean;
+    disabled?: boolean;
     scale?: number;
     coordinates: ICoordinates;
     parentId: string | number;
     pageNumber: number;
 }
-export default function MaskingItem({ id, coordinates, ghosted, scale }: IMaskingItemProps) {
+export default function MaskingItem({ id, coordinates, scale, disabled = false }: IMaskingItemProps) {
     const [coordinatesResizeStart, setCoordinatesResizeStart] = useState<ICoordinates>(coordinates);
-    const disabled = useRef(false);
+    const disabledRef = useRef(false);
     const scaleRef = useRef(scale);
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
         id,
-        disabled: disabled.current,
+        disabled: disabledRef.current ?? disabled,
         data: {
-            disabled: disabled.current,
+            disabled: disabledRef.current ?? disabled,
             scale: scaleRef.current,
         },
     });
@@ -75,9 +75,31 @@ export default function MaskingItem({ id, coordinates, ghosted, scale }: IMaskin
         };
     };
 
+    const getStyle = (): CSSProperties => ({
+        position: "relative",
+        backgroundColor: "white",
+        top: `${coordinatesScaled.y}px`,
+        bottom: 0,
+        zIndex: 100000,
+        left: `${coordinatesScaled.x}px`,
+        width: `${coordinatesScaled.width}px`,
+        height: `${coordinatesScaled.height}px`,
+        marginBottom: `${-coordinatesScaled.height}px`,
+        ...style,
+    });
+
     const coordinatesScaled = getCoordinatesScaled();
     const isHighlighted = activeId == id;
-    console.log(id, coordinatesScaled, scale);
+
+    if (disabled) {
+        return (
+            <div
+                className={`maskingitem ${isHighlighted ? "highlighted" : ""} ${isDragging ? "dragging" : ""}`}
+                id={id}
+                style={getStyle()}
+            ></div>
+        );
+    }
     return (
         <>
             {isHighlighted && !isDragging && <Toolbar id={id} coordinates={coordinatesScaled} />}
@@ -87,25 +109,14 @@ export default function MaskingItem({ id, coordinates, ghosted, scale }: IMaskin
                 //@ts-ignore
                 id={id}
                 {...attributes}
-                style={{
-                    position: "relative",
-                    backgroundColor: ghosted ? "green" : "white",
-                    top: `${coordinatesScaled.y}px`,
-                    bottom: 0,
-                    zIndex: 100000,
-                    left: `${coordinatesScaled.x}px`,
-                    width: `${coordinatesScaled.width}px`,
-                    height: `${coordinatesScaled.height}px`,
-                    marginBottom: `${-coordinatesScaled.height}px`,
-                    ...style,
-                }}
+                style={getStyle()}
                 onResize={(e, direction, ref, d) => {
                     const coordinates = getCoordinatesAfterResize(d);
                     updateItemDimensions(id, coordinates.width, coordinates.height);
                     document.getElementById(id).style.marginBottom = `${-coordinates.height * scale}px`;
                 }}
                 onResizeStart={() => {
-                    disabled.current = true;
+                    disabledRef.current = true;
                     disableDrag();
                     setCoordinatesResizeStart(coordinates);
                 }}
@@ -113,7 +124,7 @@ export default function MaskingItem({ id, coordinates, ghosted, scale }: IMaskin
                 onResizeStop={(e, direction, ref, d) => {
                     const coordinates = getCoordinatesAfterResize(d);
                     updateItemDimensions(id, coordinates.width, coordinates.height);
-                    disabled.current = false;
+                    disabledRef.current = false;
                     enableDrag();
                 }}
             ></Resizable>

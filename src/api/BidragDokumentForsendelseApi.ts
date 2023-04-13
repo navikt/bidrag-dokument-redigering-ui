@@ -565,6 +565,16 @@ export interface DokumentDetaljer {
 
 export interface DokumentRedigeringMetadataResponsDto {
     tittel: string;
+    status:
+        | "IKKE_BESTILT"
+        | "BESTILLING_FEILET"
+        | "AVBRUTT"
+        | "UNDER_PRODUKSJON"
+        | "UNDER_REDIGERING"
+        | "FERDIGSTILT"
+        | "MÅ_KONTROLLERES"
+        | "KONTROLLERT";
+    forsendelseStatus: "UNDER_PRODUKSJON" | "FERDIGSTILT" | "SLETTET" | "DISTRIBUERT" | "DISTRIBUERT_LOKALT";
     redigeringMetadata?: string;
     dokumenter: DokumentDetaljer[];
 }

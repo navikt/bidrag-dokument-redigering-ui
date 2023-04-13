@@ -3,7 +3,6 @@ import {
     BroadcastMessage,
     BroadcastNames,
     EditDocumentBroadcastMessage,
-    EditDocumentConfig,
     FileUtils,
     queryParams,
 } from "@navikt/bidrag-ui-common";
@@ -13,21 +12,22 @@ import { RotationTypes } from "pdf-lib";
 import { StandardFonts } from "pdf-lib/es";
 
 import { IMaskingItemProps } from "../components/masking/MaskingItem";
-import { PdfDocumentType } from "../components/pdfview/types";
+import { PdfDocumentType } from "../components/utils/types";
+import { EditDocumentMetadata } from "../types/EditorTypes";
 import pdf2Image from "./Pdf2Image";
 
 export class PdfProducer {
     private pdfDocument: PDFDocument;
     private pdfBlob: PdfDocumentType;
     private processedDocument: Uint8Array;
-    private config: EditDocumentConfig;
+    private config: EditDocumentMetadata;
 
     private font: PDFFont;
     constructor(pdfBlob: PdfDocumentType) {
         this.pdfBlob = pdfBlob;
     }
 
-    async init(config: EditDocumentConfig): Promise<PdfProducer> {
+    async init(config: EditDocumentMetadata): Promise<PdfProducer> {
         this.config = config;
         this.pdfDocument = await PDFDocument.load(this.pdfBlob);
         this.font = await this.pdfDocument.embedFont(StandardFonts.TimesRoman);
@@ -37,10 +37,11 @@ export class PdfProducer {
     async process(): Promise<PdfProducer> {
         this.pdfDocument.getForm().flatten();
         this.removePages(this.config.removedPages);
+        const itemsFiltered = this.config.items.filter((item) => !this.config.removedPages.includes(item.pageNumber));
         // @ts-ignore
-        this.maskPages(this.config.items);
+        this.maskPages(itemsFiltered);
         // @ts-ignore
-        await this.convertMaskedPagesToImage(this.config.items);
+        await this.convertMaskedPagesToImage(itemsFiltered);
         return this;
     }
 
@@ -114,8 +115,8 @@ export class PdfProducer {
     broadcast() {
         const params = queryParams();
         const message: BroadcastMessage<EditDocumentBroadcastMessage> = Broadcast.convertToBroadcastMessage(params.id, {
-            document: FileUtils._arrayBufferToBase64(this.processedDocument),
-            config: this.config,
+            documentFile: FileUtils._arrayBufferToBase64(this.processedDocument),
+            config: JSON.stringify(this.config),
         });
         Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
     }

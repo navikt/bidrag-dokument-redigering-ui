@@ -1,7 +1,6 @@
 import "./ThumbnailPageDecorator.less";
 
 import { AddCircleFilled, DeleteFilled } from "@navikt/ds-icons";
-import { Checkbox, Heading } from "@navikt/ds-react";
 import React, { CSSProperties, PropsWithChildren, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -12,12 +11,11 @@ import { usePdfEditorContext } from "./PdfEditorContext";
 
 interface ThumbnailPageDecoratorProps extends PropsWithChildren<unknown> {
     pageNumber: number;
-    isLoading: boolean;
 
     renderPageFn: renderPageChildrenFn;
 }
 
-export default function ThumbnailPageDecorator({ renderPageFn, pageNumber, isLoading }: ThumbnailPageDecoratorProps) {
+export default function ThumbnailPageDecorator({ renderPageFn, pageNumber }: ThumbnailPageDecoratorProps) {
     const { items } = useMaskingContainer();
     const decoratorRef = useRef<HTMLDivElement>();
     const [pageRef, setPageRef] = useState<Element>(null);
@@ -33,20 +31,6 @@ export default function ThumbnailPageDecorator({ renderPageFn, pageNumber, isLoa
             ref={decoratorRef}
             className={`thumbnail_decorator ${isDeleted ? "deleted" : ""}`}
         >
-            {pageNumber == 1 && (
-                <div className={"pl-2"}>
-                    <Checkbox
-                        onClick={() => {
-                            toggleDeletedPage(pageNumber);
-                            toggleDeletedPage(pageNumber + 1);
-                        }}
-                    >
-                        <Heading size={"xsmall"} style={{ color: "white" }}>
-                            Tittel på dokumentet
-                        </Heading>
-                    </Checkbox>
-                </div>
-            )}
             {renderPageFn(() => setPageRef(decoratorRef.current?.querySelector(".page")))}
             {pageRef &&
                 createPortal(
@@ -54,7 +38,13 @@ export default function ThumbnailPageDecorator({ renderPageFn, pageNumber, isLoa
                         {items
                             .filter((item) => item.pageNumber == pageNumber)
                             .map((item) => (
-                                <MaskingItem {...item} id={id + "_" + item.id} scale={0.3} />
+                                <MaskingItem
+                                    disabled
+                                    {...item}
+                                    id={id + "_" + item.id}
+                                    scale={0.3}
+                                    key={id + "_" + item.id}
+                                />
                             ))}
                     </>,
                     pageRef,

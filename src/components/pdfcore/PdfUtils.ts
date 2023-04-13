@@ -3,7 +3,12 @@ export type ScrollDirection = "up" | "down";
 export const PDF_MARGIN_PIXELS = 15;
 export default class PdfUtils {
     static getPdfContainerElement() {
-        return document.querySelector(".pdfviewer_container .pdfrenderer_container");
+        return document.querySelector(".pdfviewer_container .pdfrenderer_container") as HTMLDivElement;
+    }
+    static getPdfPagesElement() {
+        return document.querySelector(
+            ".pdfviewer_container .pdfrenderer_container #pdf_document_pages"
+        ) as HTMLDivElement;
     }
     static getCanvasSize(containerElement: HTMLElement): {
         height: number;

@@ -15,7 +15,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
             <Routes>
                 <Route path="/rediger/:journalpostId" element={<DokumentRedigeringPageWrapper />} />
                 <Route
-                    path="/rediger/masker/:journalpostId/:dokumentreferanse"
+                    path="/rediger/masker/:forsendelseId/:dokumentreferanse"
                     element={<DokumentMaskeringPageWrapper />}
                 />
                 <Route path="/" element={<div>Hello world</div>} />
@@ -30,6 +30,6 @@ function DokumentRedigeringPageWrapper() {
 }
 
 function DokumentMaskeringPageWrapper() {
-    const { journalpostId, dokumentreferanse } = useParams();
-    return <DokumentMaskeringPage journalpostId={journalpostId} dokumentreferanse={dokumentreferanse} />;
+    const { forsendelseId, dokumentreferanse } = useParams();
+    return <DokumentMaskeringPage forsendelseId={forsendelseId} dokumentreferanse={dokumentreferanse} />;
 }

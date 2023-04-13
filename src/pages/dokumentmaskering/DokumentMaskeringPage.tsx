@@ -4,22 +4,20 @@ import { EditDocumentBroadcastMessage } from "@navikt/bidrag-ui-common";
 import { Broadcast } from "@navikt/bidrag-ui-common";
 import { FileUtils } from "@navikt/bidrag-ui-common";
 import { BroadcastNames } from "@navikt/bidrag-ui-common";
-import { EditDocumentConfig } from "@navikt/bidrag-ui-common";
 import React from "react";
 
-import { ferdigstillDokument, lastDokumenter } from "../../api/queries";
-import { lagreEndringer } from "../../api/queries";
-import { hentRedigeringmetadata } from "../../api/queries";
+import { lastDokumenter, RedigeringQueries } from "../../api/queries";
 import LoadingIndicator from "../../components/LoadingIndicator";
 import { MaskingContainer } from "../../components/masking/MaskingContainer";
 import { uint8ToBase64 } from "../../components/utils/DocumentUtils";
-import DokumentRedigering from "../dokumentredigering/DokumentRedigering";
+import { EditDocumentMetadata } from "../../types/EditorTypes";
 import PageWrapper from "../PageWrapper";
+import DokumentRedigering from "../redigering/DokumentRedigering";
 
 const url = "http://localhost:5173/test4.pdf";
 
 interface DokumentMaskeringPageProps {
-    journalpostId: string;
+    forsendelseId: string;
     dokumentreferanse: string;
 }
 
@@ -31,37 +29,37 @@ export default function DokumentMaskeringPage(props: DokumentMaskeringPageProps)
     );
 }
 
-function DokumentMaskeringContainer({ journalpostId, dokumentreferanse }: DokumentMaskeringPageProps) {
-    const { data: dokument, isLoading } = lastDokumenter(journalpostId, dokumentreferanse, null, true, false);
-    const defaultConfig = hentRedigeringmetadata(journalpostId, dokumentreferanse).data;
-    const lagreEndringerFn = lagreEndringer(journalpostId, dokumentreferanse);
-    const ferdigstillDokumentFn = ferdigstillDokument(journalpostId, dokumentreferanse);
+function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: DokumentMaskeringPageProps) {
+    const { data: documentFile, isLoading } = lastDokumenter(forsendelseId, dokumentreferanse, null, true, false);
+    const { data: documentMetadata } = RedigeringQueries.hentRedigeringmetadata(forsendelseId, dokumentreferanse);
+    const lagreEndringerFn = RedigeringQueries.lagreEndringer(forsendelseId, dokumentreferanse);
+    const ferdigstillDokumentFn = RedigeringQueries.ferdigstillDokument(forsendelseId, dokumentreferanse);
 
     if (isLoading) {
         return <LoadingIndicator title="Laster dokument..." />;
     }
 
-    if (!isLoading && !dokument) {
+    if (!isLoading && !documentFile) {
         return <div>Det skjedde en feil ved lasting av dokument</div>;
     }
-    function broadcast(document: Uint8Array, config: EditDocumentConfig) {
+    function broadcast(document: Uint8Array, config: EditDocumentMetadata) {
         const params = queryParams();
         const message: BroadcastMessage<EditDocumentBroadcastMessage> = Broadcast.convertToBroadcastMessage(params.id, {
-            document: FileUtils._arrayBufferToBase64(document),
-            config: config,
+            documentFile: FileUtils._arrayBufferToBase64(document),
+            config: JSON.stringify(config),
         });
         Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
     }
-    function broadcastAndCloseWindow(document: Uint8Array, config: EditDocumentConfig) {
+    function broadcastAndCloseWindow(document: Uint8Array, config: EditDocumentMetadata) {
         broadcast(document, config);
         window.close();
     }
 
-    function saveDocument(config: EditDocumentConfig) {
+    function saveDocument(config: EditDocumentMetadata) {
         lagreEndringerFn.mutate(config);
     }
 
-    function saveAndFinishDocument(fysiskDokument: Uint8Array, config: EditDocumentConfig) {
+    function saveAndFinishDocument(fysiskDokument: Uint8Array, config: EditDocumentMetadata) {
         ferdigstillDokumentFn.mutate(
             {
                 fysiskDokument: uint8ToBase64(fysiskDokument),
@@ -74,13 +72,14 @@ function DokumentMaskeringContainer({ journalpostId, dokumentreferanse }: Dokume
     }
 
     return (
-        // @ts-ignore
-        <MaskingContainer items={defaultConfig.items}>
+        <MaskingContainer items={documentMetadata.editorMetadata?.items}>
             <DokumentRedigering
-                dokument={dokument}
+                forsendelseId={forsendelseId}
+                dokumentreferanse={dokumentreferanse}
+                documentFile={documentFile}
                 onSave={saveDocument}
                 onSubmit={saveAndFinishDocument}
-                defaultConfig={defaultConfig as EditDocumentConfig}
+                documentMetadata={documentMetadata}
             />
         </MaskingContainer>
     );

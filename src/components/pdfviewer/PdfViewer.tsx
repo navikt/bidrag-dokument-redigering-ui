@@ -1,55 +1,82 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { PdfDocumentRef } from "../pdfcore/PdfDocument";
-import { PdfDocumentType } from "../pdfview/types";
+import PdfUtils from "../pdfcore/PdfUtils";
 import BasePdfViewer from "./BasePdfViewer";
 import { renderPageFn } from "./BasePdfViewer";
-import PdfThumbnailViewer, { ThumbnailDocumentRef } from "./PdfThumbnailViewer";
-import { PdfViewerContext } from "./PdfViewerContext";
+import PdfThumbnailViewer from "./PdfThumbnailViewer";
+import { usePdfViewerContext } from "./PdfViewerContext";
 
 interface PdfViewerProps {
-    file: PdfDocumentType;
     scale?: number;
-    pages?: number[];
+    onScaleUpdated?: (scale: number) => void;
     thumbnailsHidden?: boolean;
     thumbnailsMinimized?: boolean;
     showThumbnails?: boolean;
-    onPageChange?: (pageNumber: number) => void;
-    onDocumentLoaded?: (pagesCount: number, pages: number[]) => void;
     renderPage?: renderPageFn;
     renderThumbnailPage?: renderPageFn;
-    renderSidebar?: renderPageFn;
 }
 
 export default function PdfViewer({
-    showThumbnails = true,
+    showThumbnails = false,
     scale,
-    file,
+    onScaleUpdated,
     thumbnailsMinimized,
     thumbnailsHidden,
-    onDocumentLoaded,
-    onPageChange,
     renderPage,
-    pages,
     renderThumbnailPage,
 }: PdfViewerProps) {
     const hasThumbnailsLoaded = useRef(!showThumbnails);
     const hasDocumentLoaded = useRef(false);
-    const thumbnailDocumentRef = useRef<ThumbnailDocumentRef>(null);
+    const thumbnailDocumentRef = useRef<PdfDocumentRef>(null);
     const baseDocumentRef = useRef<PdfDocumentRef>(null);
 
-    const [_pages, setPages] = useState([]);
+    const [pageInView, setPageInView] = useState(1);
+    const { currentPage, onPageChange, onDocumentLoaded } = usePdfViewerContext();
+
+    useEffect(() => {
+        if (pageInView != currentPage) {
+            baseDocumentRef.current.scrollToPage(currentPage);
+        }
+    }, [currentPage, pageInView]);
+    function listener(event) {
+        if (event.ctrlKey) {
+            event.preventDefault();
+            event.stopPropagation();
+            const mousePosition = { x: event.pageX, y: event.pageY };
+            const containerElement = PdfUtils.getPdfContainerElement();
+            const pagesElement = PdfUtils.getPdfPagesElement();
+            // Get mouse cursor position
+            const mouseX = event.clientX - containerElement.offsetLeft;
+            const mouseY = event.clientY - containerElement.offsetTop;
+
+            // Calculate new scale
+            const delta = event.deltaY > 0 ? -0.1 : 0.1;
+            const newScale = scale + delta;
+            const xt = mouseX - newScale * (mouseX - containerElement.scrollLeft / 2);
+            const yt = mouseY - newScale * (mouseY - containerElement.scrollTop / 2);
+            // containerElement.scrollLeft = xt;
+            // containerElement.scrollTop = -yt;
+            // PdfUtils.getPdfPagesElement().style.transform = `translate(${xt}px,${yt}px)`;
+            onScaleUpdated?.(newScale);
+        }
+    }
+    useEffect(() => {
+        PdfUtils.getPdfContainerElement().addEventListener("wheel", listener, {
+            capture: true,
+            passive: false,
+        });
+        return () => PdfUtils.getPdfContainerElement().removeEventListener("wheel", listener);
+    }, [scale]);
 
     function _onThumbnailLoaded(pagesCount: number, pages: number[]) {
-        setPages(pages);
         hasThumbnailsLoaded.current = true;
         if (hasDocumentLoaded.current) onDocumentLoaded(pagesCount, pages);
     }
 
     function _onDocumentLoaded(pagesCount: number, pages: number[]) {
-        setPages(pages);
         hasDocumentLoaded.current = true;
-        if (hasThumbnailsLoaded.current) onDocumentLoaded(pagesCount, pages);
+        if (hasThumbnailsLoaded.current || !showThumbnails) onDocumentLoaded(pagesCount, pages);
     }
 
     function _renderThumbnails() {
@@ -57,9 +84,7 @@ export default function PdfViewer({
             <PdfThumbnailViewer
                 minimized={thumbnailsMinimized}
                 hidden={thumbnailsHidden}
-                thumbnailDocumentRef={thumbnailDocumentRef}
-                document={file}
-                onPageClick={(pageNumber) => baseDocumentRef.current.scrollToPage(pageNumber)}
+                onPageClick={(pageNumber) => onPageChange(pageNumber)}
                 onDocumentLoaded={_onThumbnailLoaded}
                 renderPage={renderThumbnailPage}
             />
@@ -67,29 +92,27 @@ export default function PdfViewer({
     }
 
     function _onPageChange(pageNumber: number) {
-        thumbnailDocumentRef.current.updateFocusedPage(pageNumber);
+        setPageInView(pageNumber);
         onPageChange(pageNumber);
     }
 
     function _onScroll(pageNumber: number) {
-        thumbnailDocumentRef.current.scrollToPage(pageNumber);
+        thumbnailDocumentRef.current?.scrollToPage(pageNumber);
     }
 
     return (
-        <PdfViewerContext.Provider value={{ pages: pages ?? _pages, file }}>
-            <div className={"pdfviewer"} style={{ display: "flex", flexDirection: "row" }}>
-                {showThumbnails && _renderThumbnails()}
-                <div className={"pdfviewer_container"}>
-                    <BasePdfViewer
-                        scale={scale}
-                        baseDocumentRef={baseDocumentRef}
-                        onDocumentLoaded={_onDocumentLoaded}
-                        onPageChange={_onPageChange}
-                        renderPage={renderPage}
-                        onScroll={_onScroll}
-                    />
-                </div>
+        <div className={"pdfviewer"} style={{ display: "flex", flexDirection: "row" }}>
+            {showThumbnails && _renderThumbnails()}
+            <div className={"pdfviewer_container"}>
+                <BasePdfViewer
+                    scale={scale}
+                    baseDocumentRef={baseDocumentRef}
+                    onDocumentLoaded={_onDocumentLoaded}
+                    onPageChange={_onPageChange}
+                    renderPage={renderPage}
+                    onScroll={_onScroll}
+                />
             </div>
-        </PdfViewerContext.Provider>
+        </div>
     );
 }

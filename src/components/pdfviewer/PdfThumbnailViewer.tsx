@@ -1,27 +1,19 @@
-import "./PdfThumbnail.less";
+import "./PdfThumbnail.css";
 
-import React, { MutableRefObject, useState } from "react";
+import React, { useState } from "react";
 import { useEffect } from "react";
 import { useRef } from "react";
 import { ReactNode } from "react";
 
 import PdfDocument, { PdfDocumentRef } from "../pdfcore/PdfDocument";
 import PdfPage from "../pdfcore/PdfPage";
-import PdfUtils from "../pdfcore/PdfUtils";
-import { PdfDocumentType } from "../pdfview/types";
 import { emptyFn } from "./BasePdfViewer";
 import { renderPageFn } from "./BasePdfViewer";
 import { usePdfViewerContext } from "./PdfViewerContext";
 
-const FOCUSED_PAGE_CLASSNAME = "infocus";
 type PAGE_SIZE = "default" | "small" | "minimized" | "hidden";
 
-export interface ThumbnailDocumentRef extends PdfDocumentRef {
-    updateFocusedPage: (pageNumber: number) => void;
-}
 interface PdfThumbnailRendererProps {
-    document: PdfDocumentType;
-    thumbnailDocumentRef: MutableRefObject<ThumbnailDocumentRef>;
     minimized?: boolean;
     hidden?: boolean;
     onDocumentLoaded: (pagsNumber: number, pages: number[]) => void;
@@ -31,18 +23,18 @@ interface PdfThumbnailRendererProps {
 export default function PdfThumbnailViewer({
     minimized,
     hidden,
-    document,
-    thumbnailDocumentRef,
     renderPage,
     onPageClick,
     onDocumentLoaded,
 }: PdfThumbnailRendererProps) {
-    const currentPageNumberRef = useRef<number>(1);
     const [pageSize, setPageSize] = useState<PAGE_SIZE>("hidden");
     const containerRef = useRef<HTMLDivElement>();
     const documentRef = useRef<PdfDocumentRef>(null);
-    const { pages } = usePdfViewerContext();
+    const { pages, currentPage, file: document } = usePdfViewerContext();
 
+    useEffect(() => {
+        documentRef.current?.scrollToPage(currentPage);
+    }, [currentPage]);
     useEffect(() => {
         const windowWidth = window.innerWidth;
         setPageSize(windowWidth > 1300 ? "default" : "small");
@@ -71,32 +63,22 @@ export default function PdfThumbnailViewer({
         }
     }
 
-    function updateFocusedPage(pageNumber: number) {
-        const currentPage = PdfUtils.getPageElement(documentRef.current.documentElement, pageNumber);
-        if (currentPage && !currentPage?.classList?.contains(FOCUSED_PAGE_CLASSNAME)) {
-            currentPage.classList.add(FOCUSED_PAGE_CLASSNAME);
-        }
-
-        const prevPage = PdfUtils.getPageElement(documentRef.current.documentElement, currentPageNumberRef.current);
-        if (
-            currentPageNumberRef.current &&
-            currentPageNumberRef.current != pageNumber &&
-            prevPage?.classList?.contains(FOCUSED_PAGE_CLASSNAME)
-        ) {
-            prevPage.classList.remove(FOCUSED_PAGE_CLASSNAME);
-        }
-
-        currentPageNumberRef.current = pageNumber;
-    }
-
     function _onDocumentLoaded(pagesCount: number, loadedPages: number[]) {
-        updateFocusedPage(1);
-        thumbnailDocumentRef.current = {
-            ...documentRef.current,
-            updateFocusedPage,
-        };
         documentRef.current.scrollToPage(1);
         onDocumentLoaded(pagesCount, loadedPages);
+    }
+
+    function renderSinglePage(pageNumber: number, index: number) {
+        const pageToRender = (onPageRendered?: emptyFn): ReactNode => (
+            <PageContainer
+                pageNumber={pageNumber}
+                currentPage={currentPage}
+                index={index}
+                onPageClick={onPageClick}
+                pageRendered={onPageRendered}
+            />
+        );
+        return renderPage ? renderPage(pageNumber, pageToRender) : pageToRender();
     }
 
     return (
@@ -116,32 +98,33 @@ export default function PdfThumbnailViewer({
                 renderText={false}
                 onDocumentLoaded={_onDocumentLoaded}
             >
-                {pages.map((pageNumber, index) => {
-                    const pageToRender = (onPageRendered?: emptyFn): ReactNode => (
-                        <PageContainer
-                            pageNumber={pageNumber}
-                            index={index}
-                            onPageClick={onPageClick}
-                            pageRendered={onPageRendered}
-                        />
-                    );
-                    return renderPage ? renderPage(pageNumber, pageToRender) : pageToRender();
-                })}
+                {pages.map(renderSinglePage)}
             </PdfDocument>
         </div>
     );
 }
 interface PdfPageContainerProps {
     pageNumber: number;
+    currentPage: number;
     onPageClick: (pageNumber: number) => void;
     index: number;
     pageRendered?: () => void;
 }
-const PageContainer = React.memo(({ pageNumber, onPageClick, index, pageRendered }: PdfPageContainerProps) => {
-    return (
-        <div onClick={() => onPageClick(pageNumber)} className={`thumbnail_page_container`}>
-            <PdfPage pageNumber={pageNumber} index={index} key={"tpage_index_" + index} pageRendered={pageRendered} />
-            <div className={"pagenumber"}>{pageNumber}</div>
-        </div>
-    );
-});
+const PageContainer = React.memo(
+    ({ pageNumber, onPageClick, index, pageRendered, currentPage }: PdfPageContainerProps) => {
+        return (
+            <div
+                onClick={() => onPageClick(pageNumber)}
+                className={`thumbnail_page_container ${currentPage == pageNumber ? "infocus" : ""}`}
+            >
+                <PdfPage
+                    pageNumber={pageNumber}
+                    index={index}
+                    key={"tpage_index_" + index}
+                    pageRendered={pageRendered}
+                />
+                <div className={"pagenumber"}>{pageNumber}</div>
+            </div>
+        );
+    }
+);
