@@ -59,7 +59,7 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
         lagreEndringerFn.mutate(config);
     }
 
-    function saveAndFinishDocument(fysiskDokument: Uint8Array, config: EditDocumentMetadata) {
+    function saveAndFinishDocument(config: EditDocumentMetadata, fysiskDokument: Uint8Array) {
         ferdigstillDokumentFn.mutate(
             {
                 fysiskDokument: uint8ToBase64(fysiskDokument),

@@ -32,8 +32,6 @@ export default function DokumentRedigeringPage(props: DokumentRedigeringPageProp
 
 function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumenter }: DokumentRedigeringPageProps) {
     const [isLoading, setIsLoading] = useState(true);
-    console.log("HERER");
-
     const { data: documentFile } = lastDokumenter(journalpostId, dokumentreferanse, dokumenter, true, false);
 
     useEffect(() => {
@@ -68,9 +66,9 @@ function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumen
             journalpostId={journalpostId}
             dokumentreferanse={dokumentreferanse}
             documentFile={documentFile}
-            onSave={broadcastAndCloseWindow}
+            onSubmit={broadcastAndCloseWindow}
         >
-            <DokumentRedigering documentFile={documentFile} onSave={broadcastAndCloseWindow} />
+            <DokumentRedigering documentFile={documentFile} />
         </PdfEditorContextProvider>
     );
 }

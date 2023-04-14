@@ -95,7 +95,7 @@ module.exports = {
             name: "bidrag_dokument_redigering_ui",
             filename: "remoteEntry.js",
             exposes: {
-                "./DokumentRedigering": "./src/pages/dokumentredigering/DokumentRedigeringPage.tsx",
+                "./DokumentRedigering": "./src/app.tsx",
                 "./DokumentMaskering": "./src/pages/dokumentmaskering/DokumentMaskeringPage.tsx",
             },
             shared: {

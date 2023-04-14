@@ -32,8 +32,8 @@ interface IPdfEditorContextProviderProps {
     dokumentreferanse: string;
     dokumentMetadata?: IDocumentMetadata;
     documentFile: PdfDocumentType;
-    onSave: (config: EditDocumentMetadata, document?: Uint8Array) => void;
-    onSubmit?: (document: Uint8Array, config: EditDocumentMetadata) => void;
+    onSave?: (config: EditDocumentMetadata) => void;
+    onSubmit?: (config: EditDocumentMetadata, document: Uint8Array) => void;
 }
 
 export default function PdfEditorContextProvider(props: PropsWithChildren<IPdfEditorContextProviderProps>) {
@@ -60,9 +60,15 @@ function PdfEditorContextProviderWithMasking({
 
     useEffect(loadInitalConfig, []);
     async function finishPdf(): Promise<void> {
+        if (!onSubmit) return;
         const { documentFile, config } = await getProcessedPdf();
-        onSubmit(documentFile, config);
+        onSubmit(config, documentFile);
     }
+
+    const getEditDocumentMetadata = (): EditDocumentMetadata => ({
+        removedPages: removedPages,
+        items: items,
+    });
 
     async function getProcessedPdf(): Promise<{ documentFile: Uint8Array; config: EditDocumentMetadata }> {
         let existingPdfBytes = documentFile;
@@ -70,10 +76,7 @@ function PdfEditorContextProviderWithMasking({
             existingPdfBytes = await fetch(documentFile).then((res) => res.arrayBuffer());
         }
 
-        const config = {
-            removedPages: removedPages,
-            items: items,
-        };
+        const config = getEditDocumentMetadata();
         return await new PdfProducer(existingPdfBytes)
             .init(config)
             .then((p) => p.process())
@@ -89,8 +92,7 @@ function PdfEditorContextProviderWithMasking({
         FileUtils.openFile(documentFile);
     }
     async function savePdf(): Promise<void> {
-        const { documentFile, config } = await getProcessedPdf();
-        onSave(config, documentFile);
+        onSave && onSave(getEditDocumentMetadata());
     }
 
     function loadInitalConfig() {
