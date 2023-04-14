@@ -8,10 +8,10 @@ import React from "react";
 
 import { lastDokumenter, RedigeringQueries } from "../../api/queries";
 import LoadingIndicator from "../../components/LoadingIndicator";
-import { MaskingContainer } from "../../components/masking/MaskingContainer";
 import { uint8ToBase64 } from "../../components/utils/DocumentUtils";
 import { EditDocumentMetadata } from "../../types/EditorTypes";
 import PageWrapper from "../PageWrapper";
+import PdfEditorContextProvider from "../redigering/components/PdfEditorContext";
 import DokumentRedigering from "../redigering/DokumentRedigering";
 
 const url = "http://localhost:5173/test4.pdf";
@@ -31,7 +31,7 @@ export default function DokumentMaskeringPage(props: DokumentMaskeringPageProps)
 
 function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: DokumentMaskeringPageProps) {
     const { data: documentFile, isLoading } = lastDokumenter(forsendelseId, dokumentreferanse, null, true, false);
-    const { data: documentMetadata } = RedigeringQueries.hentRedigeringmetadata(forsendelseId, dokumentreferanse);
+    const { data: dokumentMetadata } = RedigeringQueries.hentRedigeringmetadata(forsendelseId, dokumentreferanse);
     const lagreEndringerFn = RedigeringQueries.lagreEndringer(forsendelseId, dokumentreferanse);
     const ferdigstillDokumentFn = RedigeringQueries.ferdigstillDokument(forsendelseId, dokumentreferanse);
 
@@ -72,15 +72,16 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
     }
 
     return (
-        <MaskingContainer items={documentMetadata.editorMetadata?.items}>
-            <DokumentRedigering
-                forsendelseId={forsendelseId}
-                dokumentreferanse={dokumentreferanse}
-                documentFile={documentFile}
-                onSave={saveDocument}
-                onSubmit={saveAndFinishDocument}
-                documentMetadata={documentMetadata}
-            />
-        </MaskingContainer>
+        <PdfEditorContextProvider
+            mode={"edit"}
+            journalpostId={forsendelseId}
+            dokumentreferanse={dokumentreferanse}
+            documentFile={documentFile}
+            onSave={saveDocument}
+            onSubmit={saveAndFinishDocument}
+            dokumentMetadata={dokumentMetadata}
+        >
+            <DokumentRedigering documentFile={documentFile} />
+        </PdfEditorContextProvider>
     );
 }

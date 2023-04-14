@@ -9,9 +9,9 @@ import { useEffect, useState } from "react";
 
 import { lastDokumenter } from "../../api/queries";
 import LoadingIndicator from "../../components/LoadingIndicator";
-import { MaskingContainer } from "../../components/masking/MaskingContainer";
 import { EditDocumentMetadata } from "../../types/EditorTypes";
 import PageWrapper from "../PageWrapper";
+import PdfEditorContextProvider from "../redigering/components/PdfEditorContext";
 import DokumentRedigering from "../redigering/DokumentRedigering";
 
 const url = "http://localhost:5173/test4.pdf";
@@ -63,8 +63,14 @@ function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumen
     }
 
     return (
-        <MaskingContainer>
+        <PdfEditorContextProvider
+            mode={"remove_pages_only"}
+            journalpostId={journalpostId}
+            dokumentreferanse={dokumentreferanse}
+            documentFile={documentFile}
+            onSave={broadcastAndCloseWindow}
+        >
             <DokumentRedigering documentFile={documentFile} onSave={broadcastAndCloseWindow} />
-        </MaskingContainer>
+        </PdfEditorContextProvider>
     );
 }

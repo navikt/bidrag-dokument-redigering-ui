@@ -3,7 +3,7 @@ import { useQuery, UseQueryResult } from "react-query";
 import { useMutation } from "react-query";
 
 import { PdfDocumentType } from "../components/utils/types";
-import { EditDocumentInitialMetadata, EditDocumentMetadata } from "../types/EditorTypes";
+import { EditDocumentMetadata, IDocumentMetadata } from "../types/EditorTypes";
 import { BIDRAG_DOKUMENT_API } from "./api";
 import { BIDRAG_FORSENDELSE_API } from "./api";
 import { FerdigstillDokumentRequest } from "./BidragDokumentForsendelseApi";
@@ -110,7 +110,7 @@ export const RedigeringQueries = {
             queryFn: () => {
                 return BIDRAG_FORSENDELSE_API.api.hentDokumentRedigeringMetadata(forsendelseId, dokumentId);
             },
-            select: (data): EditDocumentInitialMetadata => {
+            select: (data): IDocumentMetadata => {
                 const response = data.data;
                 return {
                     editorMetadata: response.redigeringMetadata

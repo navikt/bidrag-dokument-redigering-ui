@@ -13,6 +13,7 @@ import { PdfDocumentContextProps, usePdfDocumentContext } from "./PdfDocumentCon
 
 interface PdfPageProps {
     pageRendered?: () => void;
+    pageDestroyed?: () => void;
     pageNumber: number;
     index: number;
     onPageClicked?: (pageNumber: number) => void;
@@ -31,6 +32,7 @@ const PdfPageMemo = React.memo(
         pdfDocument,
         renderPageIndexes,
         scale,
+        pageDestroyed,
         renderText,
         pageNumber,
         pageRendered,
@@ -76,16 +78,20 @@ const PdfPageMemo = React.memo(
         function drawOrDestroyPage(renderPageIndexes: number[]) {
             if (pdfPageViewRef.current) {
                 if (shouldRenderPage(renderPageIndexes) && !isDrawed.current) {
-                    pdfPageViewRef.current.draw();
+                    pdfPageViewRef.current?.draw().then(pageRendered);
+                    // drawPage();
                     isDrawed.current = true;
                 } else if (!shouldRenderPage(renderPageIndexes) && isDrawed.current) {
+                    pageDestroyed?.();
                     setTimeout(() => {
                         pdfPageViewRef.current?.destroy();
+                        // destroyPage();
                     }, 100);
                     isDrawed.current = false;
                 }
             }
         }
+
         function shouldRenderPage(renderPageIndexes: number[]) {
             return renderPageIndexes.includes(index);
         }

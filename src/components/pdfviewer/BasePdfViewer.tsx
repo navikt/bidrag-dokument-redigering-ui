@@ -6,7 +6,7 @@ import { ScrollDirection } from "../pdfcore/PdfUtils";
 import { usePdfViewerContext } from "./PdfViewerContext";
 
 export type emptyFn = () => void;
-export type renderPageChildrenFn = (emptyFn) => ReactNode;
+export type renderPageChildrenFn = (emptyFn, emptyFn2) => ReactNode;
 export type renderPageFn = (pageNumber: number, children: renderPageChildrenFn) => ReactNode;
 interface BasePdfRendererProps {
     scale?: number;
@@ -45,12 +45,13 @@ export default function BasePdfViewer({
             onDocumentLoaded={_onDocumentLoaded}
         >
             {pages.map((pageNumber, index) => {
-                const pageToRender = (onPageRendered?: emptyFn): ReactNode => (
+                const pageToRender = (onPageRendered?: emptyFn, onPageDestroyed?: emptyFn): ReactNode => (
                     <PdfPage
                         pageNumber={pageNumber}
                         index={index}
                         key={"doc_page_index_" + index}
                         pageRendered={onPageRendered}
+                        pageDestroyed={onPageDestroyed}
                     />
                 );
 

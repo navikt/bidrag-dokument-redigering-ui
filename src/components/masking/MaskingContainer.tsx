@@ -29,7 +29,7 @@ export const MaskingContainerContext = React.createContext<MaskingContainerConte
 function useMaskingContainer() {
     const context = useContext(MaskingContainerContext);
     if (context === undefined) {
-        throw new Error("useDokumenter must be used within a ForsendelseProvider");
+        return { items: [] } as MaskingContainerContextProps;
     }
     return context;
 }

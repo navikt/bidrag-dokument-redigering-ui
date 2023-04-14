@@ -9,39 +9,25 @@ import { Button, Heading } from "@navikt/ds-react";
 import React from "react";
 
 import { useMaskingContainer } from "../../../components/masking/MaskingContainer";
-import { EditDocumentInitialMetadata } from "../../../types/EditorTypes";
+import { usePdfViewerContext } from "../../../components/pdfviewer/PdfViewerContext";
 import { usePdfEditorContext } from "./PdfEditorContext";
 import SavePdfButton from "./SavePdfButton";
 import SubmitPdfButton from "./SubmitPdfButton";
 import UnlockPdfButton from "./UnlockPdfButton";
-interface EditorToolbarProps {
-    pagesCount: number;
-    showSubmitButton?: boolean;
-    onZoomIn: () => void;
-    onZoomOut: () => void;
-    resetZoom: () => void;
-    onToggleSidebar: () => void;
-    scale: number;
-    documentMetadata?: EditDocumentInitialMetadata;
-}
-export default function EditorToolbar({
-    pagesCount,
-    onZoomIn,
-    onZoomOut,
-    documentMetadata,
-    resetZoom,
-    onToggleSidebar,
-    scale,
-    showSubmitButton,
-}: EditorToolbarProps) {
+
+export default function EditorToolbar() {
     const { addItem } = useMaskingContainer();
-    const { previewPdf, currentPage, removedPages } = usePdfEditorContext();
+    const { previewPdf, removedPages, onToggleSidebar, mode, dokumentMetadata } = usePdfEditorContext();
+    const { scale, zoom, pagesCount, currentPage } = usePdfViewerContext();
+    const { resetZoom, onZoomOut, onZoomIn } = zoom;
     function removedPagesBefore(pageNumber: number) {
         return removedPages.filter((p) => p < pageNumber);
     }
     const currentPageNotIncludingRemoved = currentPage - removedPagesBefore(currentPage).length;
 
-    const isEditable = documentMetadata.state == "EDITABLE";
+    const isEditable = dokumentMetadata?.state == "EDITABLE" || mode == "remove_pages_only";
+    const editedPagesCount = pagesCount - removedPages.length;
+    const isEditMode = mode == "edit";
     return (
         <div
             className={"editor_toolbar"}
@@ -54,9 +40,9 @@ export default function EditorToolbar({
                     <Button onClick={onToggleSidebar} size={"small"} variant={"tertiary"}>
                         <Hamburger />
                     </Button>
-                    {documentMetadata?.title && (
+                    {dokumentMetadata?.title && (
                         <Heading size={"xsmall"} className={"pl-2 document-title"}>
-                            {documentMetadata.title}
+                            {dokumentMetadata.title}
                         </Heading>
                     )}
                 </div>
@@ -66,10 +52,10 @@ export default function EditorToolbar({
                     <Button onClick={onZoomIn} size={"small"} variant={"tertiary-neutral"} icon={<Add />} />
                     <div className={"divider"}></div>
                     <div style={{ marginLeft: "10px", marginRight: "10px" }}>
-                        {currentPageNotIncludingRemoved} av {pagesCount}
+                        {currentPageNotIncludingRemoved} av {editedPagesCount}
                     </div>
                     <div className={"divider"}></div>
-                    {showSubmitButton && isEditable && (
+                    {isEditMode && isEditable && (
                         <Button
                             onClick={() => addItem(currentPage, scale, currentPageNotIncludingRemoved)}
                             size={"small"}
@@ -93,11 +79,11 @@ export default function EditorToolbar({
                             Vis
                         </Button>
                         <SavePdfButton />
-                        {showSubmitButton && <SubmitPdfButton />}
+                        {isEditMode && <SubmitPdfButton />}
                     </div>
                 ) : (
                     <div className={"buttons_right"}>
-                        <UnlockPdfButton dokumentMetadata={documentMetadata} />
+                        <UnlockPdfButton />
                     </div>
                 )}
             </div>

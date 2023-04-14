@@ -7,9 +7,19 @@ export interface PdfViewerContextProps {
     file: PdfDocumentType;
     pages: number[];
     currentPage: number;
+    scale: number;
+
+    pagesCount: number;
 
     onPageChange: (pagenumber: number) => void;
     onDocumentLoaded?: (pagesCount: number, pages: number[]) => void;
+    updateScale: (newScale: number) => void;
+    zoom: {
+        onZoomIn: () => void;
+        onZoomOut: () => void;
+        resetZoom: () => void;
+        zoomToFit: () => void;
+    };
 }
 
 export const usePdfViewerContext = () => {
@@ -35,19 +45,50 @@ export default function PdfViewerContextProvider({
     onPageChange: _onPageChange,
 }: PropsWithChildren<IPdfViewerContextProviderProps>) {
     const [_pages, setPages] = useState([]);
+    const [pagesCount, setPagesCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
+    const [scale, setScale] = useState(1.4);
+    function onZoomIn() {
+        setScale((prev) => prev + 0.2);
+    }
 
+    function onZoomOut() {
+        setScale((prev) => Math.max(0, prev - 0.2));
+    }
+
+    function resetZoom() {
+        setScale(1.4);
+    }
+    function zoomToFit() {
+        setScale(3);
+    }
     function onDocumentLoaded(pagesCount: number, pages: number[]) {
         setPages(pages);
-        _onDocumentLoaded(pagesCount, pages);
+        setPagesCount(pagesCount);
+        _onDocumentLoaded?.(pagesCount, pages);
     }
     function onPageChange(pagenumber: number) {
         setCurrentPage(pagenumber);
-        _onPageChange(pagenumber);
+        _onPageChange?.(pagenumber);
     }
     return (
         <PdfViewerContext.Provider
-            value={{ pages: pages ?? _pages, file: documentFile, currentPage, onDocumentLoaded, onPageChange }}
+            value={{
+                pages: pages ?? _pages,
+                file: documentFile,
+                currentPage,
+                pagesCount,
+                onDocumentLoaded,
+                onPageChange,
+                scale,
+                updateScale: setScale,
+                zoom: {
+                    onZoomIn,
+                    onZoomOut,
+                    resetZoom,
+                    zoomToFit,
+                },
+            }}
         >
             {children}
         </PdfViewerContext.Provider>

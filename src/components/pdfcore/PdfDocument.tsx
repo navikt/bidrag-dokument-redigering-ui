@@ -10,9 +10,9 @@ import { PropsWithChildren } from "react";
 import { useState } from "react";
 
 import environment from "../../environment";
-import { PdfDocumentType } from ".././basepdfviewer/types";
 import { createArrayWithLength, removeDuplicates } from "../utils/ObjectUtils";
 import { TimerUtils } from "../utils/TimerUtils";
+import { PdfDocumentType } from "../utils/types";
 import { PdfDocumentContext } from "./PdfDocumentContext";
 import PdfUtils, { ScrollDirection } from "./PdfUtils";
 

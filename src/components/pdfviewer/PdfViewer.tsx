@@ -8,8 +8,6 @@ import PdfThumbnailViewer from "./PdfThumbnailViewer";
 import { usePdfViewerContext } from "./PdfViewerContext";
 
 interface PdfViewerProps {
-    scale?: number;
-    onScaleUpdated?: (scale: number) => void;
     thumbnailsHidden?: boolean;
     thumbnailsMinimized?: boolean;
     showThumbnails?: boolean;
@@ -19,8 +17,6 @@ interface PdfViewerProps {
 
 export default function PdfViewer({
     showThumbnails = false,
-    scale,
-    onScaleUpdated,
     thumbnailsMinimized,
     thumbnailsHidden,
     renderPage,
@@ -32,7 +28,7 @@ export default function PdfViewer({
     const baseDocumentRef = useRef<PdfDocumentRef>(null);
 
     const [pageInView, setPageInView] = useState(1);
-    const { currentPage, onPageChange, onDocumentLoaded } = usePdfViewerContext();
+    const { currentPage, onPageChange, onDocumentLoaded, scale, updateScale } = usePdfViewerContext();
 
     useEffect(() => {
         if (pageInView != currentPage) {
@@ -58,7 +54,7 @@ export default function PdfViewer({
             // containerElement.scrollLeft = xt;
             // containerElement.scrollTop = -yt;
             // PdfUtils.getPdfPagesElement().style.transform = `translate(${xt}px,${yt}px)`;
-            onScaleUpdated?.(newScale);
+            updateScale?.(newScale);
         }
     }
     useEffect(() => {

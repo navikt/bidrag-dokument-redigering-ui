@@ -8,7 +8,6 @@ import PdfPage from "../../../components/pdfcore/PdfPage";
 import { emptyFn } from "../../../components/pdfviewer/BasePdfViewer";
 import { usePdfViewerContext } from "../../../components/pdfviewer/PdfViewerContext";
 import { createArrayWithLength } from "../../../components/utils/ObjectUtils";
-import { DocumentDetails } from "../../../types/EditorTypes";
 import { usePdfEditorContext } from "./PdfEditorContext";
 import ThumbnailPageDecorator from "./ThumbnailPageDecorator";
 
@@ -19,18 +18,18 @@ interface PageRangeDetails {
     range: [number, number];
 }
 interface SidebarProps {
-    hidden?: boolean;
-    documentDetails?: DocumentDetails[];
     onDocumentLoaded: (pagsNumber: number, pages: number[]) => void;
 }
-export default function Sidebar({ hidden: _hidden, onDocumentLoaded, documentDetails = [] }: SidebarProps) {
+export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
+    const { sidebarHidden, dokumentMetadata } = usePdfEditorContext();
     const [pageSize, setPageSize] = useState<PAGE_SIZE>("large");
-    const [hidden, setHidden] = useState(_hidden);
+    const [hidden, setHidden] = useState(sidebarHidden);
     const containerRef = useRef<HTMLDivElement>();
     const documentRef = useRef<PdfDocumentRef>(null);
     const [isDocumentLoaded, setIsDocumentLoaded] = useState(false);
     const { pages, currentPage, file: documentFile } = usePdfViewerContext();
 
+    const documentDetails = dokumentMetadata?.documentDetails ?? [];
     useEffect(() => {
         documentRef.current?.scrollToPage(currentPage);
     }, [currentPage]);
@@ -57,8 +56,8 @@ export default function Sidebar({ hidden: _hidden, onDocumentLoaded, documentDet
     }, []);
 
     useEffect(() => {
-        setHidden(_hidden);
-    }, [_hidden]);
+        setHidden(sidebarHidden);
+    }, [sidebarHidden]);
 
     function getScale() {
         switch (pageSize) {
@@ -141,16 +140,24 @@ function PageSection({ title, pageRange, index }: IPageSectionProps) {
     const { toggleDeletedPage, removedPages } = usePdfEditorContext();
     const pagesInSection = useMemo(() => createArrayWithLength(pagesLength, pageRange[0]), [pageRange]);
     function renderSinglePage(pageNumber: number, index: number) {
-        const pageToRender = (onPageRendered?: emptyFn): ReactNode => (
+        const pageToRender = (onPageRendered?: emptyFn, onPageDestroyed?: emptyFn): ReactNode => (
             <PageContainer
                 pageNumber={pageNumber}
                 currentPage={currentPage}
                 index={pageNumber - 1}
+                key={"pagesection_" + index}
                 onPageClick={onPageChange}
                 pageRendered={onPageRendered}
+                pageDestroyed={onPageDestroyed}
             />
         );
-        return <ThumbnailPageDecorator pageNumber={pageNumber} renderPageFn={pageToRender} />;
+        return (
+            <ThumbnailPageDecorator
+                pageNumber={pageNumber}
+                renderPageFn={pageToRender}
+                key={"ThumbnailPageDecorator_" + index}
+            />
+        );
     }
 
     const getDeletedPages = () => pagesInSection.filter((pageNumber) => removedPages.includes(pageNumber));
@@ -192,9 +199,10 @@ interface PdfPageContainerProps {
     onPageClick: (pageNumber: number) => void;
     index: number;
     pageRendered?: () => void;
+    pageDestroyed?: () => void;
 }
 const PageContainer = React.memo(
-    ({ pageNumber, onPageClick, index, pageRendered, currentPage }: PdfPageContainerProps) => {
+    ({ pageNumber, onPageClick, index, pageRendered, pageDestroyed, currentPage }: PdfPageContainerProps) => {
         return (
             <div
                 onClick={() => onPageClick(pageNumber)}
@@ -205,6 +213,7 @@ const PageContainer = React.memo(
                     index={index}
                     key={"tpage_index_" + index}
                     pageRendered={pageRendered}
+                    pageDestroyed={pageDestroyed}
                 />
                 <div className={"pagenumber"}>{pageNumber}</div>
             </div>

@@ -23,7 +23,12 @@ export default function ThumbnailPageDecorator({ renderPageFn, pageNumber }: Thu
     const isDeleted = removedPages.includes(pageNumber);
     const [mouseOver, setMouseOver] = useState(false);
     const id = `thumbnail_page_${pageNumber}`;
-
+    function updatePageRef() {
+        const pageElement = decoratorRef.current?.querySelector(".page");
+        if (pageElement.querySelector(".loadingIcon") == null) {
+            setPageRef(pageElement);
+        }
+    }
     return (
         <div
             onMouseOver={() => setMouseOver(true)}
@@ -31,7 +36,10 @@ export default function ThumbnailPageDecorator({ renderPageFn, pageNumber }: Thu
             ref={decoratorRef}
             className={`thumbnail_decorator ${isDeleted ? "deleted" : ""}`}
         >
-            {renderPageFn(() => setPageRef(decoratorRef.current?.querySelector(".page")))}
+            {renderPageFn(
+                () => updatePageRef(),
+                () => setPageRef(null)
+            )}
             {pageRef &&
                 createPortal(
                     <>

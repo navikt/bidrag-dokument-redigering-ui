@@ -36,12 +36,12 @@ export class PdfProducer {
 
     async process(): Promise<PdfProducer> {
         this.pdfDocument.getForm().flatten();
-        this.removePages(this.config.removedPages);
         const itemsFiltered = this.config.items.filter((item) => !this.config.removedPages.includes(item.pageNumber));
         // @ts-ignore
         this.maskPages(itemsFiltered);
         // @ts-ignore
         await this.convertMaskedPagesToImage(itemsFiltered);
+        this.removePages(this.config.removedPages);
         return this;
     }
 

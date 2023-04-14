@@ -4,15 +4,11 @@ import { useState } from "react";
 import React from "react";
 
 import { DokumentQueryKeys, RedigeringQueries } from "../../../api/queries";
-import { EditDocumentInitialMetadata } from "../../../types/EditorTypes";
 import { queryClient } from "../../PageWrapper";
 import { usePdfEditorContext } from "./PdfEditorContext";
 
-interface IUnlockPdfButtonProps {
-    dokumentMetadata: EditDocumentInitialMetadata;
-}
-export default function UnlockPdfButton({ dokumentMetadata }: IUnlockPdfButtonProps) {
-    const { forsendelseId, dokumentreferanse } = usePdfEditorContext();
+export default function UnlockPdfButton() {
+    const { forsendelseId, dokumentreferanse, dokumentMetadata } = usePdfEditorContext();
     const opphevFerdigstillFn = RedigeringQueries.opphevFerdigstillDokument(forsendelseId, dokumentreferanse);
     const [modalOpen, setModalOpen] = useState(false);
 
