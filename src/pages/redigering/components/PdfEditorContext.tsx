@@ -13,7 +13,7 @@ interface PdfEditorContextProps {
     mode: PdfEditorMode;
     removedPages: number[];
     toggleDeletedPage: (page: number) => void;
-    savePdf: () => Promise<void>;
+    savePdf: (closeAfterSave?: boolean) => Promise<void>;
     previewPdf: () => Promise<void>;
     finishPdf: () => Promise<void>;
     onToggleSidebar: () => void;

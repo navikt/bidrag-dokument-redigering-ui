@@ -1,7 +1,7 @@
 .floating-toolbar {
   position: absolute;
   background-color: white;
-  z-index: 9999999;
+  z-index: 1000;
   border: 1px solid black;
 }
 .floating-toolbar .handle {
@@ -12,6 +12,7 @@
 }
 
 .floating-toolbar .buttons_row {
+  padding: 0 10px;
   display: flex;
   flex-direction: column;
   gap: 5px;

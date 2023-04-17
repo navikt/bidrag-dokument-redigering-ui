@@ -4,7 +4,7 @@ import { EditDocumentBroadcastMessage } from "@navikt/bidrag-ui-common";
 import { Broadcast } from "@navikt/bidrag-ui-common";
 import { FileUtils } from "@navikt/bidrag-ui-common";
 import { BroadcastNames } from "@navikt/bidrag-ui-common";
-import React from "react";
+import React, { useEffect } from "react";
 
 import { lastDokumenter, RedigeringQueries } from "../../api/queries";
 import LoadingIndicator from "../../components/LoadingIndicator";
@@ -34,6 +34,14 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
     const { data: dokumentMetadata } = RedigeringQueries.hentRedigeringmetadata(forsendelseId, dokumentreferanse);
     const lagreEndringerFn = RedigeringQueries.lagreEndringer(forsendelseId, dokumentreferanse);
     const ferdigstillDokumentFn = RedigeringQueries.ferdigstillDokument(forsendelseId, dokumentreferanse);
+    function onWindowClose(e) {
+        return broadcast();
+    }
+
+    useEffect(() => {
+        window.addEventListener("beforeunload", onWindowClose);
+        return () => window.removeEventListener("beforeunload", onWindowClose);
+    }, []);
 
     if (isLoading) {
         return <LoadingIndicator title="Laster dokument..." />;
@@ -42,12 +50,13 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
     if (!isLoading && !documentFile) {
         return <div>Det skjedde en feil ved lasting av dokument</div>;
     }
-    function broadcast(config: EditDocumentMetadata, documentFile: Uint8Array) {
+    function broadcast(config?: EditDocumentMetadata, documentFile?: Uint8Array) {
         const params = queryParams();
+        const documentFileAsBase64 = documentFile ? FileUtils._arrayBufferToBase64(documentFile) : null;
         const message: BroadcastMessage<EditDocumentBroadcastMessage> = Broadcast.convertToBroadcastMessage(params.id, {
-            documentFile: FileUtils._arrayBufferToBase64(documentFile),
-            document: FileUtils._arrayBufferToBase64(documentFile),
-            config: JSON.stringify(config),
+            documentFile: documentFileAsBase64,
+            document: documentFileAsBase64,
+            config: config ? JSON.stringify(config) : undefined,
         });
         Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
     }
