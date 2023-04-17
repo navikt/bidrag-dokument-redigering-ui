@@ -27,8 +27,9 @@ export interface IMaskingItemProps {
     parentId: string | number;
     pageNumber: number;
 }
-export default function MaskingItem({ id, coordinates, scale, disabled = false }: IMaskingItemProps) {
-    const [coordinatesResizeStart, setCoordinatesResizeStart] = useState<ICoordinates>(coordinates);
+export default function MaskingItem({ id, coordinates: _coordinates, scale, disabled = false }: IMaskingItemProps) {
+    const [coordinatesResizeStart, setCoordinatesResizeStart] = useState<ICoordinates>(_coordinates);
+    const [currentCoordinates, setCurrentCoordinates] = useState<ICoordinates>(_coordinates);
     const disabledRef = useRef(false);
     const scaleRef = useRef(scale);
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
@@ -44,7 +45,8 @@ export default function MaskingItem({ id, coordinates, scale, disabled = false }
 
     useEffect(() => {
         scaleRef.current = scale;
-    }, [scale, coordinates]);
+        setCurrentCoordinates(_coordinates);
+    }, [scale, _coordinates]);
 
     useEffect(() => {
         const element = document.getElementById(id);
@@ -58,6 +60,7 @@ export default function MaskingItem({ id, coordinates, scale, disabled = false }
           }
         : {};
 
+    const coordinates = currentCoordinates;
     const getCoordinatesScaled = (): ICoordinates => {
         return {
             x: coordinates.x * scale,
@@ -112,7 +115,12 @@ export default function MaskingItem({ id, coordinates, scale, disabled = false }
                 style={getStyle()}
                 onResize={(e, direction, ref, d) => {
                     const coordinates = getCoordinatesAfterResize(d);
-                    updateItemDimensions(id, coordinates.width, coordinates.height);
+                    setCurrentCoordinates((prevState) => ({
+                        ...prevState,
+                        width: coordinates.width,
+                        height: coordinates.height,
+                    }));
+                    // updateItemDimensions(id, coordinates.width, coordinates.height);
                     document.getElementById(id).style.marginBottom = `${-coordinates.height * scale}px`;
                 }}
                 onResizeStart={() => {
