@@ -13,7 +13,7 @@
     "types:forsendelse": "swagger-typescript-api -p http://localhost:8999/v3/api-docs --axios -n BidragDokumentForsendelseApi.ts -o src/api"
   },
   "dependencies": {
-    "@navikt/bidrag-ui-common": "1.4.2",
+    "@navikt/bidrag-ui-common": "1.5.1",
     "@dnd-kit/modifiers": "^6.0.1",
     "@dnd-kit/core": "^6.0.8",
     "@navikt/ds-css": "^2.7.6",

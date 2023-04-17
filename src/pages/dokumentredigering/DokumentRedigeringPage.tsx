@@ -5,7 +5,6 @@ import { Broadcast } from "@navikt/bidrag-ui-common";
 import { FileUtils } from "@navikt/bidrag-ui-common";
 import { BroadcastNames } from "@navikt/bidrag-ui-common";
 import React from "react";
-import { useEffect, useState } from "react";
 
 import { lastDokumenter } from "../../api/queries";
 import LoadingIndicator from "../../components/LoadingIndicator";
@@ -31,14 +30,7 @@ export default function DokumentRedigeringPage(props: DokumentRedigeringPageProp
 }
 
 function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumenter }: DokumentRedigeringPageProps) {
-    const [isLoading, setIsLoading] = useState(true);
-    const { data: documentFile } = lastDokumenter(journalpostId, dokumentreferanse, dokumenter, true, false);
-
-    useEffect(() => {
-        if (documentFile) {
-            setIsLoading(false);
-        }
-    }, [documentFile]);
+    const { data: documentFile, isLoading } = lastDokumenter(journalpostId, dokumentreferanse, dokumenter, true, false);
 
     if (isLoading) {
         return <LoadingIndicator title="Laster dokument..." />;

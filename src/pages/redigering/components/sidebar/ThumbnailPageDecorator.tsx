@@ -4,10 +4,10 @@ import { AddCircleFilled, DeleteFilled } from "@navikt/ds-icons";
 import React, { CSSProperties, PropsWithChildren, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { useMaskingContainer } from "../../../components/masking/MaskingContainer";
-import MaskingItem from "../../../components/masking/MaskingItem";
-import { renderPageChildrenFn } from "../../../components/pdfviewer/BasePdfViewer";
-import { usePdfEditorContext } from "./PdfEditorContext";
+import { useMaskingContainer } from "../../../../components/masking/MaskingContainer";
+import MaskingItem from "../../../../components/masking/MaskingItem";
+import { renderPageChildrenFn } from "../../../../components/pdfviewer/BasePdfViewer";
+import { usePdfEditorContext } from "../PdfEditorContext";
 
 interface ThumbnailPageDecoratorProps extends PropsWithChildren<unknown> {
     pageNumber: number;

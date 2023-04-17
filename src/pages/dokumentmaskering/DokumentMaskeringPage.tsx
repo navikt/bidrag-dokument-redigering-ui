@@ -42,33 +42,48 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
     if (!isLoading && !documentFile) {
         return <div>Det skjedde en feil ved lasting av dokument</div>;
     }
-    function broadcast(document: Uint8Array, config: EditDocumentMetadata) {
+    function broadcast(config: EditDocumentMetadata, documentFile: Uint8Array) {
         const params = queryParams();
         const message: BroadcastMessage<EditDocumentBroadcastMessage> = Broadcast.convertToBroadcastMessage(params.id, {
-            documentFile: FileUtils._arrayBufferToBase64(document),
+            documentFile: FileUtils._arrayBufferToBase64(documentFile),
+            document: FileUtils._arrayBufferToBase64(documentFile),
             config: JSON.stringify(config),
         });
         Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
     }
-    function broadcastAndCloseWindow(document: Uint8Array, config: EditDocumentMetadata) {
-        broadcast(document, config);
+    function broadcastAndCloseWindow(config: EditDocumentMetadata, documentFile?: Uint8Array) {
+        broadcast(config, documentFile);
         window.close();
     }
 
     function saveDocument(config: EditDocumentMetadata) {
-        lagreEndringerFn.mutate(config);
+        return new Promise<any>((resolve, reject) => {
+            lagreEndringerFn.mutate(config, {
+                onSuccess: resolve,
+                onError: reject,
+            });
+        });
+    }
+    function saveDocumentAndClose(config: EditDocumentMetadata) {
+        return saveDocument(config).then(() => broadcastAndCloseWindow(config));
     }
 
     function saveAndFinishDocument(config: EditDocumentMetadata, fysiskDokument: Uint8Array) {
-        ferdigstillDokumentFn.mutate(
-            {
-                fysiskDokument: uint8ToBase64(fysiskDokument),
-                redigeringMetadata: JSON.stringify(config),
-            },
-            {
-                onSuccess: () => broadcastAndCloseWindow(fysiskDokument, config),
-            }
-        );
+        return new Promise<void>((resolve, reject) => {
+            ferdigstillDokumentFn.mutate(
+                {
+                    fysiskDokument: uint8ToBase64(fysiskDokument),
+                    redigeringMetadata: JSON.stringify(config),
+                },
+                {
+                    onSuccess: () => {
+                        resolve();
+                        broadcastAndCloseWindow(config, fysiskDokument);
+                    },
+                    onError: reject,
+                }
+            );
+        });
     }
 
     return (
@@ -78,6 +93,7 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
             dokumentreferanse={dokumentreferanse}
             documentFile={documentFile}
             onSave={saveDocument}
+            onSaveAndClose={saveDocumentAndClose}
             onSubmit={saveAndFinishDocument}
             dokumentMetadata={dokumentMetadata}
         >

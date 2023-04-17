@@ -13,9 +13,10 @@ import { renderPageChildrenFn } from "../../components/pdfviewer/BasePdfViewer";
 import PdfViewer from "../../components/pdfviewer/PdfViewer";
 import PdfViewerContextProvider, { usePdfViewerContext } from "../../components/pdfviewer/PdfViewerContext";
 import { PdfDocumentType } from "../../components/utils/types";
-import EditorToolbar from "./components/EditorToolbar";
 import { usePdfEditorContext } from "./components/PdfEditorContext";
-import Sidebar from "./components/Sidebar";
+import Sidebar from "./components/sidebar/Sidebar";
+import EditorToolbar from "./components/toolbar/EditorToolbar";
+import FloatingToolbar from "./components/toolbar/FloatingToolbar";
 
 interface DokumentRedigeringContainerProps {
     documentFile: PdfDocumentType;
@@ -23,7 +24,9 @@ interface DokumentRedigeringContainerProps {
 export default function DokumentRedigering({ documentFile }: DokumentRedigeringContainerProps) {
     const [isLoading, setIsLoading] = useState(true);
     const { hideSidebar } = usePdfEditorContext();
-
+    const { isOver, setNodeRef } = useDroppable({
+        id: "document_editor",
+    });
     return (
         <PdfViewerContextProvider
             documentFile={documentFile}
@@ -32,8 +35,14 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
             }}
         >
             {isLoading && <Loader />}
-            <div className={"editor"} style={{ visibility: isLoading ? "hidden" : "unset" }} onClick={hideSidebar}>
+            <div
+                className={"editor"}
+                style={{ visibility: isLoading ? "hidden" : "unset" }}
+                onClick={hideSidebar}
+                ref={setNodeRef}
+            >
                 <EditorToolbar />
+                <FloatingToolbar />
                 <div className={"pdfviewer"} style={{ display: "flex", flexDirection: "row" }}>
                     <Sidebar
                         onDocumentLoaded={() => {

@@ -12,7 +12,7 @@
 }
 
 .editor_toolbar .document-title {
-  max-width: 300px;
+  max-width: 40vw;
   text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
@@ -54,4 +54,7 @@
 .editor_toolbar div button {
   margin: 5px 10px;
   color: black;
+}
+.editor_toolbar .save-state-indicator circle.navds-loader__background {
+  stroke: white;
 }

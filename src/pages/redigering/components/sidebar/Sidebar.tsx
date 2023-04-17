@@ -3,12 +3,12 @@ import "./Sidebar.css";
 import { Checkbox, Heading } from "@navikt/ds-react";
 import React, { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
-import PdfDocument, { PdfDocumentRef } from "../../../components/pdfcore/PdfDocument";
-import PdfPage from "../../../components/pdfcore/PdfPage";
-import { emptyFn } from "../../../components/pdfviewer/BasePdfViewer";
-import { usePdfViewerContext } from "../../../components/pdfviewer/PdfViewerContext";
-import { createArrayWithLength } from "../../../components/utils/ObjectUtils";
-import { usePdfEditorContext } from "./PdfEditorContext";
+import PdfDocument, { PdfDocumentRef } from "../../../../components/pdfcore/PdfDocument";
+import PdfPage from "../../../../components/pdfcore/PdfPage";
+import { emptyFn } from "../../../../components/pdfviewer/BasePdfViewer";
+import { usePdfViewerContext } from "../../../../components/pdfviewer/PdfViewerContext";
+import { createArrayWithLength } from "../../../../components/utils/ObjectUtils";
+import { usePdfEditorContext } from "../PdfEditorContext";
 import ThumbnailPageDecorator from "./ThumbnailPageDecorator";
 
 type PAGE_SIZE = "large" | "medium" | "small";
@@ -21,9 +21,8 @@ interface SidebarProps {
     onDocumentLoaded: (pagsNumber: number, pages: number[]) => void;
 }
 export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
-    const { sidebarHidden, dokumentMetadata } = usePdfEditorContext();
+    const { sidebarHidden, dokumentMetadata, hideSidebar } = usePdfEditorContext();
     const [pageSize, setPageSize] = useState<PAGE_SIZE>("large");
-    const [hidden, setHidden] = useState(sidebarHidden);
     const containerRef = useRef<HTMLDivElement>();
     const documentRef = useRef<PdfDocumentRef>(null);
     const [isDocumentLoaded, setIsDocumentLoaded] = useState(false);
@@ -38,15 +37,12 @@ export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
         const windowWidth = window.innerWidth;
         if (windowWidth > 1300) {
             setPageSize("large");
-            setHidden(false);
         } else if (windowWidth < 1300 && windowWidth > 600) {
             setPageSize("medium");
-            setHidden(false);
         } else if (windowWidth > 600 && windowWidth < 400) {
             setPageSize("small");
-            setHidden(false);
         } else {
-            setHidden(true);
+            hideSidebar();
         }
     }
     useEffect(() => {
@@ -54,10 +50,6 @@ export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
         window.addEventListener("resize", updatePageSize);
         return () => window.removeEventListener("resize", updatePageSize);
     }, []);
-
-    useEffect(() => {
-        setHidden(sidebarHidden);
-    }, [sidebarHidden]);
 
     function getScale() {
         switch (pageSize) {
@@ -95,7 +87,7 @@ export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
     return (
         <div
             ref={containerRef}
-            className={`sidebar_viewer pagesize_${pageSize} ${hidden ? "inactive" : "open"}`}
+            className={`sidebar_viewer pagesize_${pageSize} ${sidebarHidden ? "inactive" : "open"}`}
             onClick={(e) => {
                 e.stopPropagation();
             }}

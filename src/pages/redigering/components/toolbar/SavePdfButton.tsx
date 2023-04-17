@@ -3,7 +3,7 @@ import { Button } from "@navikt/ds-react";
 import { useState } from "react";
 import React from "react";
 
-import { usePdfEditorContext } from "./PdfEditorContext";
+import { usePdfEditorContext } from "../PdfEditorContext";
 
 export default function SavePdfButton() {
     const { savePdf } = usePdfEditorContext();
@@ -23,7 +23,7 @@ export default function SavePdfButton() {
             variant={"tertiary-neutral"}
             icon={<FloppydiskIcon />}
         >
-            Lagre endringer
+            Lagre og lukk
         </Button>
     );
 }

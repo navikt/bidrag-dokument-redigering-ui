@@ -3,9 +3,9 @@ import { BodyShort, Button, Heading, Modal } from "@navikt/ds-react";
 import { useState } from "react";
 import React from "react";
 
-import { DokumentQueryKeys, RedigeringQueries } from "../../../api/queries";
-import { queryClient } from "../../PageWrapper";
-import { usePdfEditorContext } from "./PdfEditorContext";
+import { DokumentQueryKeys, RedigeringQueries } from "../../../../api/queries";
+import { queryClient } from "../../../PageWrapper";
+import { usePdfEditorContext } from "../PdfEditorContext";
 
 export default function UnlockPdfButton() {
     const { forsendelseId, dokumentreferanse, dokumentMetadata } = usePdfEditorContext();

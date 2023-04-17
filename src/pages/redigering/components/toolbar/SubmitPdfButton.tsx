@@ -3,7 +3,7 @@ import { BodyShort, Button, ConfirmationPanel, Heading, Modal } from "@navikt/ds
 import { useState } from "react";
 import React from "react";
 
-import { usePdfEditorContext } from "./PdfEditorContext";
+import { usePdfEditorContext } from "../PdfEditorContext";
 
 export default function SubmitPdfButton() {
     const { finishPdf } = usePdfEditorContext();
