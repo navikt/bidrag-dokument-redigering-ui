@@ -2,6 +2,7 @@ import { EditorConfigStorage, FileUtils, objectsDeepEqual, queryParams } from "@
 import { PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 import React from "react";
 
+import StateHistory from "../../../components/history/StateHistory";
 import { MaskingContainer, useMaskingContainer } from "../../../components/masking/MaskingContainer";
 import { TimerUtils } from "../../../components/utils/TimerUtils";
 import { PdfDocumentType } from "../../../components/utils/types";
@@ -11,12 +12,15 @@ import { EditDocumentMetadata, IDocumentMetadata } from "../../../types/EditorTy
 type PdfEditorMode = "view_only" | "edit" | "remove_pages_only";
 interface PdfEditorContextProps {
     mode: PdfEditorMode;
+    history: StateHistory<EditDocumentMetadata>;
     removedPages: number[];
     toggleDeletedPage: (page: number) => void;
     savePdf: (closeAfterSave?: boolean) => Promise<void>;
     previewPdf: () => Promise<void>;
     finishPdf: () => Promise<void>;
     onToggleSidebar: () => void;
+    onUndo: () => void;
+    onRedo: () => void;
     hideSidebar: () => void;
     forsendelseId: string;
     sidebarHidden: boolean;
@@ -58,16 +62,57 @@ function PdfEditorContextProviderWithMasking({
     onSubmit,
     children,
 }: PropsWithChildren<IPdfEditorContextProviderProps>) {
-    const { items } = useMaskingContainer();
+    const { items, initItems } = useMaskingContainer();
     const [sidebarHidden, setSidebarHidden] = useState(true);
     const [removedPages, setRemovedPages] = useState<number[]>(getInitialRemovedPages());
     const [lastSavedData, setLastSavedData] = useState(getEditDocumentMetadata());
+    const [history, setHistory] = useState(new StateHistory<EditDocumentMetadata>(getEditDocumentMetadata()));
     const [isSavingEditDocumentConfig, setIsSavingDocumentConfig] = useState(false);
     const saveChanges = useRef(TimerUtils.debounce(savePdf, 500));
+    const isUndoRedoChange = useRef(false);
+
+    useEffect(() => {
+        const hasChanged = !objectsDeepEqual(history.current, getEditDocumentMetadata());
+        if (!isUndoRedoChange.current && hasChanged) {
+            setHistory(history.push(getEditDocumentMetadata()));
+        }
+        isUndoRedoChange.current = false;
+    }, [items, removedPages, history]);
+
     useEffect(() => {
         const hasChanged = !objectsDeepEqual(lastSavedData, getEditDocumentMetadata());
-        if (hasChanged) saveChanges.current(getEditDocumentMetadata());
+        if (hasChanged) {
+            saveChanges.current(getEditDocumentMetadata());
+        }
     }, [items, removedPages]);
+    useEffect(() => {
+        document.addEventListener("keydown", onRedoUndoEvent);
+        return () => document.removeEventListener("keydown", onRedoUndoEvent);
+    }, [history]);
+    function onRedoUndoEvent(event) {
+        if (event.ctrlKey && !event.shiftKey && event.key === "z") {
+            undoState();
+        } else if (event.ctrlKey && event.shiftKey && event.key === "Z") {
+            redoState();
+        }
+    }
+    function undoState() {
+        if (history.canUndo) {
+            initItems(history.previous.items);
+            setRemovedPages(history.previous.removedPages);
+            setHistory(history.undo(getEditDocumentMetadata()));
+            isUndoRedoChange.current = true;
+        }
+    }
+    function redoState() {
+        if (history.canRedo) {
+            initItems(history.next.items);
+            setRemovedPages(history.next.removedPages);
+            setHistory(history.redo(getEditDocumentMetadata()));
+            isUndoRedoChange.current = true;
+        }
+    }
+
     function getEditDocumentMetadata(): EditDocumentMetadata {
         return {
             removedPages: removedPages,
@@ -139,6 +184,9 @@ function PdfEditorContextProviderWithMasking({
             value={{
                 mode,
                 forsendelseId: journalpostId,
+                history,
+                onUndo: () => undoState(),
+                onRedo: () => redoState(),
                 dokumentreferanse,
                 dokumentMetadata,
                 isSavingEditDocumentConfig,

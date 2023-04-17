@@ -3,42 +3,31 @@ import { List, Record, Stack } from "immutable";
 // Default maximum number of undo
 const MAX_UNDOS = 500;
 
-type Snapshot<T> = {
-    value: T;
-    merged: number;
-};
-
 /**
  * Default properties.
  */
 const DEFAULTS = <T>() => ({
     // The previous states. Last is the closest to current (most
     // recent)
-    undos: List<Snapshot<T>>(), // List<Snapshot>
+    undos: List<T>(), // List<Snapshot>
 
     // The next states. Top is the closest to current (oldest)
-    redos: Stack<Snapshot<T>>(), // Stack<Snapshot>
-
-    // Remember the current merged count. For SMOOTH strategy
-    merged: 1,
+    redos: Stack<T>(), // Stack<Snapshot>
 
     maxUndos: MAX_UNDOS,
 });
-
-/**
- * Data structure for an History of state, with undo/redo.
- */
-export default class History<T> extends Record(DEFAULTS<T>()) {
-    static lru = lru;
-
-    /**
-     * @param {Any} initial The initial state
-     * @return {History}
-     */
-    static create(opts = {}) {
-        return new History(opts);
+//@ts-ignore
+export default class StateHistory<T> extends Record(DEFAULTS<T>()) {
+    private maxUndos = 100;
+    private currentValue: T;
+    constructor(currentValue: T) {
+        super();
+        this.currentValue = currentValue;
+        return this.push(currentValue);
     }
-
+    get current(): T {
+        return this.currentValue;
+    }
     get canUndo() {
         return !this.undos.isEmpty();
     }
@@ -50,79 +39,84 @@ export default class History<T> extends Record(DEFAULTS<T>()) {
     /**
      * @return {Any?} the previous state
      */
-    get previous() {
-        return this.undos.last().value;
+    get previous(): T {
+        return this.undos.last();
     }
 
     /**
      * @return {Any?} the next state
      */
-    get next() {
-        return this.redos.first().value;
+    get next(): T {
+        return this.redos.first();
     }
 
     /**
      * Push a new state, and clear all the next states.
      * @param {Any} state The new state
-     * @return {History}
+     * @return {StateHistory}
      */
-    push(state) {
+    push(state: T) {
+        this.currentValue = state;
         const newHistory = this.merge({
-            undos: this.undos.push(snapshot(state, this.merged)),
+            undos: this.undos.push(state),
             redos: Stack(),
-            merged: 1,
         });
 
+        newHistory.currentValue = state;
         return newHistory.prune();
     }
 
     /**
      * Go back to previous state. Return itself if no previous state.
      * @param {Any} current The current state
-     * @return {History}
+     * @return {StateHistory}
      */
-    undo(current) {
+    undo(current: T) {
+        this.currentValue = current;
         if (!this.canUndo) return this;
 
-        return this.merge({
+        const newHistory = this.merge({
             undos: this.undos.pop(),
-            redos: this.redos.push(snapshot(current, this.merged)),
-            merged: this.undos.last().merged,
+            redos: this.redos.push(current),
         });
+        newHistory.currentValue = current;
+        return newHistory;
     }
 
     /**
      * Go to next state. Return itself if no next state
      * @param {Any} current The current state
-     * @return {History}
+     * @return {StateHistory}
      */
     redo(current) {
+        this.currentValue = current;
         if (!this.canRedo) return this;
 
-        return this.merge({
-            undos: this.undos.push(snapshot(current, this.merged)),
+        const newHistory = this.merge({
+            undos: this.undos.push(current),
             redos: this.redos.pop(),
-            merged: this.redos.first().merged,
         });
+        newHistory.currentValue = current;
+        return newHistory;
     }
 
     /**
      * Prune undo/redo using the defined strategy,
      * after pushing a value on a valid History.
-     * @return {History}
+     * @return {StateHistory}
      */
     prune() {
         if (this.undos.size <= this.maxUndos) {
             return this;
         } else {
-            return lru(this);
+            return this.lru(this);
         }
+    }
+    lru(history) {
+        return history.set("undos", history.undos.shift());
     }
 }
 
-function lru(history) {
-    return history.set("undos", history.undos.shift());
-}
 function snapshot(value, merged = 1) {
     return { value, merged };
 }

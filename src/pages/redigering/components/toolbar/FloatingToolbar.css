@@ -22,6 +22,13 @@
 .floating-toolbar .buttons_row button:focus {
   box-shadow: none;
 }
+.floating-toolbar .buttons_row .undo_redo_buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  align-items: center;
+
+}
 .floating-toolbar .buttons_row .editor_buttons {
   display: flex;
   flex-direction: column;

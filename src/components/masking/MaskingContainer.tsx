@@ -10,11 +10,10 @@ import { useContext } from "react";
 import { useState } from "react";
 import { v4 as uuidV4 } from "uuid";
 
-import History from "../history/History";
 import { IMaskingItemProps } from "./MaskingItem";
 export interface MaskingContainerContextProps {
     items: IMaskingItemProps[];
-    init: (items: IMaskingItemProps[]) => void;
+    initItems: (items: IMaskingItemProps[]) => void;
     activeId: string;
     addItem: (pageNumber: number, scale: number, pageNumberNotIncludingRemoved: number) => void;
     removeItem: (id: string) => void;
@@ -36,29 +35,8 @@ function useMaskingContainer() {
 
 function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMaskingItemProps[] }>) {
     const [maskingItems, setMaskingItems] = useState<IMaskingItemProps[]>(items ?? []);
-    const [maskingItemsHistory, setMaskingItemsHistory] = useState<History<IMaskingItemProps[]>>(
-        new History<IMaskingItemProps[]>()
-    );
     const [activeId, setActiveId] = useState(null);
     const [dragDisabled, setDragDisabled] = useState(false);
-    function undo(event) {
-        console.log("HERE", event.key, event.ctrlKey);
-        if (event.ctrlKey && event.key === "z") {
-            console.log("HERE");
-            const updatedHistory = maskingItemsHistory.undo(maskingItems);
-            setMaskingItems(updatedHistory.previous);
-            setMaskingItemsHistory(updatedHistory);
-        }
-    }
-    function redo(event) {
-        if (event.ctrlKey && event.key === "z") {
-            alert("Undo!");
-        }
-    }
-    // useEffect(() => {
-    //     document.addEventListener("keydown", undo);
-    //     return () => document.removeEventListener("keydown", undo);
-    // }, []);
     function handleDragStart(event) {
         setActiveId(event.active.id);
     }
@@ -179,7 +157,7 @@ function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMask
                 value={{
                     items: maskingItems,
                     activeId,
-                    init: setMaskingItems,
+                    initItems: setMaskingItems,
                     addItem,
                     disableDrag: () => setDragDisabled(true),
                     enableDrag: () => setDragDisabled(false),

@@ -6,7 +6,7 @@ import { EraserIcon, MinusIcon } from "@navikt/aksel-icons";
 import { DragHorizontalIcon } from "@navikt/aksel-icons";
 import { ShrinkIcon } from "@navikt/aksel-icons";
 import { FileXMarkIcon } from "@navikt/aksel-icons";
-import { ArrowUndoIcon } from "@navikt/aksel-icons";
+import { ArrowRedoIcon, ArrowUndoIcon } from "@navikt/aksel-icons";
 import { Add } from "@navikt/ds-icons";
 import { Button } from "@navikt/ds-react";
 import React, { useEffect, useRef, useState } from "react";
@@ -122,36 +122,47 @@ function FloatingToolbarContainer() {
                             Masker
                         </Button>
 
-                        {undoDeletePage ? (
-                            <Button
-                                onClick={() => {
-                                    setUndoDeletePage(null);
-                                    toggleDeletedPage(currentPage);
-                                }}
-                                size={"small"}
-                                variant={"tertiary-neutral"}
-                                icon={<ArrowUndoIcon />}
-                                iconPosition={"left"}
-                            >
-                                Angre
-                            </Button>
-                        ) : (
-                            <Button
-                                onClick={() => {
-                                    setUndoDeletePage(currentPage);
-                                    toggleDeletedPage(currentPage);
-                                }}
-                                size={"small"}
-                                variant={"tertiary-neutral"}
-                                icon={<FileXMarkIcon />}
-                                iconPosition={"left"}
-                            >
-                                Fjern side
-                            </Button>
-                        )}
+                        <Button
+                            onClick={() => {
+                                setUndoDeletePage(currentPage);
+                                toggleDeletedPage(currentPage);
+                            }}
+                            size={"small"}
+                            variant={"tertiary-neutral"}
+                            icon={<FileXMarkIcon />}
+                            iconPosition={"left"}
+                        >
+                            Fjern side
+                        </Button>
+                        <UndoRedoButtons />
                     </div>
                 )}
             </div>
+        </div>
+    );
+}
+
+function UndoRedoButtons() {
+    const { onRedo, onUndo, history } = usePdfEditorContext();
+
+    return (
+        <div className={"undo_redo_buttons"}>
+            <Button
+                onClick={onUndo}
+                size={"small"}
+                disabled={!history.canUndo}
+                variant={"tertiary-neutral"}
+                icon={<ArrowUndoIcon />}
+                iconPosition={"left"}
+            ></Button>
+            <Button
+                onClick={onRedo}
+                disabled={!history.canRedo}
+                size={"small"}
+                variant={"tertiary-neutral"}
+                icon={<ArrowRedoIcon />}
+                iconPosition={"left"}
+            ></Button>
         </div>
     );
 }
