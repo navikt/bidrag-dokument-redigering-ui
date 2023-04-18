@@ -32,7 +32,6 @@ export default function FloatingToolbar() {
     );
 }
 function FloatingToolbarContainer() {
-    const [undoDeletePage, setUndoDeletePage] = useState<number | null>(null);
     const [position, setPosition] = useState(getInitialPosition());
     const { scale, zoom, pagesCount, currentPage } = usePdfViewerContext();
     const { resetZoom, onZoomOut, onZoomIn } = zoom;
@@ -56,10 +55,6 @@ function FloatingToolbarContainer() {
 
     const windowWidth = useRef(window.innerWidth);
     const windowHeight = useRef(window.innerHeight);
-
-    useEffect(() => {
-        setUndoDeletePage(null);
-    }, [currentPage]);
     function updatePositionOnResize() {
         const deltaW = windowWidth.current - window.innerWidth;
         const deltaH = windowHeight.current - window.innerHeight;
@@ -124,7 +119,6 @@ function FloatingToolbarContainer() {
 
                         <Button
                             onClick={() => {
-                                setUndoDeletePage(currentPage);
                                 toggleDeletedPage(currentPage);
                             }}
                             size={"small"}

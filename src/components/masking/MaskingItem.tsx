@@ -1,6 +1,6 @@
 import "./MaskinItem.css";
 
-import { useDraggable } from "@dnd-kit/core";
+import { DragEndEvent, useDndMonitor, useDraggable } from "@dnd-kit/core";
 import { TrashIcon } from "@navikt/aksel-icons";
 import { Resizable } from "re-resizable";
 import { CSSProperties, useState } from "react";
@@ -8,7 +8,8 @@ import { useEffect } from "react";
 import { useRef } from "react";
 
 import { useMaskingContainer } from "./MaskingContainer";
-interface ICoordinates {
+import MaskingUtils from "./MaskinUtils";
+export interface ICoordinates {
     x: number;
     y: number;
     width: number;
@@ -38,6 +39,15 @@ export default function MaskingItem({ id, coordinates: _coordinates, scale, disa
         data: {
             disabled: disabledRef.current ?? disabled,
             scale: scaleRef.current,
+        },
+    });
+
+    useDndMonitor({
+        onDragEnd(event: DragEndEvent) {
+            const itemId = event.active.id;
+            if (itemId == id) {
+                setCurrentCoordinates((prev) => MaskingUtils.getDragEndCoordinates(event, prev, scale));
+            }
         },
     });
 

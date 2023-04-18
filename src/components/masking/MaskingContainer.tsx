@@ -11,6 +11,7 @@ import { useState } from "react";
 import { v4 as uuidV4 } from "uuid";
 
 import { IMaskingItemProps } from "./MaskingItem";
+import MaskingUtils from "./MaskinUtils";
 export interface MaskingContainerContextProps {
     items: IMaskingItemProps[];
     initItems: (items: IMaskingItemProps[]) => void;
@@ -83,20 +84,15 @@ function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMask
     function onDragEnd(event: DragEndEvent) {
         setDragDisabled(false);
         const itemId = event.active.id;
-        const delta = event.delta;
         const scale = event.active?.data?.current?.scale ?? 1;
-        // setMaskingItemsHistory(maskingItemsHistory.push(maskingItems));
         setMaskingItems((items) => [
             ...items.map((item) => {
                 if (item.id == itemId) {
-                    const isAnotherParent = event.over?.id;
                     return {
                         ...item,
                         parentId: event.over?.id ?? item.parentId,
                         coordinates: {
-                            ...item.coordinates,
-                            x: item.coordinates.x + delta.x / scale,
-                            y: item.coordinates.y + delta.y / scale,
+                            ...MaskingUtils.getDragEndCoordinates(event, item.coordinates, scale),
                         },
                     };
                 }
