@@ -1,12 +1,14 @@
 import "./MaskinItem.css";
 
 import { DragEndEvent, useDndMonitor, useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { TrashIcon } from "@navikt/aksel-icons";
 import { Resizable } from "re-resizable";
-import { CSSProperties, useState } from "react";
+import React, { CSSProperties, useState } from "react";
 import { useEffect } from "react";
 import { useRef } from "react";
 
+import DomUtils from "../utils/DomUtils";
 import { useMaskingContainer } from "./MaskingContainer";
 import MaskingUtils from "./MaskinUtils";
 export interface ICoordinates {
@@ -22,13 +24,36 @@ interface IResizeDelta {
 }
 export interface IMaskingItemProps {
     id: string;
+    ghosted?: boolean;
     disabled?: boolean;
     scale?: number;
     coordinates: ICoordinates;
     parentId: string | number;
     pageNumber: number;
 }
-export default function MaskingItem({ id, coordinates: _coordinates, scale, disabled = false }: IMaskingItemProps) {
+
+const getStyle = (coordinatesScaled: ICoordinates): CSSProperties => ({
+    position: "relative",
+    backgroundColor: "white",
+    top: `${coordinatesScaled.y}px`,
+    bottom: 0,
+    zIndex: 100000,
+    left: `${coordinatesScaled.x}px`,
+    width: `${coordinatesScaled.width}px`,
+    height: `${coordinatesScaled.height}px`,
+    marginBottom: `${-coordinatesScaled.height}px`,
+});
+
+const getCoordinatesScaled = (coordinates: ICoordinates, scale: number): ICoordinates => {
+    return {
+        x: coordinates.x * scale,
+        y: coordinates.y * scale,
+        width: coordinates.width * scale,
+        height: coordinates.height * scale,
+    };
+};
+export default function MaskingItem(props: IMaskingItemProps) {
+    const { id, coordinates: _coordinates, scale, disabled = false, ghosted } = props;
     const [coordinatesResizeStart, setCoordinatesResizeStart] = useState<ICoordinates>(_coordinates);
     const [currentCoordinates, setCurrentCoordinates] = useState<ICoordinates>(_coordinates);
     const disabledRef = useRef(false);
@@ -51,7 +76,14 @@ export default function MaskingItem({ id, coordinates: _coordinates, scale, disa
         },
     });
 
-    const { updateItemDimensions, enableDrag, disableDrag, activeId } = useMaskingContainer();
+    const { updateItemDimensions, enableDrag, disableDrag, activeId, removeItem } = useMaskingContainer();
+
+    function onKeyDown(e: KeyboardEvent) {
+        const isDeleteButtonPressed = e.code.toLowerCase() == "delete";
+        if (isSelected && isDeleteButtonPressed) {
+            removeItem(id);
+        }
+    }
 
     useEffect(() => {
         scaleRef.current = scale;
@@ -64,21 +96,7 @@ export default function MaskingItem({ id, coordinates: _coordinates, scale, disa
         setActivatorNodeRef(element);
     }, []);
 
-    const style = transform
-        ? {
-              transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-          }
-        : {};
-
     const coordinates = currentCoordinates;
-    const getCoordinatesScaled = (): ICoordinates => {
-        return {
-            x: coordinates.x * scale,
-            y: coordinates.y * scale,
-            width: coordinates.width * scale,
-            height: coordinates.height * scale,
-        };
-    };
 
     const getCoordinatesAfterResize = (delta: IResizeDelta): ICoordinates => {
         return {
@@ -88,41 +106,42 @@ export default function MaskingItem({ id, coordinates: _coordinates, scale, disa
         };
     };
 
-    const getStyle = (): CSSProperties => ({
-        position: "relative",
-        backgroundColor: "white",
-        top: `${coordinatesScaled.y}px`,
-        bottom: 0,
-        zIndex: 100000,
-        left: `${coordinatesScaled.x}px`,
-        width: `${coordinatesScaled.width}px`,
-        height: `${coordinatesScaled.height}px`,
-        marginBottom: `${-coordinatesScaled.height}px`,
-        ...style,
-    });
-
-    const coordinatesScaled = getCoordinatesScaled();
-    const isHighlighted = activeId == id;
+    const coordinatesScaled = getCoordinatesScaled(coordinates, scale);
+    const isSelected = activeId == id;
+    const transformDraggable = transform ? { ...transform, scaleX: 1, scaleY: 1 } : undefined;
 
     if (disabled) {
         return (
             <div
-                className={`maskingitem ${isHighlighted ? "highlighted" : ""} ${isDragging ? "dragging" : ""}`}
+                className={`maskingitem ${isSelected ? "highlighted" : ""} ${isDragging ? "dragging" : ""}`}
                 id={id}
-                style={getStyle()}
+                style={getStyle(coordinatesScaled)}
             ></div>
         );
     }
+    if (ghosted) {
+        return <GhostedMaskingItem {...props} />;
+    }
     return (
         <>
-            {isHighlighted && !isDragging && <Toolbar id={id} coordinates={coordinatesScaled} />}
+            {isSelected && !isDragging && <Toolbar id={id} coordinates={coordinatesScaled} />}
             <Resizable
-                className={`maskingitem ${isHighlighted ? "highlighted" : ""} ${isDragging ? "dragging" : ""}`}
+                className={`maskingitem ${isSelected ? "highlighted" : ""} ${isDragging ? "dragging" : ""}`}
                 {...listeners}
                 //@ts-ignore
+                onKeyDown={(e) => {
+                    onKeyDown(e);
+                    listeners.onKeyDown?.(e);
+                }}
+                //@ts-ignore
                 id={id}
+                //@ts-ignore
+                tabIndex={-1}
                 {...attributes}
-                style={getStyle()}
+                style={{
+                    ...getStyle(coordinatesScaled),
+                    transform: CSS.Transform.toString(transformDraggable),
+                }}
                 onResize={(e, direction, ref, d) => {
                     const coordinates = getCoordinatesAfterResize(d);
                     setCurrentCoordinates((prevState) => ({
@@ -148,6 +167,66 @@ export default function MaskingItem({ id, coordinates: _coordinates, scale, disa
             ></Resizable>
         </>
     );
+}
+
+function GhostedMaskingItem({ id, coordinates: _coordinates, parentId, scale }: IMaskingItemProps) {
+    const [currentCoordinates, setCurrentCoordinates] = useState<ICoordinates>(_coordinates);
+    const { updateItemDimensions, removeItem } = useMaskingContainer();
+    const hasMouseMoved = useRef(false);
+    function calculateWidthHeight(e: MouseEvent) {
+        const parentElement = document.getElementById(parentId as string);
+        const { x, y } = DomUtils.getMousePosition(parentId as string, e);
+        const yRelative = y - parentElement.clientHeight;
+        const deltaX = x - currentCoordinates.x * scale;
+        const deltaY = yRelative - currentCoordinates.y * scale;
+        const width = Math.max(10, currentCoordinates.width + deltaX) / scale;
+        const height = Math.max(10, currentCoordinates.height + deltaY) / scale;
+        return { height, width };
+    }
+
+    function onMouseMove(e: MouseEvent) {
+        hasMouseMoved.current = true;
+        const { height, width } = calculateWidthHeight(e);
+        setCurrentCoordinates((prevState) => ({
+            ...prevState,
+            width,
+            height,
+        }));
+    }
+
+    function onMouseUp(e: MouseEvent) {
+        if (hasMouseMoved.current == false) {
+            removeItem(id);
+            return;
+        }
+        const { height, width } = calculateWidthHeight(e);
+        setCurrentCoordinates((prevState) => ({
+            ...prevState,
+            width,
+            height,
+        }));
+        if (width == 0 || height == 0) {
+            removeItem(id);
+        } else {
+            updateItemDimensions(id, width, height);
+        }
+    }
+
+    useEffect(() => {
+        const parentElement = document.getElementById(parentId as string);
+        parentElement.addEventListener("mousemove", onMouseMove);
+        return () => parentElement.removeEventListener("mousemove", onMouseMove);
+    }, []);
+
+    useEffect(() => {
+        const parentElement = document.getElementById(parentId as string);
+        parentElement.addEventListener("mouseup", onMouseUp);
+        return () => parentElement.removeEventListener("mouseup", onMouseUp);
+    }, []);
+
+    const coordinatesScaled = getCoordinatesScaled(currentCoordinates, scale);
+
+    return <div id={id} className={"maskingitem"} style={getStyle(coordinatesScaled)}></div>;
 }
 
 interface IToolbarProps {

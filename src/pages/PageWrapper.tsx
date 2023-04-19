@@ -13,7 +13,7 @@ const initReactQuery = () =>
             queries: {
                 suspense: true,
                 staleTime: Infinity,
-                retry: true,
+                retry: 3,
                 retryDelay: 3000,
             },
         },

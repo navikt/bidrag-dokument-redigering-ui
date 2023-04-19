@@ -17,6 +17,8 @@ export default function forsendelseMock(): RestHandler[] {
 
 const dokumentMetadata: DokumentRedigeringMetadataResponsDto = {
     tittel: "Søknad om barnebidrag",
+    status: "MÅ_KONTROLLERES",
+    forsendelseStatus: "UNDER_PRODUKSJON",
     redigeringMetadata:
         '{"removedPages":[],"items":[{"parentId":"droppable_page_1","id":"cdf290d4-acae-4741-b605-a2bde41e078f","coordinates":{"x":107.48801095145092,"y":-582.6376124790737,"height":50,"width":200},"pageNumber":1},{"parentId":"droppable_page_1","id":"decd18c6-b0a4-4fd6-b72e-126a9d2ee1c6","coordinates":{"x":297.8571428571429,"y":-699.2857142857143,"height":50,"width":200},"pageNumber":1}]}',
     dokumenter: [

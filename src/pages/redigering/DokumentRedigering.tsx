@@ -2,7 +2,7 @@ import "./DokumentRedigering.less";
 
 import { useDroppable } from "@dnd-kit/core";
 import { Loader } from "@navikt/ds-react";
-import React, { useEffect } from "react";
+import React, { CSSProperties, useEffect } from "react";
 import { useState } from "react";
 import { useRef } from "react";
 import { createPortal } from "react-dom";
@@ -12,6 +12,7 @@ import MaskingItem from "../../components/masking/MaskingItem";
 import { renderPageChildrenFn } from "../../components/pdfviewer/BasePdfViewer";
 import PdfViewer from "../../components/pdfviewer/PdfViewer";
 import PdfViewerContextProvider, { usePdfViewerContext } from "../../components/pdfviewer/PdfViewerContext";
+import DomUtils from "../../components/utils/DomUtils";
 import { PdfDocumentType } from "../../components/utils/types";
 import { usePdfEditorContext } from "./components/PdfEditorContext";
 import Sidebar from "./components/sidebar/Sidebar";
@@ -27,6 +28,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
     const { isOver, setNodeRef } = useDroppable({
         id: "document_editor",
     });
+    const { items } = useMaskingContainer();
     return (
         <PdfViewerContextProvider
             documentFile={documentFile}
@@ -74,6 +76,7 @@ function PageDecorator({ renderPageFn, pageNumber }: IPageDecoratorProps) {
     const id = `droppable_page_${pageNumber}`;
     const divRef = useRef<HTMLDivElement>(null);
     const [pageRef, setPageRef] = useState<Element>(null);
+    const { isAddNewElementMode, addItem } = useMaskingContainer();
     const { scale } = usePdfViewerContext();
     const { removedPages } = usePdfEditorContext();
     const { isOver, setNodeRef } = useDroppable({
@@ -89,11 +92,12 @@ function PageDecorator({ renderPageFn, pageNumber }: IPageDecoratorProps) {
     };
 
     const isDeleted = removedPages.includes(pageNumber);
-    const style = {
+    const style: CSSProperties = {
         color: isOver ? "green" : undefined,
         width: "min-content",
         maxHeight: `${height}px`,
         margin: "0 auto",
+        cursor: isAddNewElementMode ? "crosshair" : "default",
     };
 
     useEffect(() => {
@@ -106,9 +110,15 @@ function PageDecorator({ renderPageFn, pageNumber }: IPageDecoratorProps) {
             setPageRef(pageElement);
         }
     }
+
+    function onClick(e: React.MouseEvent) {
+        const { x, y } = DomUtils.getMousePosition(id, e);
+        addItem(pageNumber, scale, x, y - divRef.current.clientHeight);
+    }
     return (
         <div
             id={id}
+            onMouseDown={isAddNewElementMode ? onClick : null}
             ref={(ref) => {
                 setNodeRef(ref);
                 divRef.current = ref;

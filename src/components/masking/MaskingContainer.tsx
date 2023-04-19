@@ -1,4 +1,4 @@
-import { DndContext } from "@dnd-kit/core";
+import { DndContext, MouseSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { DragEndEvent } from "@dnd-kit/core";
 import { Modifier } from "@dnd-kit/core";
 import { ClientRect } from "@dnd-kit/core";
@@ -15,8 +15,10 @@ import MaskingUtils from "./MaskinUtils";
 export interface MaskingContainerContextProps {
     items: IMaskingItemProps[];
     initItems: (items: IMaskingItemProps[]) => void;
+    isAddNewElementMode: boolean;
     activeId: string;
-    addItem: (pageNumber: number, scale: number, pageNumberNotIncludingRemoved: number) => void;
+    addItem: (pageNumber: number, scale: number, x: number, y: number) => void;
+    initAddItem: () => void;
     removeItem: (id: string) => void;
     updateItemDimensions: (itemId: string, width: number, height: number) => void;
     disableDrag: () => void;
@@ -38,6 +40,22 @@ function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMask
     const [maskingItems, setMaskingItems] = useState<IMaskingItemProps[]>(items ?? []);
     const [activeId, setActiveId] = useState(null);
     const [dragDisabled, setDragDisabled] = useState(false);
+    const [addNewElementMode, setAddNewElementMode] = useState(false);
+    const sensors = useSensors(useSensor(MouseSensor));
+
+    const initAddItem = () => setAddNewElementMode(true);
+    const hasGhostItem = () => getGhostedItem() != null;
+    const getGhostedItem = () => maskingItems.find((item) => item.ghosted);
+
+    function keyDownHandler(e: React.KeyboardEvent) {
+        if (e.key == "Escape") {
+            hasGhostItem() && removeItem(getGhostedItem().id);
+            setAddNewElementMode(false);
+        } else if (e.key == "+") {
+            initAddItem();
+        }
+    }
+
     function handleDragStart(event) {
         setActiveId(event.active.id);
     }
@@ -48,6 +66,7 @@ function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMask
                 if (item.id == itemId) {
                     return {
                         ...item,
+                        ghosted: false,
                         coordinates: {
                             ...item.coordinates,
                             width,
@@ -58,21 +77,20 @@ function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMask
                 return item;
             }),
         ]);
+        setAddNewElementMode(false);
     }
-    function addItem(pageNumber: number, scale: number, pageNumberNotIncludingRemoved: number) {
-        const parentId = `droppable_page_${pageNumber}`;
-        const canvasElement = document.getElementById(parentId).querySelector("canvas");
-        const pdfContainer = document.querySelector(".pdfviewer_container .pdfrenderer_container");
 
-        const x = canvasElement.clientWidth / 2 / scale;
-        const scrollOffsett = pdfContainer.scrollTop - (pageNumberNotIncludingRemoved - 1) * canvasElement.clientHeight;
-        const y = (-canvasElement.clientHeight + scrollOffsett + 200) / scale;
+    function addItem(pageNumber: number, scale: number, x: number, y: number) {
+        if (hasGhostItem()) return;
+        const parentId = `droppable_page_${pageNumber}`;
+
         setMaskingItems((items) => [
             ...items,
             {
-                parentId,
                 id: uuidV4(),
-                coordinates: { x: x, y: y, height: 50, width: 200 },
+                parentId,
+                ghosted: addNewElementMode,
+                coordinates: { x: x / scale, y: y / scale, height: 0, width: 0 },
                 pageNumber,
             },
         ]);
@@ -142,34 +160,40 @@ function MaskingContainer({ children, items }: PropsWithChildren<{ items?: IMask
             y: transform.y,
         };
     }
+
     return (
-        <DndContext
-            onDragStart={handleDragStart}
-            onDragEnd={onDragEnd}
-            autoScroll={!dragDisabled}
-            modifiers={[restrictToParentElemen2t, disableDrag]}
-        >
-            <MaskingContainerContext.Provider
-                value={{
-                    items: maskingItems,
-                    activeId,
-                    initItems: setMaskingItems,
-                    addItem,
-                    disableDrag: () => setDragDisabled(true),
-                    enableDrag: () => setDragDisabled(false),
-                    removeItem,
-                    updateItemDimensions,
-                }}
+        <div tabIndex={-1} onKeyDown={keyDownHandler}>
+            <DndContext
+                onDragStart={handleDragStart}
+                onDragEnd={onDragEnd}
+                sensors={sensors}
+                autoScroll={!dragDisabled}
+                modifiers={[restrictToParentElemen2t, disableDrag]}
             >
-                <div
-                    onClick={() => {
-                        setActiveId(null);
+                <MaskingContainerContext.Provider
+                    value={{
+                        items: maskingItems,
+                        isAddNewElementMode: addNewElementMode,
+                        activeId,
+                        initItems: setMaskingItems,
+                        initAddItem,
+                        addItem,
+                        disableDrag: () => setDragDisabled(true),
+                        enableDrag: () => setDragDisabled(false),
+                        removeItem,
+                        updateItemDimensions,
                     }}
                 >
-                    {children}
-                </div>
-            </MaskingContainerContext.Provider>
-        </DndContext>
+                    <div
+                        onClick={() => {
+                            setActiveId(null);
+                        }}
+                    >
+                        {children}
+                    </div>
+                </MaskingContainerContext.Provider>
+            </DndContext>
+        </div>
     );
 }
 

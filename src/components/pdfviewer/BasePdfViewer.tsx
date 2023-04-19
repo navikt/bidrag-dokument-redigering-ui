@@ -39,7 +39,7 @@ export default function BasePdfViewer({
             documentRef={documentRef}
             scale={scale}
             overscanCount={10}
-            renderText={true}
+            renderText={false}
             onPageChange={onPageChange}
             onScroll={onScroll}
             onDocumentLoaded={_onDocumentLoaded}

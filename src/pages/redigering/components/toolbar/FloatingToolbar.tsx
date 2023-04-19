@@ -36,7 +36,7 @@ function FloatingToolbarContainer() {
     const { scale, zoom, pagesCount, currentPage } = usePdfViewerContext();
     const { resetZoom, onZoomOut, onZoomIn } = zoom;
     const { removedPages, mode, dokumentMetadata, toggleDeletedPage } = usePdfEditorContext();
-    const { addItem } = useMaskingContainer();
+    const { initAddItem } = useMaskingContainer();
 
     const { setNodeRef, attributes, listeners, transform } = useDraggable({
         id,
@@ -108,7 +108,8 @@ function FloatingToolbarContainer() {
                 {isEditMode && isEditable && (
                     <div className={"editor_buttons"}>
                         <Button
-                            onClick={() => addItem(currentPage, scale, currentPageNotIncludingRemoved)}
+                            // onClick={() => initAddItem(currentPage, scale, currentPageNotIncludingRemoved)}
+                            onClick={initAddItem}
                             size={"small"}
                             variant={"tertiary-neutral"}
                             icon={<EraserIcon />}

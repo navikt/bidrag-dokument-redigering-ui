@@ -12,6 +12,7 @@ import { EditDocumentMetadata, IDocumentMetadata } from "../../../types/EditorTy
 type PdfEditorMode = "view_only" | "edit" | "remove_pages_only";
 interface PdfEditorContextProps {
     mode: PdfEditorMode;
+    saveState: SaveState;
     history: StateHistory<EditDocumentMetadata>;
     removedPages: number[];
     toggleDeletedPage: (page: number) => void;
@@ -31,7 +32,7 @@ interface PdfEditorContextProps {
 
 export const usePdfEditorContext = () => useContext(PdfEditorContext);
 export const PdfEditorContext = React.createContext<PdfEditorContextProps>({} as PdfEditorContextProps);
-
+export type SaveState = "PENDING" | "ERROR" | "IDLE";
 interface IPdfEditorContextProviderProps {
     mode: PdfEditorMode;
     journalpostId: string;
@@ -45,7 +46,7 @@ interface IPdfEditorContextProviderProps {
 
 export default function PdfEditorContextProvider(props: PropsWithChildren<IPdfEditorContextProviderProps>) {
     return (
-        <MaskingContainer items={props.dokumentMetadata?.editorMetadata?.items}>
+        <MaskingContainer items={props.dokumentMetadata?.editorMetadata?.items ?? []}>
             <PdfEditorContextProviderWithMasking {...props} />
         </MaskingContainer>
     );
@@ -63,14 +64,17 @@ function PdfEditorContextProviderWithMasking({
     children,
 }: PropsWithChildren<IPdfEditorContextProviderProps>) {
     const { items, initItems } = useMaskingContainer();
+    const [saveState, setSaveState] = useState<SaveState>("IDLE");
     const [sidebarHidden, setSidebarHidden] = useState(true);
     const [removedPages, setRemovedPages] = useState<number[]>(getInitialRemovedPages());
     const [lastSavedData, setLastSavedData] = useState(getEditDocumentMetadata());
     const [history, setHistory] = useState(new StateHistory<EditDocumentMetadata>(getEditDocumentMetadata()));
     const [isSavingEditDocumentConfig, setIsSavingDocumentConfig] = useState(false);
-    const saveChanges = useRef(TimerUtils.debounce(savePdf, 500));
+    const saveChanges = useRef(TimerUtils.debounce(onSaveChanges, 500));
     const isUndoRedoChange = useRef(false);
+    const divRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => divRef.current.focus(), []);
     useEffect(() => {
         const hasChanged = !objectsDeepEqual(history.current, getEditDocumentMetadata());
         if (!isUndoRedoChange.current && hasChanged) {
@@ -85,10 +89,16 @@ function PdfEditorContextProviderWithMasking({
             saveChanges.current(getEditDocumentMetadata());
         }
     }, [items, removedPages]);
-    useEffect(() => {
-        document.addEventListener("keydown", onRedoUndoEvent);
-        return () => document.removeEventListener("keydown", onRedoUndoEvent);
-    }, [history]);
+
+    function onSaveChanges(editDocumentMetadata: EditDocumentMetadata) {
+        setSaveState("PENDING");
+        savePdf(editDocumentMetadata)
+            .then(() => setSaveState("IDLE"))
+            .catch(() => {
+                setSaveState("ERROR");
+            });
+    }
+
     function onRedoUndoEvent(event) {
         if (event.ctrlKey && !event.shiftKey && event.key === "z") {
             undoState();
@@ -116,7 +126,7 @@ function PdfEditorContextProviderWithMasking({
     function getEditDocumentMetadata(): EditDocumentMetadata {
         return {
             removedPages: removedPages,
-            items: items,
+            items: items.filter((item) => !item.ghosted),
         };
     }
 
@@ -180,27 +190,30 @@ function PdfEditorContextProviderWithMasking({
     }
 
     return (
-        <PdfEditorContext.Provider
-            value={{
-                mode,
-                forsendelseId: journalpostId,
-                history,
-                onUndo: () => undoState(),
-                onRedo: () => redoState(),
-                dokumentreferanse,
-                dokumentMetadata,
-                isSavingEditDocumentConfig,
-                sidebarHidden,
-                hideSidebar: () => setSidebarHidden(true),
-                removedPages,
-                previewPdf,
-                onToggleSidebar,
-                toggleDeletedPage,
-                savePdf: onSavePdf,
-                finishPdf,
-            }}
-        >
-            {children}
-        </PdfEditorContext.Provider>
+        <div onKeyDown={onRedoUndoEvent} tabIndex={-1} ref={divRef}>
+            <PdfEditorContext.Provider
+                value={{
+                    mode,
+                    saveState,
+                    forsendelseId: journalpostId,
+                    history,
+                    onUndo: () => undoState(),
+                    onRedo: () => redoState(),
+                    dokumentreferanse,
+                    dokumentMetadata,
+                    isSavingEditDocumentConfig,
+                    sidebarHidden,
+                    hideSidebar: () => setSidebarHidden(true),
+                    removedPages,
+                    previewPdf,
+                    onToggleSidebar,
+                    toggleDeletedPage,
+                    savePdf: onSavePdf,
+                    finishPdf,
+                }}
+            >
+                {children}
+            </PdfEditorContext.Provider>
+        </div>
     );
 }
