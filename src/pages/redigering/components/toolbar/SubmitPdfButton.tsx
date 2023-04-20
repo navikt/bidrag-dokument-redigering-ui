@@ -4,6 +4,7 @@ import { useState } from "react";
 import React from "react";
 
 import { usePdfEditorContext } from "../PdfEditorContext";
+import ProduceDocumentStateIndicator from "./ProduceDocumentStateIndicator";
 
 export default function SubmitPdfButton() {
     const { finishPdf } = usePdfEditorContext();
@@ -61,6 +62,7 @@ export default function SubmitPdfButton() {
                             Bekreft at du har sett gjennom dokumentet og "slettet" sensitiv informasjon som ikke skal
                             være med i forsendelsen.
                         </ConfirmationPanel>
+                        <ProduceDocumentStateIndicator />
                         <div className={"flex flex-row gap-2 pt-2"}>
                             <Button variant={"primary"} onClick={_producePdf} loading={producingDocument}>
                                 Ferdigstill

@@ -6,13 +6,19 @@ import StateHistory from "../../../components/history/StateHistory";
 import { MaskingContainer, useMaskingContainer } from "../../../components/masking/MaskingContainer";
 import { TimerUtils } from "../../../components/utils/TimerUtils";
 import { PdfDocumentType } from "../../../components/utils/types";
-import { PdfProducer } from "../../../pdf/PdfProducer";
+import { IProducerProgress, PdfProducer } from "../../../pdf/PdfProducer";
 import { EditDocumentMetadata, IDocumentMetadata } from "../../../types/EditorTypes";
 
-type PdfEditorMode = "view_only" | "edit" | "remove_pages_only";
+export type PdfEditorMode = "view_only_unlockable" | "edit" | "remove_pages_only" | "view_only_locked";
+
+type ProduceAndSaveState = "PRODUCING" | "SAVING_DOCUMENT" | "SAVING_METADATA" | "IDLE" | "ERROR";
+interface IProduceAndSaveDocumentProgress {
+    state: ProduceAndSaveState;
+    progress?: number;
+}
 interface PdfEditorContextProps {
     mode: PdfEditorMode;
-    saveState: SaveState;
+    produceAndSaveProgress: IProduceAndSaveDocumentProgress;
     history: StateHistory<EditDocumentMetadata>;
     removedPages: number[];
     toggleDeletedPage: (page: number) => void;
@@ -46,7 +52,7 @@ interface IPdfEditorContextProviderProps {
 
 export default function PdfEditorContextProvider(props: PropsWithChildren<IPdfEditorContextProviderProps>) {
     return (
-        <MaskingContainer items={props.dokumentMetadata?.editorMetadata?.items ?? []}>
+        <MaskingContainer items={props.dokumentMetadata?.editorMetadata?.items ?? []} enabled={props.mode == "edit"}>
             <PdfEditorContextProviderWithMasking {...props} />
         </MaskingContainer>
     );
@@ -64,7 +70,9 @@ function PdfEditorContextProviderWithMasking({
     children,
 }: PropsWithChildren<IPdfEditorContextProviderProps>) {
     const { items, initItems } = useMaskingContainer();
-    const [saveState, setSaveState] = useState<SaveState>("IDLE");
+    const [produceAndSaveProgress, setProduceAndSaveProgress] = useState<IProduceAndSaveDocumentProgress>({
+        state: "IDLE",
+    });
     const [sidebarHidden, setSidebarHidden] = useState(true);
     const [removedPages, setRemovedPages] = useState<number[]>(getInitialRemovedPages());
     const [lastSavedData, setLastSavedData] = useState(getEditDocumentMetadata());
@@ -90,12 +98,18 @@ function PdfEditorContextProviderWithMasking({
         }
     }, [items, removedPages]);
 
+    function updateSaveState(state: ProduceAndSaveState, progress?: number) {
+        setProduceAndSaveProgress({
+            state,
+            progress,
+        });
+    }
     function onSaveChanges(editDocumentMetadata: EditDocumentMetadata) {
-        setSaveState("PENDING");
+        updateSaveState("SAVING_METADATA");
         savePdf(editDocumentMetadata)
-            .then(() => setSaveState("IDLE"))
+            .then(() => updateSaveState("IDLE"))
             .catch(() => {
-                setSaveState("ERROR");
+                updateSaveState("ERROR");
             });
     }
 
@@ -126,17 +140,26 @@ function PdfEditorContextProviderWithMasking({
     function getEditDocumentMetadata(): EditDocumentMetadata {
         return {
             removedPages: removedPages,
-            items: items.filter((item) => !item.ghosted),
+            items: items.filter((item) => item.state == "ITEM" || item.state == undefined),
         };
     }
 
     async function finishPdf(): Promise<void> {
         if (!onSubmit) return;
         const { documentFile, config } = await getProcessedPdf();
-        onSubmit(config, documentFile);
+        updateSaveState("SAVING_DOCUMENT");
+        await onSubmit(config, documentFile)
+            .then(() => updateSaveState("IDLE"))
+            .catch(() => updateSaveState("ERROR"));
     }
 
+    function onProducePdfProgressUpdated(process: IProducerProgress) {
+        const progress = Math.round((process.pageNumber / process.totalPages) * 100);
+        updateSaveState("PRODUCING", progress ?? 100);
+        console.log(process);
+    }
     async function getProcessedPdf(): Promise<{ documentFile: Uint8Array; config: EditDocumentMetadata }> {
+        updateSaveState("PRODUCING", 100);
         let existingPdfBytes = documentFile;
         if (typeof documentFile == "string") {
             existingPdfBytes = await fetch(documentFile).then((res) => res.arrayBuffer());
@@ -144,7 +167,7 @@ function PdfEditorContextProviderWithMasking({
 
         const config = getEditDocumentMetadata();
         return await new PdfProducer(existingPdfBytes)
-            .init(config)
+            .init(config, onProducePdfProgressUpdated)
             .then((p) => p.process())
             .then((p) => p.saveChanges())
             .then((p) => ({
@@ -155,6 +178,7 @@ function PdfEditorContextProviderWithMasking({
 
     async function previewPdf(): Promise<void> {
         const { documentFile } = await getProcessedPdf();
+        updateSaveState("IDLE");
         FileUtils.openFile(documentFile);
     }
 
@@ -194,7 +218,7 @@ function PdfEditorContextProviderWithMasking({
             <PdfEditorContext.Provider
                 value={{
                     mode,
-                    saveState,
+                    produceAndSaveProgress,
                     forsendelseId: journalpostId,
                     history,
                     onUndo: () => undoState(),

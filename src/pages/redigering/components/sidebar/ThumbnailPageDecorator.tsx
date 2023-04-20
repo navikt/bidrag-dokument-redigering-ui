@@ -19,7 +19,7 @@ export default function ThumbnailPageDecorator({ renderPageFn, pageNumber }: Thu
     const { items } = useMaskingContainer();
     const decoratorRef = useRef<HTMLDivElement>();
     const [pageRef, setPageRef] = useState<Element>(null);
-    const { removedPages, toggleDeletedPage } = usePdfEditorContext();
+    const { removedPages, toggleDeletedPage, mode } = usePdfEditorContext();
     const isDeleted = removedPages.includes(pageNumber);
     const [mouseOver, setMouseOver] = useState(false);
     const id = `thumbnail_page_${pageNumber}`;
@@ -29,6 +29,7 @@ export default function ThumbnailPageDecorator({ renderPageFn, pageNumber }: Thu
             setPageRef(pageElement);
         }
     }
+    const isEnabled = mode == "remove_pages_only" || mode == "edit";
     return (
         <div
             onMouseOver={() => setMouseOver(true)}
@@ -59,11 +60,13 @@ export default function ThumbnailPageDecorator({ renderPageFn, pageNumber }: Thu
                     id + "_masking"
                 )}
 
-            <ThumbnailPageToolbar
-                hidden={!mouseOver}
-                onToggleDelete={() => toggleDeletedPage(pageNumber)}
-                isDeleted={isDeleted}
-            />
+            {isEnabled && (
+                <ThumbnailPageToolbar
+                    hidden={!mouseOver}
+                    onToggleDelete={() => toggleDeletedPage(pageNumber)}
+                    isDeleted={isDeleted}
+                />
+            )}
         </div>
     );
 }

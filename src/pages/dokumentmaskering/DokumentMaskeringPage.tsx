@@ -4,6 +4,7 @@ import { EditDocumentBroadcastMessage } from "@navikt/bidrag-ui-common";
 import { Broadcast } from "@navikt/bidrag-ui-common";
 import { FileUtils } from "@navikt/bidrag-ui-common";
 import { BroadcastNames } from "@navikt/bidrag-ui-common";
+import { Alert, Heading } from "@navikt/ds-react";
 import React, { useEffect } from "react";
 
 import { lastDokumenter, RedigeringQueries } from "../../api/queries";
@@ -11,7 +12,7 @@ import LoadingIndicator from "../../components/LoadingIndicator";
 import { uint8ToBase64 } from "../../components/utils/DocumentUtils";
 import { EditDocumentMetadata } from "../../types/EditorTypes";
 import PageWrapper from "../PageWrapper";
-import PdfEditorContextProvider from "../redigering/components/PdfEditorContext";
+import PdfEditorContextProvider, { PdfEditorMode } from "../redigering/components/PdfEditorContext";
 import DokumentRedigering from "../redigering/DokumentRedigering";
 
 const url = "http://localhost:5173/test4.pdf";
@@ -44,11 +45,18 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
     }, []);
 
     if (isLoading) {
-        return <LoadingIndicator title="Laster dokument..." />;
+        return <LoadingIndicator title="Laster dokumentet..." />;
     }
 
     if (!isLoading && !documentFile) {
-        return <div>Det skjedde en feil ved lasting av dokument</div>;
+        return (
+            <Alert variant="error" size={"small"} style={{ margin: "0 auto", width: "50%" }}>
+                <Heading spacing size="small" level="3">
+                    Det skjedde en feil ved lasting av dokument
+                </Heading>
+                Fant ingen dokument {dokumentreferanse} i forsendelse #{forsendelseId}
+            </Alert>
+        );
     }
     function broadcast(config?: EditDocumentMetadata, documentFile?: Uint8Array) {
         const params = queryParams();
@@ -95,9 +103,15 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
         });
     }
 
+    const getPdfEditorMode = (): PdfEditorMode => {
+        if (dokumentMetadata.forsendelseState == "LOCKED") return "view_only_unlockable";
+        if (dokumentMetadata.state == "LOCKED") return "view_only_unlockable";
+        return "edit";
+    };
+
     return (
         <PdfEditorContextProvider
-            mode={"edit"}
+            mode={getPdfEditorMode()}
             journalpostId={forsendelseId}
             dokumentreferanse={dokumentreferanse}
             documentFile={documentFile}

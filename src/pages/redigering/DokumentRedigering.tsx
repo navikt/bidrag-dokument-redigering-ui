@@ -2,7 +2,7 @@ import "./DokumentRedigering.less";
 
 import { useDroppable } from "@dnd-kit/core";
 import { Loader } from "@navikt/ds-react";
-import React, { CSSProperties, useEffect } from "react";
+import React, { CSSProperties } from "react";
 import { useState } from "react";
 import { useRef } from "react";
 import { createPortal } from "react-dom";
@@ -28,7 +28,6 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
     const { isOver, setNodeRef } = useDroppable({
         id: "document_editor",
     });
-    const { items } = useMaskingContainer();
     return (
         <PdfViewerContextProvider
             documentFile={documentFile}
@@ -82,27 +81,22 @@ function PageDecorator({ renderPageFn, pageNumber }: IPageDecoratorProps) {
     const { isOver, setNodeRef } = useDroppable({
         id,
     });
-    const [height, setHeight] = useState<number>(1000);
     const getPageHeight = () => {
         const element = document.getElementById(id)?.getElementsByClassName("pagecontainer");
         if (element && element.length > 0) {
             return element.item(0).clientHeight;
         }
-        return 0;
+        return 1000;
     };
 
     const isDeleted = removedPages.includes(pageNumber);
     const style: CSSProperties = {
         color: isOver ? "green" : undefined,
         width: "min-content",
-        maxHeight: `${height}px`,
+        maxHeight: `${getPageHeight()}px`,
         margin: "0 auto",
         cursor: isAddNewElementMode ? "crosshair" : "default",
     };
-
-    useEffect(() => {
-        setHeight(getPageHeight());
-    });
 
     function updatePageRef() {
         const pageElement = divRef.current?.querySelector(".page");

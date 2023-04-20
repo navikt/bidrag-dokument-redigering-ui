@@ -5,7 +5,7 @@ import { CSSProperties } from "react";
 
 import { usePdfEditorContext } from "../PdfEditorContext";
 export default function DocumentStateIndicator() {
-    const { saveState } = usePdfEditorContext();
+    const { produceAndSaveProgress } = usePdfEditorContext();
 
     const getStyle = (): CSSProperties => ({
         display: "flex",
@@ -16,14 +16,14 @@ export default function DocumentStateIndicator() {
     });
 
     function renderSaveState() {
-        if (saveState == "PENDING") {
+        if (produceAndSaveProgress.state == "SAVING_METADATA") {
             return (
                 <>
-                    <Loader title={"Lagrer..."} size={"xsmall"} stroke={"white"} />
+                    <Loader title={"Lagrer..."} size={"xsmall"} variant="inverted" />
                     <Heading size={"xsmall"}>Lagrer...</Heading>
                 </>
             );
-        } else if (saveState == "ERROR") {
+        } else if (produceAndSaveProgress.state == "ERROR") {
             return (
                 <>
                     <XMarkOctagonIcon color={"white"} />

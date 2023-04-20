@@ -1,7 +1,10 @@
 import * as pdfjs from "pdfjs-dist";
 import { PDFDocumentProxy } from "pdfjs-dist/types/src/display/api";
 // Copied from https://github.com/ol-th/pdf-img-convert.js/blob/master/pdf-img-convert.js
-export default async function pdf2Image(pdfData: Uint8Array): Promise<string[]> {
+export default async function pdf2Image(
+    pdfData: Uint8Array,
+    onPageProcessed: (pageNumber: number, dataUrl: string) => Promise<void>
+): Promise<string[]> {
     const outputPages = [];
     const loadingTask = pdfjs.getDocument({ data: pdfData, disableFontFace: false, verbosity: 0 });
 
@@ -10,7 +13,8 @@ export default async function pdf2Image(pdfData: Uint8Array): Promise<string[]> 
     for (let i = 1; i <= pdfDocument.numPages; i++) {
         const currentPage = await doc_render(pdfDocument, i);
         if (currentPage != null) {
-            outputPages.push(currentPage);
+            // outputPages.push(currentPage);
+            await onPageProcessed(i, currentPage);
         }
     }
 
@@ -25,7 +29,7 @@ async function doc_render(pdfDocument: PDFDocumentProxy, pageNo) {
     }
     const page = await pdfDocument.getPage(pageNo);
     // Create a viewport at 100% scale
-    const viewport = page.getViewport({ scale: 4.0 });
+    const viewport = page.getViewport({ scale: 2 });
     const canvas = document.createElement("canvas");
     canvas.height = viewport.height;
     canvas.width = viewport.width;
@@ -35,5 +39,5 @@ async function doc_render(pdfDocument: PDFDocumentProxy, pageNo) {
         viewport: viewport,
     };
     await page.render(renderContext).promise;
-    return canvas.toDataURL();
+    return canvas.toDataURL("image/png", 1);
 }

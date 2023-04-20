@@ -55,6 +55,27 @@
   margin: 5px 10px;
   color: black;
 }
-.editor_toolbar .save-state-indicator circle.navds-loader__background {
-  stroke: white;
+/*.editor_toolbar .save-state-indicator circle.navds-loader__background {*/
+/*  stroke: white;*/
+/*}*/
+
+
+/*Prgoress bar*/
+
+.progress-bar {
+  border: 3px solid var(--a-surface-subtle);
+  border-radius: var(--a-border-radius-xlarge);
+}
+
+.progress-bar .container {
+  background-color: var(--a-surface-subtle);
+}
+
+.progress-bar .barCompleted {
+  background-color: var(--a-surface-success-subtle);
+}
+
+.progress-bar .label {
+  font-size: 20px;
+  color: green;
 }

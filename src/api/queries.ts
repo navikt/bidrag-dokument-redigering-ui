@@ -100,6 +100,11 @@ export const lastDokumenter = (
         onSuccess: (data) => {
             LoggerService.info(`Hentet dokumenter ${dokumenter} og resizeToA4=${resizeToA4}.`);
         },
+        onError: (data) => {
+            LoggerService.warn(
+                `Fant ikke dokument ${dokumentId} eller dokumenter ${dokumenter} for forsendelse/journalpost ${journalpostId}`
+            );
+        },
     });
 };
 

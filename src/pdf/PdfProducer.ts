@@ -1,11 +1,4 @@
-import {
-    Broadcast,
-    BroadcastMessage,
-    BroadcastNames,
-    EditDocumentBroadcastMessage,
-    FileUtils,
-    queryParams,
-} from "@navikt/bidrag-ui-common";
+import { FileUtils } from "@navikt/bidrag-ui-common";
 import { PDFDocument, rgb } from "pdf-lib";
 import { PDFFont } from "pdf-lib";
 import { RotationTypes } from "pdf-lib";
@@ -16,24 +9,42 @@ import { PdfDocumentType } from "../components/utils/types";
 import { EditDocumentMetadata } from "../types/EditorTypes";
 import pdf2Image from "./Pdf2Image";
 
+type ProgressState = "CONVERTING_PAGE_TO_IMAGE" | "PAGE_FINISHED";
+export interface IProducerProgress {
+    state: ProgressState;
+    pageNumber: number;
+    totalPages: number;
+}
 export class PdfProducer {
     private pdfDocument: PDFDocument;
     private pdfBlob: PdfDocumentType;
     private processedDocument: Uint8Array;
     private config: EditDocumentMetadata;
+    private onProgressUpdate: (process: IProducerProgress) => void;
 
     private font: PDFFont;
     constructor(pdfBlob: PdfDocumentType) {
         this.pdfBlob = pdfBlob;
     }
 
-    async init(config: EditDocumentMetadata): Promise<PdfProducer> {
+    async init(
+        config: EditDocumentMetadata,
+        onProgressUpdate?: (process: IProducerProgress) => void
+    ): Promise<PdfProducer> {
         this.config = config;
+        this.onProgressUpdate = onProgressUpdate;
         this.pdfDocument = await PDFDocument.load(this.pdfBlob);
         this.font = await this.pdfDocument.embedFont(StandardFonts.TimesRoman);
         return this;
     }
 
+    private onProgressUpdated(state: ProgressState, pageNumber: number) {
+        this.onProgressUpdate?.({
+            state,
+            pageNumber,
+            totalPages: this.pdfDocument.getPageCount(),
+        });
+    }
     async process(): Promise<PdfProducer> {
         this.pdfDocument.getForm().flatten();
         const itemsFiltered = this.config.items.filter((item) => !this.config.removedPages.includes(item.pageNumber));
@@ -54,18 +65,17 @@ export class PdfProducer {
             tempDoc.addPage(copiedPage);
         }
         const byteDoc = await tempDoc.save();
-        const pageDataUrls: string[] = await pdf2Image(byteDoc);
-        for (const key in maskedPages) {
-            const pageNumber = maskedPages[key];
+        await pdf2Image(byteDoc, async (key, pageUrl) => {
+            const pageNumber = maskedPages[key - 1];
             const originalPage = this.pdfDocument.getPage(pageNumber);
             this.pdfDocument.removePage(pageNumber);
             this.pdfDocument.insertPage(pageNumber);
             const newPage = this.pdfDocument.getPage(pageNumber);
-            const pageUrl = pageDataUrls[key];
             const blob = await fetch(pageUrl).then(async (res) => new Uint8Array(await res.arrayBuffer()));
             const jpgImage = await this.pdfDocument.embedPng(blob);
             newPage.drawImage(jpgImage, jpgImage.scaleToFit(originalPage.getWidth(), originalPage.getHeight()));
-        }
+            this.onProgressUpdated("PAGE_FINISHED", maskedPages[key]);
+        });
     }
 
     maskPages(items: IMaskingItemProps[]) {
@@ -110,15 +120,6 @@ export class PdfProducer {
                 numberOfRemovedPages += 1;
             });
         return this;
-    }
-
-    broadcast() {
-        const params = queryParams();
-        const message: BroadcastMessage<EditDocumentBroadcastMessage> = Broadcast.convertToBroadcastMessage(params.id, {
-            documentFile: FileUtils._arrayBufferToBase64(this.processedDocument),
-            config: JSON.stringify(this.config),
-        });
-        Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
     }
 
     async saveChanges(): Promise<PdfProducer> {

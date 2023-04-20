@@ -11,9 +11,10 @@ const initReactQuery = () =>
     new QueryClient({
         defaultOptions: {
             queries: {
-                suspense: true,
+                suspense: false,
                 staleTime: Infinity,
-                retry: 3,
+                retry: 0,
+                useErrorBoundary: false,
                 retryDelay: 3000,
             },
         },

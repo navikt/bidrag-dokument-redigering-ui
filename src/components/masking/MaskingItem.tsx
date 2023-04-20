@@ -3,6 +3,8 @@ import "./MaskinItem.css";
 import { DragEndEvent, useDndMonitor, useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { TrashIcon } from "@navikt/aksel-icons";
+import { FilesIcon } from "@navikt/aksel-icons";
+import { Button } from "@navikt/ds-react";
 import { Resizable } from "re-resizable";
 import React, { CSSProperties, useState } from "react";
 import { useEffect } from "react";
@@ -24,6 +26,7 @@ interface IResizeDelta {
 }
 export interface IMaskingItemProps {
     id: string;
+    state?: "GHOSTED" | "DUPLICATED" | "ITEM";
     ghosted?: boolean;
     disabled?: boolean;
     scale?: number;
@@ -53,7 +56,7 @@ const getCoordinatesScaled = (coordinates: ICoordinates, scale: number): ICoordi
     };
 };
 export default function MaskingItem(props: IMaskingItemProps) {
-    const { id, coordinates: _coordinates, scale, disabled = false, ghosted } = props;
+    const { id, coordinates: _coordinates, scale, disabled = false, state } = props;
     const [coordinatesResizeStart, setCoordinatesResizeStart] = useState<ICoordinates>(_coordinates);
     const [currentCoordinates, setCurrentCoordinates] = useState<ICoordinates>(_coordinates);
     const disabledRef = useRef(false);
@@ -76,14 +79,13 @@ export default function MaskingItem(props: IMaskingItemProps) {
         },
     });
 
-    const { updateItemDimensions, enableDrag, disableDrag, activeId, removeItem } = useMaskingContainer();
-
-    function onKeyDown(e: KeyboardEvent) {
-        const isDeleteButtonPressed = e.code.toLowerCase() == "delete";
-        if (isSelected && isDeleteButtonPressed) {
-            removeItem(id);
-        }
-    }
+    const {
+        updateItemDimensions,
+        enableDrag,
+        disableDrag,
+        activeId,
+        enabled: isMaskingEnabled,
+    } = useMaskingContainer();
 
     useEffect(() => {
         scaleRef.current = scale;
@@ -94,6 +96,9 @@ export default function MaskingItem(props: IMaskingItemProps) {
         const element = document.getElementById(id);
         setNodeRef(element);
         setActivatorNodeRef(element);
+        if (isSelected) {
+            element.focus();
+        }
     }, []);
 
     const coordinates = currentCoordinates;
@@ -110,7 +115,7 @@ export default function MaskingItem(props: IMaskingItemProps) {
     const isSelected = activeId == id;
     const transformDraggable = transform ? { ...transform, scaleX: 1, scaleY: 1 } : undefined;
 
-    if (disabled) {
+    if (disabled || !isMaskingEnabled) {
         return (
             <div
                 className={`maskingitem ${isSelected ? "highlighted" : ""} ${isDragging ? "dragging" : ""}`}
@@ -119,8 +124,10 @@ export default function MaskingItem(props: IMaskingItemProps) {
             ></div>
         );
     }
-    if (ghosted) {
+    if (state == "GHOSTED") {
         return <GhostedMaskingItem {...props} />;
+    } else if (state == "DUPLICATED") {
+        return <DuplicatedMaskingItem {...props} />;
     }
     return (
         <>
@@ -129,14 +136,9 @@ export default function MaskingItem(props: IMaskingItemProps) {
                 className={`maskingitem ${isSelected ? "highlighted" : ""} ${isDragging ? "dragging" : ""}`}
                 {...listeners}
                 //@ts-ignore
-                onKeyDown={(e) => {
-                    onKeyDown(e);
-                    listeners.onKeyDown?.(e);
-                }}
-                //@ts-ignore
                 id={id}
                 //@ts-ignore
-                tabIndex={-1}
+                tabIndex={isSelected ? 0 : 10000}
                 {...attributes}
                 style={{
                     ...getStyle(coordinatesScaled),
@@ -149,7 +151,6 @@ export default function MaskingItem(props: IMaskingItemProps) {
                         width: coordinates.width,
                         height: coordinates.height,
                     }));
-                    // updateItemDimensions(id, coordinates.width, coordinates.height);
                     document.getElementById(id).style.marginBottom = `${-coordinates.height * scale}px`;
                 }}
                 onResizeStart={() => {
@@ -167,6 +168,63 @@ export default function MaskingItem(props: IMaskingItemProps) {
             ></Resizable>
         </>
     );
+}
+
+function DuplicatedMaskingItem({ id, coordinates: _coordinates, parentId, scale }: IMaskingItemProps) {
+    const [currentCoordinates, setCurrentCoordinates] = useState<ICoordinates>(_coordinates);
+    const { updateItemPosition, focusItem } = useMaskingContainer();
+    const hasMouseMoved = useRef(false);
+    function calculateCurrentPosition(e: MouseEvent | React.MouseEvent) {
+        const parentElement = document.getElementById(parentId as string);
+        const { x, y } = DomUtils.getMousePosition(parentId as string, e);
+        const coordiantesScaled = getCoordinatesScaled(currentCoordinates, scale);
+        const yRelative = y - parentElement.clientHeight;
+        const deltaX = x - coordiantesScaled.x;
+        const deltaY = yRelative - coordiantesScaled.y;
+        const newX = Math.min(
+            (parentElement.clientWidth - currentCoordinates.width) / scale,
+            Math.max(0, (coordiantesScaled.x + deltaX - coordiantesScaled.width / 2) / scale)
+        );
+        const newY = Math.min(
+            -currentCoordinates.height / scale,
+            Math.max(
+                -parentElement.clientHeight / scale,
+                (coordiantesScaled.y + deltaY - coordiantesScaled.height / 2) / scale
+            )
+        );
+        return { x: newX, y: newY };
+    }
+    function onMouseMove(e: MouseEvent) {
+        hasMouseMoved.current = true;
+        const { x, y } = calculateCurrentPosition(e);
+        setCurrentCoordinates((prevState) => ({
+            ...prevState,
+            x,
+            y,
+        }));
+    }
+
+    function onMouseDown(e: React.MouseEvent) {
+        e.stopPropagation();
+        const { x, y } = calculateCurrentPosition(e);
+        setCurrentCoordinates((prevState) => ({
+            ...prevState,
+            x,
+            y,
+        }));
+        updateItemPosition(id, x, y);
+        focusItem(id);
+    }
+
+    useEffect(() => {
+        const parentElement = document.getElementById(parentId as string);
+        parentElement.addEventListener("mousemove", onMouseMove);
+        return () => parentElement.removeEventListener("mousemove", onMouseMove);
+    }, []);
+
+    const coordinatesScaled = getCoordinatesScaled(currentCoordinates, scale);
+
+    return <div onMouseDown={onMouseDown} id={id} className={"maskingitem"} style={getStyle(coordinatesScaled)}></div>;
 }
 
 function GhostedMaskingItem({ id, coordinates: _coordinates, parentId, scale }: IMaskingItemProps) {
@@ -234,7 +292,7 @@ interface IToolbarProps {
     coordinates: ICoordinates;
 }
 function Toolbar({ id, coordinates }: IToolbarProps) {
-    const { removeItem } = useMaskingContainer();
+    const { removeItem, duplicateItem } = useMaskingContainer();
 
     return (
         <div
@@ -245,14 +303,27 @@ function Toolbar({ id, coordinates }: IToolbarProps) {
                 left: `${coordinates.x}px`,
             }}
         >
-            <div
-                className={"toolbar-item"}
+            <Button
                 onClick={(e) => {
                     removeItem(id);
                 }}
-            >
-                <TrashIcon fontSize="1.5rem" />
-            </div>
+                title={"Slett"}
+                icon={<TrashIcon fontSize="1.5rem" />}
+                className={"toolbar-item"}
+                size={"xsmall"}
+                variant={"tertiary-neutral"}
+            />
+            <div className={"separator"} />
+            <Button
+                title={"Kopier"}
+                icon={<FilesIcon fontSize="1.5rem" />}
+                className={"toolbar-item"}
+                size={"xsmall"}
+                variant={"tertiary-neutral"}
+                onClick={(e) => {
+                    duplicateItem(id);
+                }}
+            />
         </div>
     );
 }
