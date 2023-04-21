@@ -14,7 +14,7 @@ const initReactQuery = () =>
                 suspense: false,
                 staleTime: Infinity,
                 retry: 0,
-                useErrorBoundary: false,
+                useErrorBoundary: true,
                 retryDelay: 3000,
             },
         },

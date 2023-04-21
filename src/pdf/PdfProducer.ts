@@ -38,7 +38,6 @@ export class PdfProducer {
     }
 
     private onProgressUpdated(state: ProgressState, pageNumber: number, progress?: number) {
-        console.log(state, pageNumber, this.getProgressByWeight(state, pageNumber, progress));
         this.onProgressUpdate?.({
             state,
             progress: this.getProgressByWeight(state, pageNumber, progress),

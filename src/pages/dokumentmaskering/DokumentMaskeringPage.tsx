@@ -104,8 +104,8 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
     }
 
     const getPdfEditorMode = (): PdfEditorMode => {
-        if (dokumentMetadata.forsendelseState == "LOCKED") return "view_only_unlockable";
-        if (dokumentMetadata.state == "LOCKED") return "view_only_unlockable";
+        if (dokumentMetadata?.forsendelseState == "LOCKED") return "view_only_unlockable";
+        if (dokumentMetadata?.state == "LOCKED") return "view_only_unlockable";
         return "edit";
     };
 
