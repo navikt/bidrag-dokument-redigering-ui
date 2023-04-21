@@ -51,8 +51,10 @@ interface IPdfEditorContextProviderProps {
 }
 
 export default function PdfEditorContextProvider(props: PropsWithChildren<IPdfEditorContextProviderProps>) {
+    const items = props.dokumentMetadata?.editorMetadata?.items ?? [];
+    const isEditMode = props.mode == "edit";
     return (
-        <MaskingContainer items={props.dokumentMetadata?.editorMetadata?.items ?? []} enabled={props.mode == "edit"}>
+        <MaskingContainer items={isEditMode ? items : []} enabled={isEditMode}>
             <PdfEditorContextProviderWithMasking {...props} />
         </MaskingContainer>
     );
@@ -154,12 +156,9 @@ function PdfEditorContextProviderWithMasking({
     }
 
     function onProducePdfProgressUpdated(process: IProducerProgress) {
-        const progress = Math.round((process.pageNumber / process.totalPages) * 100);
-        updateSaveState("PRODUCING", progress ?? 100);
-        console.log(process);
+        updateSaveState("PRODUCING", process.progress);
     }
     async function getProcessedPdf(): Promise<{ documentFile: Uint8Array; config: EditDocumentMetadata }> {
-        updateSaveState("PRODUCING", 100);
         let existingPdfBytes = documentFile;
         if (typeof documentFile == "string") {
             existingPdfBytes = await fetch(documentFile).then((res) => res.arrayBuffer());
@@ -177,6 +176,7 @@ function PdfEditorContextProviderWithMasking({
     }
 
     async function previewPdf(): Promise<void> {
+        updateSaveState("PRODUCING", 0);
         const { documentFile } = await getProcessedPdf();
         updateSaveState("IDLE");
         FileUtils.openFile(documentFile);

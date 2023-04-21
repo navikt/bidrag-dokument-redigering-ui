@@ -61,7 +61,7 @@ export default function MaskingItem(props: IMaskingItemProps) {
     const [currentCoordinates, setCurrentCoordinates] = useState<ICoordinates>(_coordinates);
     const disabledRef = useRef(false);
     const scaleRef = useRef(scale);
-    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } = useDraggable({
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id,
         disabled: disabledRef.current ?? disabled,
         data: {
@@ -95,10 +95,6 @@ export default function MaskingItem(props: IMaskingItemProps) {
     useEffect(() => {
         const element = document.getElementById(id);
         setNodeRef(element);
-        setActivatorNodeRef(element);
-        if (isSelected) {
-            element.focus();
-        }
     }, []);
 
     const coordinates = currentCoordinates;

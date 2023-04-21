@@ -62,7 +62,7 @@ export default function PdfViewer({
             capture: true,
             passive: false,
         });
-        return () => PdfUtils.getPdfContainerElement().removeEventListener("wheel", listener);
+        return () => PdfUtils.getPdfContainerElement()?.removeEventListener("wheel", listener);
     }, [scale]);
 
     function _onThumbnailLoaded(pagesCount: number, pages: number[]) {

@@ -31,7 +31,7 @@ export default function DokumentMaskeringPage(props: DokumentMaskeringPageProps)
 }
 
 function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: DokumentMaskeringPageProps) {
-    const { data: documentFile, isLoading } = lastDokumenter(forsendelseId, dokumentreferanse, null, true, false);
+    const { data: documentFile, isFetching } = lastDokumenter(forsendelseId, dokumentreferanse, null, true, false);
     const { data: dokumentMetadata } = RedigeringQueries.hentRedigeringmetadata(forsendelseId, dokumentreferanse);
     const lagreEndringerFn = RedigeringQueries.lagreEndringer(forsendelseId, dokumentreferanse);
     const ferdigstillDokumentFn = RedigeringQueries.ferdigstillDokument(forsendelseId, dokumentreferanse);
@@ -44,11 +44,11 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
         return () => window.removeEventListener("beforeunload", onWindowClose);
     }, []);
 
-    if (isLoading) {
+    if (isFetching) {
         return <LoadingIndicator title="Laster dokumentet..." />;
     }
 
-    if (!isLoading && !documentFile) {
+    if (!isFetching && !documentFile) {
         return (
             <Alert variant="error" size={"small"} style={{ margin: "0 auto", width: "50%" }}>
                 <Heading spacing size="small" level="3">

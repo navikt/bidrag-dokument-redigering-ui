@@ -9,11 +9,10 @@ import { PdfDocumentType } from "../components/utils/types";
 import { EditDocumentMetadata } from "../types/EditorTypes";
 import pdf2Image from "./Pdf2Image";
 
-type ProgressState = "CONVERTING_PAGE_TO_IMAGE" | "PAGE_FINISHED";
+type ProgressState = "MASK_PAGE" | "CONVERT_PAGE_TO_IMAGE" | "REMOVE_PAGE" | "SAVE_PDF";
 export interface IProducerProgress {
     state: ProgressState;
-    pageNumber: number;
-    totalPages: number;
+    progress: number;
 }
 export class PdfProducer {
     private pdfDocument: PDFDocument;
@@ -38,12 +37,33 @@ export class PdfProducer {
         return this;
     }
 
-    private onProgressUpdated(state: ProgressState, pageNumber: number) {
+    private onProgressUpdated(state: ProgressState, pageNumber: number, progress?: number) {
+        console.log(state, pageNumber, this.getProgressByWeight(state, pageNumber, progress));
         this.onProgressUpdate?.({
             state,
-            pageNumber,
-            totalPages: this.pdfDocument.getPageCount(),
+            progress: this.getProgressByWeight(state, pageNumber, progress),
         });
+    }
+
+    private getProgressByWeight(state: ProgressState, pageNumber: number, _progress?: number) {
+        const totalPages = this.pdfDocument.getPageCount();
+        const progress = _progress ?? pageNumber / totalPages;
+        const percentageRange = this.stateToProgressPercentageRate(state);
+
+        return Math.round((percentageRange[1] - percentageRange[0]) * progress + percentageRange[0]);
+    }
+
+    private stateToProgressPercentageRate(state: ProgressState): number[] {
+        switch (state) {
+            case "MASK_PAGE":
+                return [0, 20];
+            case "CONVERT_PAGE_TO_IMAGE":
+                return [20, 80];
+            case "REMOVE_PAGE":
+                return [80, 90];
+            case "SAVE_PDF":
+                return [90, 100];
+        }
     }
     async process(): Promise<PdfProducer> {
         this.pdfDocument.getForm().flatten();
@@ -74,7 +94,11 @@ export class PdfProducer {
             const blob = await fetch(pageUrl).then(async (res) => new Uint8Array(await res.arrayBuffer()));
             const jpgImage = await this.pdfDocument.embedPng(blob);
             newPage.drawImage(jpgImage, jpgImage.scaleToFit(originalPage.getWidth(), originalPage.getHeight()));
-            this.onProgressUpdated("PAGE_FINISHED", maskedPages[key]);
+            this.onProgressUpdated(
+                "CONVERT_PAGE_TO_IMAGE",
+                maskedPages[key - 1],
+                maskedPages[key - 1] / maskedPages.length
+            );
         });
     }
 
@@ -124,6 +148,10 @@ export class PdfProducer {
 
     async saveChanges(): Promise<PdfProducer> {
         this.processedDocument = await this.pdfDocument.save();
+        this.onProgressUpdate?.({
+            state: "SAVE_PDF",
+            progress: 100,
+        });
         return this;
     }
 

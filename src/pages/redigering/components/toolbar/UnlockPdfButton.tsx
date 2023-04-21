@@ -19,8 +19,10 @@ export default function UnlockPdfButton() {
 
     function unlockDocument() {
         opphevFerdigstillFn.mutate(null, {
-            onSuccess: () =>
-                queryClient.refetchQueries(DokumentQueryKeys.hentDokumentMetadata(forsendelseId, dokumentreferanse)),
+            onSuccess: () => {
+                queryClient.refetchQueries(DokumentQueryKeys.hentDokumentMetadata(forsendelseId, dokumentreferanse));
+                queryClient.refetchQueries(DokumentQueryKeys.hentDokument(dokumentreferanse, null));
+            },
         });
     }
     function renderModal() {
