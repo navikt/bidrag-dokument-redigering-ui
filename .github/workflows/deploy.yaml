@@ -15,11 +15,11 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 16.x
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: yarn-cache
         with:
           path: .yarn/cache
@@ -27,27 +27,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
       - name: Set environment variables for frontend build
-        run: |
-          if $IS_FEATURE ; then
-              cat env/.env.dev >> $GITHUB_ENV
-          elif $IS_DEV ; then
-             cat env/.env.main >> $GITHUB_ENV
-          else
-             cat env/.env.prod  >> $GITHUB_ENV
-          fi
+        # Use environment variables from feature just for the build to go green. Using actual env variables in deploy step
+        run: cat env/.env.dev >> $GITHUB_ENV 
       - name: Install yarn dependencies
         run: yarn --immutable
-      - name: Lint
+      - name: Check lint
         run: yarn lint
-      - name: Test
-        run: yarn test
-      - name: Build app
-        run: yarn build
-      - name: Upload static files
-        uses: actions/upload-artifact@v3
-        with:
-          name: static_files
-          path: ./dist
+      - name: Run tests and build
+        run: yarn test && yarn build
 
   deploy-to-feature:
     name: Deploy to feature
@@ -55,17 +42,27 @@ jobs:
     needs: build
     if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/release'
     steps:
-      - name: Download static files
-        uses: actions/download-artifact@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - uses: actions/cache@v3
+        id: yarn-cache
         with:
-          name: static_files
-          path: ./dist
+          path: .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Install yarn dependencies
+        run: yarn --immutable
+      - name: Set environment variables for build
+        run: cat env/.env.dev >> $GITHUB_ENV
+      - name: Build app
+        run: yarn build
       - name: Login GCP dev
-        uses: google-github-actions/auth@v0.8.0
+        uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY_DEV }}
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v0
+        uses: google-github-actions/setup-gcloud@v1
       - name: Upload static files to feature GCP bucket
         run: gsutil -m rsync -R -d dist gs://${{env.bucket_name_dev}}/${{env.app_name}}/feature/static
 
@@ -73,19 +70,28 @@ jobs:
     name: Deploy to main
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main'
     steps:
-      - name: Download static files
-        uses: actions/download-artifact@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - uses: actions/cache@v3
+        id: yarn-cache
         with:
-          name: static_files
-          path: ./dist
+          path: .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Install yarn dependencies
+        run: yarn --immutable
+      - name: Set environment variables for build
+        run: cat env/.env.main >> $GITHUB_ENV
+      - name: Build app
+        run: yarn build
       - name: Login GCP dev
-        uses: google-github-actions/auth@v0.8.0
+        uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY_DEV }}
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v0
+        uses: google-github-actions/setup-gcloud@v1
       - name: Upload static files to dev GCP bucket
         run: gsutil -m rsync -R -d dist gs://${{env.bucket_name_dev}}/${{env.app_name}}/main/static
   deploy-to-prod:
@@ -95,16 +101,26 @@ jobs:
     if: github.ref == 'refs/heads/release'
 
     steps:
-      - name: Download static files
-        uses: actions/download-artifact@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - uses: actions/cache@v3
+        id: yarn-cache
         with:
-          name: static_files
-          path: ./dist
+          path: .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Install yarn dependencies
+        run: yarn --immutable
+      - name: Set environment variables for build
+        run: cat env/.env.prod >> $GITHUB_ENV
+      - name: Build app
+        run: yarn build
       - name: Login GCP dev
-        uses: google-github-actions/auth@v0.8.0
+        uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GCP_SERVICEUSER_KEY_PROD }}
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v0
+        uses: google-github-actions/setup-gcloud@v1
       - name: Upload static files to prod GCP bucket
         run: gsutil -m rsync -R -d dist gs://${{env.bucket_name_prod}}/${{env.app_name}}/static
