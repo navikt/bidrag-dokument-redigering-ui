@@ -7,6 +7,7 @@
 
 .toolbar {
   z-index: 9999999999;
+  --thm: 0px;
   position: relative;
   user-select: none;
   display: flex;

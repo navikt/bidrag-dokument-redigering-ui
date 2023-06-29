@@ -1,6 +1,7 @@
-import { PropsWithChildren, useContext, useState } from "react";
+import { PropsWithChildren, useContext, useRef, useState } from "react";
 import React from "react";
 
+import { DecreaseScaleFn, IncreaseScaleFn } from "../pdfcore/PdfDocument";
 import { PdfDocumentType } from "../utils/types";
 
 export interface PdfViewerContextProps {
@@ -12,11 +13,17 @@ export interface PdfViewerContextProps {
     pagesCount: number;
 
     onPageChange: (pagenumber: number) => void;
-    onDocumentLoaded?: (pagesCount: number, pages: number[]) => void;
+    onDocumentLoaded?: (
+        pagesCount: number,
+        pages: number[],
+        increaseScale: IncreaseScaleFn,
+        decreaseScale: DecreaseScaleFn
+    ) => void;
     updateScale: (newScale: number) => void;
     zoom: {
-        onZoomIn: () => void;
-        onZoomOut: () => void;
+        onZoomIn: (ticks?: number, scaleFactor?: number) => void;
+        onZoomOut: (ticks?: number, scaleFactor?: number) => void;
+        onZoomChange: (scale: number) => void;
         resetZoom: () => void;
         zoomToFit: () => void;
     };
@@ -47,13 +54,17 @@ export default function PdfViewerContextProvider({
     const [_pages, setPages] = useState([]);
     const [pagesCount, setPagesCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
-    const [scale, setScale] = useState(1.4);
-    function onZoomIn() {
-        setScale((prev) => prev + 0.2);
+    const [scale, setScale] = useState(1);
+    const increaseScaleFn = useRef<IncreaseScaleFn>();
+    const decreaseScaleFn = useRef<DecreaseScaleFn>();
+    function onZoomIn(ticks?: number, scaleFactor?: number) {
+        increaseScaleFn.current(ticks, scaleFactor);
+        // setScale((prev) => prev + 0.2);
     }
 
-    function onZoomOut() {
-        setScale((prev) => Math.max(0, prev - 0.2));
+    function onZoomOut(ticks?: number, scaleFactor?: number) {
+        decreaseScaleFn.current(ticks, scaleFactor);
+        // setScale((prev) => Math.max(0, prev - 0.2));
     }
 
     function resetZoom() {
@@ -62,10 +73,17 @@ export default function PdfViewerContextProvider({
     function zoomToFit() {
         setScale(3);
     }
-    function onDocumentLoaded(pagesCount: number, pages: number[]) {
+    function onDocumentLoaded(
+        pagesCount: number,
+        pages: number[],
+        increaseScale: IncreaseScaleFn,
+        decreaseScale: DecreaseScaleFn
+    ) {
         setPages(pages);
         setPagesCount(pagesCount);
         _onDocumentLoaded?.(pagesCount, pages);
+        increaseScaleFn.current = increaseScale;
+        decreaseScaleFn.current = decreaseScale;
     }
     function onPageChange(pagenumber: number) {
         setCurrentPage(pagenumber);
@@ -86,6 +104,7 @@ export default function PdfViewerContextProvider({
                     onZoomIn,
                     onZoomOut,
                     resetZoom,
+                    onZoomChange: setScale,
                     zoomToFit,
                 },
             }}

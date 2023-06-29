@@ -80,6 +80,10 @@ module.exports = {
                 test: /\.svg$/,
                 loader: "svg-inline-loader",
             },
+            {
+                test: /\.pdf.worker.js/,
+                type: "asset/resource",
+            },
         ],
     },
     plugins: [

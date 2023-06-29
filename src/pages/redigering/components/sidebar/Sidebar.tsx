@@ -2,9 +2,11 @@ import "./Sidebar.css";
 
 import { Checkbox, Heading } from "@navikt/ds-react";
 import React, { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { KeepScale, TransformWrapper } from "react-zoom-pan-pinch";
 
-import PdfDocument, { PdfDocumentRef } from "../../../../components/pdfcore/PdfDocument";
-import PdfPage from "../../../../components/pdfcore/PdfPage";
+import { PdfDocumentRef } from "../../../../components/pdfcore/PdfDocument";
+import PdfDocumentZoom from "../../../../components/pdfcore/PdfDocumentZoom";
+import PdfPage4 from "../../../../components/pdfcore/PdfPage4";
 import { emptyFn } from "../../../../components/pdfviewer/BasePdfViewer";
 import { usePdfViewerContext } from "../../../../components/pdfviewer/PdfViewerContext";
 import { createArrayWithLength } from "../../../../components/utils/ObjectUtils";
@@ -85,39 +87,50 @@ export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
     }
 
     return (
-        <div
-            ref={containerRef}
-            className={`sidebar_viewer pagesize_${pageSize} ${sidebarHidden ? "inactive" : "open"}`}
-            onClick={(e) => {
-                e.stopPropagation();
-            }}
-        >
-            <PdfDocument
-                id={"pdf_thumbnail_pages"}
-                file={documentFile}
-                documentRef={documentRef}
-                scale={getScale()}
-                overscanCount={10}
-                renderText={false}
-                onDocumentLoaded={_onDocumentLoaded}
-            >
-                <div>
-                    <Heading
-                        size={"small"}
-                        className={"align-middle text-white text-center border-b-2 border-white title"}
+        <TransformWrapper initialScale={getScale()} disabled minScale={1}>
+            {({ zoomIn, zoomOut, resetTransform, ...rest }) => (
+                <div
+                    ref={containerRef}
+                    className={`sidebar_viewer pagesize_${pageSize} ${sidebarHidden ? "inactive" : "open"}`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                    }}
+                >
+                    <PdfDocumentZoom
+                        id={"pdf_thumbnail_pages"}
+                        file={documentFile}
+                        documentRef={documentRef}
+                        scale={getScale()}
+                        overscanCount={10}
+                        renderText={false}
+                        onDocumentLoaded={_onDocumentLoaded}
                     >
-                        Innhold
-                    </Heading>
-                    {isDocumentLoaded && pages.length > 0 && (
-                        <section>
-                            {getPageRanges().map((r, index) => (
-                                <PageSection title={r.title} pageRange={r.range} index={index} key={r.title + index} />
-                            ))}
-                        </section>
-                    )}
+                        <div>
+                            <KeepScale>
+                                <Heading
+                                    size={"small"}
+                                    className={"align-middle text-white text-center border-b-2 border-white title"}
+                                >
+                                    Innhold
+                                </Heading>
+                            </KeepScale>
+                            {isDocumentLoaded && pages.length > 0 && (
+                                <section>
+                                    {getPageRanges().map((r, index) => (
+                                        <PageSection
+                                            title={r.title}
+                                            pageRange={r.range}
+                                            index={index}
+                                            key={r.title + index}
+                                        />
+                                    ))}
+                                </section>
+                            )}
+                        </div>
+                    </PdfDocumentZoom>
                 </div>
-            </PdfDocument>
-        </div>
+            )}
+        </TransformWrapper>
     );
 }
 
@@ -200,7 +213,7 @@ const PageContainer = React.memo(
                 onClick={() => onPageClick(pageNumber)}
                 className={`thumbnail_page_container ${currentPage == pageNumber ? "infocus" : ""}`}
             >
-                <PdfPage
+                <PdfPage4
                     pageNumber={pageNumber}
                     index={index}
                     key={"tpage_index_" + index}

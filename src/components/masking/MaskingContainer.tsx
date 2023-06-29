@@ -143,13 +143,14 @@ function MaskingContainer({
         if (hasDuplicatedOrGhostItem()) return;
         const parentId = `droppable_page_${pageNumber}`;
 
+        console.log("addItem", x, y);
         setMaskingItems((items) => [
             ...items,
             {
                 id: uuidV4(),
                 parentId,
                 state: addNewElementMode ? "GHOSTED" : "ITEM",
-                coordinates: { x: x / scale, y: y / scale, height: 0, width: 0 },
+                coordinates: { x, y, height: 0, width: 0 },
                 pageNumber,
             },
         ]);
@@ -165,6 +166,12 @@ function MaskingContainer({
         setMaskingItems((items) => [
             ...items.map((item) => {
                 if (item.id == itemId) {
+                    console.log(
+                        "onDragEnd",
+                        scale,
+                        item.coordinates,
+                        MaskingUtils.getDragEndCoordinates(event, item.coordinates, scale)
+                    );
                     return {
                         ...item,
                         parentId: event.over?.id ?? item.parentId,

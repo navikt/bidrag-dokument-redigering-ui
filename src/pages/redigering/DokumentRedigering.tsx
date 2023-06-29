@@ -15,7 +15,6 @@ import PdfViewerContextProvider, { usePdfViewerContext } from "../../components/
 import DomUtils from "../../components/utils/DomUtils";
 import { PdfDocumentType } from "../../components/utils/types";
 import { usePdfEditorContext } from "./components/PdfEditorContext";
-import Sidebar from "./components/sidebar/Sidebar";
 import EditorToolbar from "./components/toolbar/EditorToolbar";
 import FloatingToolbar from "./components/toolbar/FloatingToolbar";
 
@@ -45,11 +44,11 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
                 <EditorToolbar />
                 <FloatingToolbar />
                 <div className={"pdfviewer"} style={{ display: "flex", flexDirection: "row" }}>
-                    <Sidebar
+                    {/* <Sidebar
                         onDocumentLoaded={() => {
                             setIsLoading(false);
                         }}
-                    />
+                    /> */}
                     <PdfViewer
                         renderPage={(pageNumber, children) => (
                             <PageDecorator
@@ -93,13 +92,12 @@ function PageDecorator({ renderPageFn, pageNumber }: IPageDecoratorProps) {
     const style: CSSProperties = {
         color: isOver ? "green" : undefined,
         width: "min-content",
-        maxHeight: `${getPageHeight()}px`,
+        // maxHeight: `${getPageHeight()}px`,
         margin: "0 auto",
         cursor: isAddNewElementMode ? "crosshair" : "default",
     };
 
-    function updatePageRef() {
-        const pageElement = divRef.current?.querySelector(".page");
+    function updatePageRef(pageElement) {
         if (pageElement.querySelector(".loadingIcon") == null) {
             setPageRef(pageElement);
         }
@@ -107,8 +105,53 @@ function PageDecorator({ renderPageFn, pageNumber }: IPageDecoratorProps) {
 
     function onClick(e: React.MouseEvent) {
         const { x, y } = DomUtils.getMousePosition(id, e);
-        addItem(pageNumber, scale, x, y - divRef.current.clientHeight);
+        console.log(
+            "on click",
+            scale,
+            divRef.current.clientHeight,
+            y - divRef.current.clientHeight,
+            y,
+            divRef.current.clientHeight / scale
+        );
+        addItem(pageNumber, scale, x / scale, y / scale - divRef.current.clientHeight);
+        return;
     }
+
+    // useEffect(() => {
+    //     renderPageFn(
+    //         (pageElement) => {
+    //             console.log("ERE", pageElement);
+    //             setPageRef(pageElement);
+    //             pageElement.onmousedown = isAddNewElementMode ? onClick : null;
+    //             pageElement.id = id;
+    //         },
+    //         () => setPageRef(null)
+    //     );
+    // }, []);
+
+    // useEffect(() => {
+    //     if (pageRef) {
+    //         pageRef.onmousedown = isAddNewElementMode ? onClick : null;
+    //     }
+    // }, [isAddNewElementMode]);
+
+    // return (
+    //     <>
+    //         {renderPageFn(
+    //             (pageElement) => {
+    //                 console.log("ERE", pageElement);
+    //                 setPageRef(pageElement);
+    //                 if (pageElement) {
+    //                     pageElement.onmousedown = isAddNewElementMode ? onClick : null;
+    //                     pageElement.id = id;
+    //                 }
+    //             },
+    //             () => setPageRef(null)
+    //         )}
+    //         <MaskinItemPortal key={uuidV4()} scale={scale} id={id} pageRef={pageRef} pageNumber={pageNumber} />
+    //     </>
+    // );
+
     return (
         <div
             id={id}
@@ -121,7 +164,7 @@ function PageDecorator({ renderPageFn, pageNumber }: IPageDecoratorProps) {
             style={style}
         >
             {renderPageFn(
-                () => updatePageRef(),
+                (pageDiv) => updatePageRef(pageDiv),
                 () => setPageRef(null)
             )}
             <MaskinItemPortal scale={scale} id={id} pageRef={pageRef} pageNumber={pageNumber} />

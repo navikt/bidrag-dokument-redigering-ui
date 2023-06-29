@@ -58,7 +58,7 @@ export const lastDokumenter = (
                         optimizeForPrint,
                     },
                     {
-                        format: "arraybuffer",
+                        format: "blob",
                         paramsSerializer: {
                             indexes: null,
                         },
@@ -74,7 +74,7 @@ export const lastDokumenter = (
                         optimizeForPrint,
                     },
                     {
-                        format: "arraybuffer",
+                        format: "blob",
                         paramsSerializer: {
                             indexes: null,
                         },
@@ -89,7 +89,7 @@ export const lastDokumenter = (
                     optimizeForPrint,
                 },
                 {
-                    format: "arraybuffer",
+                    format: "blob",
                     paramsSerializer: {
                         indexes: null,
                     },

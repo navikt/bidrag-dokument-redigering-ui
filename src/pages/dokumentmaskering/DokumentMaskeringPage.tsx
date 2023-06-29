@@ -70,7 +70,7 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
     }
     function broadcastAndCloseWindow(config: EditDocumentMetadata, documentFile?: Uint8Array) {
         broadcast(config, documentFile);
-        window.close();
+        // window.close();
     }
 
     function saveDocument(config: EditDocumentMetadata) {
@@ -108,6 +108,7 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
         if (dokumentMetadata?.state == "LOCKED") return "view_only_unlockable";
         return "edit";
     };
+    console.log(documentFile.detached);
 
     return (
         <PdfEditorContextProvider

@@ -28,6 +28,10 @@ export default class PdfUtils {
         return containerElement.querySelector(`.page[data-page-number="${pageNumber}"]`);
     }
 
+    static getPageContainerElement(containerElement: HTMLDivElement, pageNumber: number) {
+        return containerElement.querySelector(`[data-index="${pageNumber}"]`) as HTMLDivElement;
+    }
+
     static getElementDimensions(element: HTMLDivElement) {
         const currentWidth = element.offsetLeft + element.clientLeft;
         const currentHeight = element.offsetTop + element.clientTop;
@@ -63,6 +67,10 @@ export default class PdfUtils {
         };
     }
 
+    static getFirsVisiblePageElement(parentElement: HTMLDivElement, pageElements: Element[]) {
+        const visiblePageIndexes = this.getVisiblePageIndexes(parentElement, pageElements);
+        return pageElements[visiblePageIndexes[0]];
+    }
     static getVisiblePageIndexes(parentElement: HTMLDivElement, pageElements: Element[]) {
         return pageElements
             .map((pageElement, pageIndex) => ({

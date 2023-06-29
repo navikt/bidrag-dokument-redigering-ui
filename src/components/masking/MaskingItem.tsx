@@ -42,17 +42,19 @@ const getStyle = (coordinatesScaled: ICoordinates): CSSProperties => ({
     bottom: 0,
     zIndex: 100000,
     left: `${coordinatesScaled.x}px`,
-    width: `${coordinatesScaled.width}px`,
-    height: `${coordinatesScaled.height}px`,
-    marginBottom: `${-coordinatesScaled.height}px`,
+    width: `calc(var(--scale-factor)*${coordinatesScaled.width}px)`,
+    height: `calc(var(--scale-factor)*${coordinatesScaled.height}px)`,
+    marginBottom: `calc(var(--scale-factor)*${-coordinatesScaled.height}px)`,
+    transformOrigin: "0px 0px",
+    transform: "scale(calc(1/var(--scale-factor)))",
 });
 
 const getCoordinatesScaled = (coordinates: ICoordinates, scale: number): ICoordinates => {
     return {
-        x: coordinates.x * scale,
-        y: coordinates.y * scale,
-        width: coordinates.width * scale,
-        height: coordinates.height * scale,
+        x: coordinates.x,
+        y: coordinates.y,
+        width: coordinates.width,
+        height: coordinates.height,
     };
 };
 export default function MaskingItem(props: IMaskingItemProps) {
@@ -95,9 +97,15 @@ export default function MaskingItem(props: IMaskingItemProps) {
     useEffect(() => {
         const element = document.getElementById(id);
         setNodeRef(element);
-    }, []);
+    }, [state, _coordinates]);
 
     const coordinates = currentCoordinates;
+
+    useEffect(() => {
+        const element = document.getElementById(id);
+        element.style.height = `calc(var(--scale-factor) * ${coordinates.height}px)`;
+        element.style.width = `calc(var(--scale-factor) * ${coordinates.width}px)`;
+    }, [state, coordinates]);
 
     const getCoordinatesAfterResize = (delta: IResizeDelta): ICoordinates => {
         return {
@@ -127,7 +135,7 @@ export default function MaskingItem(props: IMaskingItemProps) {
     }
     return (
         <>
-            {isSelected && !isDragging && <Toolbar id={id} coordinates={coordinatesScaled} />}
+            {isSelected && !isDragging && <Toolbar scale={scale} id={id} coordinates={coordinatesScaled} />}
             <Resizable
                 className={`maskingitem ${isSelected ? "highlighted" : ""} ${isDragging ? "dragging" : ""}`}
                 {...listeners}
@@ -139,6 +147,7 @@ export default function MaskingItem(props: IMaskingItemProps) {
                 style={{
                     ...getStyle(coordinatesScaled),
                     transform: CSS.Transform.toString(transformDraggable),
+                    scale: "calc(1/var(--scale-factor))",
                 }}
                 onResize={(e, direction, ref, d) => {
                     const coordinates = getCoordinatesAfterResize(d);
@@ -147,14 +156,15 @@ export default function MaskingItem(props: IMaskingItemProps) {
                         width: coordinates.width,
                         height: coordinates.height,
                     }));
-                    document.getElementById(id).style.marginBottom = `${-coordinates.height * scale}px`;
+                    document.getElementById(
+                        id
+                    ).style.marginBottom = `calc(var(--scale-factor)*${-coordinates.height}px)`;
                 }}
                 onResizeStart={() => {
                     disabledRef.current = true;
                     disableDrag();
                     setCoordinatesResizeStart(coordinates);
                 }}
-                size={{ width: `${coordinatesScaled.width}px`, height: `${coordinatesScaled.height}px` }}
                 onResizeStop={(e, direction, ref, d) => {
                     const coordinates = getCoordinatesAfterResize(d);
                     updateItemDimensions(id, coordinates.width, coordinates.height);
@@ -174,19 +184,16 @@ function DuplicatedMaskingItem({ id, coordinates: _coordinates, parentId, scale 
         const parentElement = document.getElementById(parentId as string);
         const { x, y } = DomUtils.getMousePosition(parentId as string, e);
         const coordiantesScaled = getCoordinatesScaled(currentCoordinates, scale);
-        const yRelative = y - parentElement.clientHeight;
-        const deltaX = x - coordiantesScaled.x;
+        const yRelative = y / scale - parentElement.clientHeight;
+        const deltaX = x / scale - coordiantesScaled.x;
         const deltaY = yRelative - coordiantesScaled.y;
         const newX = Math.min(
-            (parentElement.clientWidth - currentCoordinates.width) / scale,
-            Math.max(0, (coordiantesScaled.x + deltaX - coordiantesScaled.width / 2) / scale)
+            parentElement.clientWidth - currentCoordinates.width,
+            Math.max(0, coordiantesScaled.x + deltaX - coordiantesScaled.width / 2)
         );
         const newY = Math.min(
-            -currentCoordinates.height / scale,
-            Math.max(
-                -parentElement.clientHeight / scale,
-                (coordiantesScaled.y + deltaY - coordiantesScaled.height / 2) / scale
-            )
+            -currentCoordinates.height,
+            Math.max(-parentElement.clientHeight, coordiantesScaled.y + deltaY - coordiantesScaled.height / 2)
         );
         return { x: newX, y: newY };
     }
@@ -230,11 +237,11 @@ function GhostedMaskingItem({ id, coordinates: _coordinates, parentId, scale }: 
     function calculateWidthHeight(e: MouseEvent) {
         const parentElement = document.getElementById(parentId as string);
         const { x, y } = DomUtils.getMousePosition(parentId as string, e);
-        const yRelative = y - parentElement.clientHeight;
-        const deltaX = x - currentCoordinates.x * scale;
-        const deltaY = yRelative - currentCoordinates.y * scale;
-        const width = Math.max(10, currentCoordinates.width + deltaX) / scale;
-        const height = Math.max(10, currentCoordinates.height + deltaY) / scale;
+        const yRelative = y / scale - parentElement.clientHeight;
+        const deltaX = x / scale - currentCoordinates.x;
+        const deltaY = yRelative - currentCoordinates.y;
+        const width = Math.max(10 / scale, currentCoordinates.width + deltaX);
+        const height = Math.max(10 / scale, currentCoordinates.height + deltaY);
         return { height, width };
     }
 
@@ -285,41 +292,47 @@ function GhostedMaskingItem({ id, coordinates: _coordinates, parentId, scale }: 
 
 interface IToolbarProps {
     id: string;
+    scale: number;
     coordinates: ICoordinates;
 }
-function Toolbar({ id, coordinates }: IToolbarProps) {
+function Toolbar({ id, coordinates, scale }: IToolbarProps) {
     const { removeItem, duplicateItem } = useMaskingContainer();
 
     return (
-        <div
-            className={"toolbar"}
-            style={{
-                position: "relative",
-                top: `${coordinates.y - 35}px`,
-                left: `${coordinates.x}px`,
-            }}
-        >
-            <Button
-                onClick={(e) => {
-                    removeItem(id);
+        <>
+            <div
+                className={"toolbar"}
+                id={`toolbar_${id}`}
+                style={{
+                    position: "relative",
+                    top: `calc(${coordinates.y}px - calc(35px/var(--scale-factor))`,
+                    left: `${coordinates.x}px`,
+                    transform: "scale(calc(1/var(--scale-factor)))",
+                    transformOrigin: "0px 0px",
                 }}
-                title={"Slett"}
-                icon={<TrashIcon fontSize="1.5rem" />}
-                className={"toolbar-item"}
-                size={"xsmall"}
-                variant={"tertiary-neutral"}
-            />
-            <div className={"separator"} />
-            <Button
-                title={"Kopier"}
-                icon={<FilesIcon fontSize="1.5rem" />}
-                className={"toolbar-item"}
-                size={"xsmall"}
-                variant={"tertiary-neutral"}
-                onClick={(e) => {
-                    duplicateItem(id);
-                }}
-            />
-        </div>
+            >
+                <Button
+                    onClick={(e) => {
+                        removeItem(id);
+                    }}
+                    title={"Slett"}
+                    icon={<TrashIcon fontSize="1.5rem" />}
+                    className={"toolbar-item"}
+                    size={"xsmall"}
+                    variant={"tertiary-neutral"}
+                />
+                <div className={"separator"} />
+                <Button
+                    title={"Kopier"}
+                    icon={<FilesIcon fontSize="1.5rem" />}
+                    className={"toolbar-item"}
+                    size={"xsmall"}
+                    variant={"tertiary-neutral"}
+                    onClick={(e) => {
+                        duplicateItem(id);
+                    }}
+                />
+            </div>
+        </>
     );
 }

@@ -164,6 +164,10 @@ function PdfEditorContextProviderWithMasking({
             existingPdfBytes = await fetch(documentFile).then((res) => res.arrayBuffer());
         }
 
+        if (documentFile instanceof Blob) {
+            existingPdfBytes = await documentFile.arrayBuffer();
+        }
+
         const config = getEditDocumentMetadata();
         return await new PdfProducer(existingPdfBytes)
             .init(config, onProducePdfProgressUpdated)

@@ -4,9 +4,7 @@ import React, { PropsWithChildren } from "react";
 import { QueryClientProvider } from "react-query";
 import { QueryClient } from "react-query";
 
-import { initMock } from "../mock";
-
-await initMock();
+// await initMock();
 const initReactQuery = () =>
     new QueryClient({
         defaultOptions: {

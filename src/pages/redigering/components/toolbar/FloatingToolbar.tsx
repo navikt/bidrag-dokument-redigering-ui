@@ -97,8 +97,13 @@ function FloatingToolbarContainer() {
             <div className={"buttons_row"}>
                 <div className={"zoom_buttons"}>
                     <Button onClick={resetZoom} size={"xsmall"} variant={"tertiary-neutral"} icon={<ShrinkIcon />} />
-                    <Button onClick={onZoomOut} size={"xsmall"} variant={"tertiary-neutral"} icon={<MinusIcon />} />
-                    <Button onClick={onZoomIn} size={"xsmall"} variant={"tertiary-neutral"} icon={<Add />} />
+                    <Button
+                        onClick={() => onZoomOut()}
+                        size={"xsmall"}
+                        variant={"tertiary-neutral"}
+                        icon={<MinusIcon />}
+                    />
+                    <Button onClick={() => onZoomIn()} size={"xsmall"} variant={"tertiary-neutral"} icon={<Add />} />
                 </div>
                 <div className={"divider"}></div>
                 <div style={{ marginLeft: "10px", marginRight: "10px" }}>

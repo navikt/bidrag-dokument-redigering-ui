@@ -3,6 +3,7 @@ import "./ThumbnailPageDecorator.less";
 import { AddCircleFilled, DeleteFilled } from "@navikt/ds-icons";
 import React, { CSSProperties, PropsWithChildren, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { KeepScale } from "react-zoom-pan-pinch";
 
 import { useMaskingContainer } from "../../../../components/masking/MaskingContainer";
 import MaskingItem from "../../../../components/masking/MaskingItem";
@@ -61,11 +62,13 @@ export default function ThumbnailPageDecorator({ renderPageFn, pageNumber }: Thu
                 )}
 
             {isEnabled && (
-                <ThumbnailPageToolbar
-                    hidden={!mouseOver}
-                    onToggleDelete={() => toggleDeletedPage(pageNumber)}
-                    isDeleted={isDeleted}
-                />
+                <KeepScale>
+                    <ThumbnailPageToolbar
+                        hidden={!mouseOver}
+                        onToggleDelete={() => toggleDeletedPage(pageNumber)}
+                        isDeleted={isDeleted}
+                    />
+                </KeepScale>
             )}
         </div>
     );
