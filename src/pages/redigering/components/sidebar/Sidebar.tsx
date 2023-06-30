@@ -1,13 +1,9 @@
 import "./Sidebar.css";
 
 import { Checkbox, Heading } from "@navikt/ds-react";
-import React, { ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { KeepScale, TransformWrapper } from "react-zoom-pan-pinch";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
-import { PdfDocumentRef } from "../../../../components/pdfcore/PdfDocument";
-import PdfDocumentZoom from "../../../../components/pdfcore/PdfDocumentZoom";
-import PdfPage4 from "../../../../components/pdfcore/PdfPage4";
-import { emptyFn } from "../../../../components/pdfviewer/BasePdfViewer";
+import PdfDocument, { PdfDocumentRef } from "../../../../components/pdfcore/PdfDocument";
 import { usePdfViewerContext } from "../../../../components/pdfviewer/PdfViewerContext";
 import { createArrayWithLength } from "../../../../components/utils/ObjectUtils";
 import { usePdfEditorContext } from "../PdfEditorContext";
@@ -24,7 +20,6 @@ interface SidebarProps {
 }
 export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
     const { sidebarHidden, dokumentMetadata, hideSidebar } = usePdfEditorContext();
-    const [pageSize, setPageSize] = useState<PAGE_SIZE>("large");
     const containerRef = useRef<HTMLDivElement>();
     const documentRef = useRef<PdfDocumentRef>(null);
     const [isDocumentLoaded, setIsDocumentLoaded] = useState(false);
@@ -34,35 +29,6 @@ export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
     useEffect(() => {
         documentRef.current?.scrollToPage(currentPage);
     }, [currentPage]);
-
-    function updatePageSize() {
-        const windowWidth = window.innerWidth;
-        if (windowWidth > 1300) {
-            setPageSize("large");
-        } else if (windowWidth < 1300 && windowWidth > 600) {
-            setPageSize("medium");
-        } else if (windowWidth > 600 && windowWidth < 400) {
-            setPageSize("small");
-        } else {
-            hideSidebar();
-        }
-    }
-    useEffect(() => {
-        updatePageSize();
-        window.addEventListener("resize", updatePageSize);
-        return () => window.removeEventListener("resize", updatePageSize);
-    }, []);
-
-    function getScale() {
-        switch (pageSize) {
-            case "small":
-                return 0.05;
-            case "medium":
-                return 0.2;
-            default:
-                return 0.3;
-        }
-    }
 
     function _onDocumentLoaded(pagesCount: number, loadedPages: number[]) {
         documentRef.current.scrollToPage(1);
@@ -87,50 +53,37 @@ export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
     }
 
     return (
-        <TransformWrapper initialScale={getScale()} disabled minScale={1}>
-            {({ zoomIn, zoomOut, resetTransform, ...rest }) => (
-                <div
-                    ref={containerRef}
-                    className={`sidebar_viewer pagesize_${pageSize} ${sidebarHidden ? "inactive" : "open"}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                    }}
-                >
-                    <PdfDocumentZoom
-                        id={"pdf_thumbnail_pages"}
-                        file={documentFile}
-                        documentRef={documentRef}
-                        scale={getScale()}
-                        overscanCount={10}
-                        renderText={false}
-                        onDocumentLoaded={_onDocumentLoaded}
-                    >
-                        <div>
-                            <KeepScale>
-                                <Heading
-                                    size={"small"}
-                                    className={"align-middle text-white text-center border-b-2 border-white title"}
-                                >
-                                    Innhold
-                                </Heading>
-                            </KeepScale>
-                            {isDocumentLoaded && pages.length > 0 && (
-                                <section>
-                                    {getPageRanges().map((r, index) => (
-                                        <PageSection
-                                            title={r.title}
-                                            pageRange={r.range}
-                                            index={index}
-                                            key={r.title + index}
-                                        />
-                                    ))}
-                                </section>
-                            )}
-                        </div>
-                    </PdfDocumentZoom>
+        <div
+            ref={containerRef}
+            className={`sidebar_viewer ${sidebarHidden ? "inactive" : "open"}`}
+            onClick={(e) => {
+                e.stopPropagation();
+            }}
+        >
+            <PdfDocument
+                id={"pdf_thumbnail_pages"}
+                scale={0.3}
+                zoom={false}
+                file={documentFile}
+                documentRef={documentRef}
+                overscanCount={10}
+                renderText={false}
+                onDocumentLoaded={_onDocumentLoaded}
+            >
+                <div>
+                    <Heading size={"small"} className={"align-middle text-white text-center border-white title "}>
+                        Innhold
+                    </Heading>
+                    {isDocumentLoaded && pages.length > 0 && (
+                        <section>
+                            {getPageRanges().map((r, index) => (
+                                <PageSection title={r.title} pageRange={r.range} index={index} key={r.title + index} />
+                            ))}
+                        </section>
+                    )}
                 </div>
-            )}
-        </TransformWrapper>
+            </PdfDocument>
+        </div>
     );
 }
 
@@ -141,29 +94,8 @@ interface IPageSectionProps {
 }
 function PageSection({ title, pageRange, index }: IPageSectionProps) {
     const pagesLength = pageRange[1] - pageRange[0];
-    const { currentPage, onPageChange } = usePdfViewerContext();
     const { toggleDeletedPage, removedPages } = usePdfEditorContext();
     const pagesInSection = useMemo(() => createArrayWithLength(pagesLength, pageRange[0]), [pageRange]);
-    function renderSinglePage(pageNumber: number, index: number) {
-        const pageToRender = (onPageRendered?: emptyFn, onPageDestroyed?: emptyFn): ReactNode => (
-            <PageContainer
-                pageNumber={pageNumber}
-                currentPage={currentPage}
-                index={pageNumber - 1}
-                key={"pagesection_" + index}
-                onPageClick={onPageChange}
-                pageRendered={onPageRendered}
-                pageDestroyed={onPageDestroyed}
-            />
-        );
-        return (
-            <ThumbnailPageDecorator
-                pageNumber={pageNumber}
-                renderPageFn={pageToRender}
-                key={"ThumbnailPageDecorator_" + index}
-            />
-        );
-    }
 
     const getDeletedPages = () => pagesInSection.filter((pageNumber) => removedPages.includes(pageNumber));
     const getNotDeletedPages = () => pagesInSection.filter((pageNumber) => !removedPages.includes(pageNumber));
@@ -188,40 +120,17 @@ function PageSection({ title, pageRange, index }: IPageSectionProps) {
                         size={"small"}
                         className={"checkbox"}
                     >
-                        <Heading size={"xsmall"} style={{ color: "white" }} className={"ml-2"}>
+                        <Heading size={"xsmall"} style={{ color: "white" }} className={"ml-2 page-section-title"}>
                             {title}
                         </Heading>
                     </Checkbox>
                 </div>
             )}
-            <div className={"pt-2"}>{pagesInSection.map(renderSinglePage)}</div>
+            <div className={"pt-2"}>
+                {pagesInSection.map((pagenumber) => (
+                    <ThumbnailPageDecorator pageNumber={pagenumber} key={"ThumbnailPageDecorator_" + pagenumber} />
+                ))}
+            </div>
         </>
     );
 }
-interface PdfPageContainerProps {
-    pageNumber: number;
-    currentPage: number;
-    onPageClick: (pageNumber: number) => void;
-    index: number;
-    pageRendered?: () => void;
-    pageDestroyed?: () => void;
-}
-const PageContainer = React.memo(
-    ({ pageNumber, onPageClick, index, pageRendered, pageDestroyed, currentPage }: PdfPageContainerProps) => {
-        return (
-            <div
-                onClick={() => onPageClick(pageNumber)}
-                className={`thumbnail_page_container ${currentPage == pageNumber ? "infocus" : ""}`}
-            >
-                <PdfPage4
-                    pageNumber={pageNumber}
-                    index={index}
-                    key={"tpage_index_" + index}
-                    pageRendered={pageRendered}
-                    pageDestroyed={pageDestroyed}
-                />
-                <div className={"pagenumber"}>{pageNumber}</div>
-            </div>
-        );
-    }
-);

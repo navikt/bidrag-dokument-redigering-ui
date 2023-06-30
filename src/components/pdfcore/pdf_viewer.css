@@ -31,6 +31,26 @@
   --scale-factor: 1;
 
   padding-bottom: var(--pdfViewer-padding-bottom);
+  width: 100%;
+  overflow-y: hidden;
+  /* overflow-y: auto; */
+}
+
+.pdfrenderer_container .pdfViewer-content {
+  width: 100%;
+  height: 100%;
+}
+
+.pdfrenderer_container .pdfViewer-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.pdfrenderer_container .pdfViewer {
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto
 }
 
 .pdfViewer .canvasWrapper {

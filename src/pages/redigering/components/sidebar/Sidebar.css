@@ -1,23 +1,37 @@
 .sidebar_viewer {
   z-index: 10;
   overflow: auto;
+  --sidebar-width: 250px;
 }
+
+/* .sidebar_viewer .pdfrenderer_container .pdfViewer::-webkit-scrollbar {
+
+  cursor: ew-resize;
+} */
 
 .sidebar_viewer .title {
   position: sticky;
   top: 0;
   z-index: 100000;
-  background-color: var(--a-gray-600);
+  background-color: #4a4a4a;
 }
 
 .sidebar_viewer .pagesection {
   position: sticky;
   z-index: 100000;
-  background-color: var(--a-gray-600);
+  background-color: #4a4a4a;
+  border-bottom: 2px solid var(--a-border-strong);
 }
 
+
+.sidebar_viewer .pagesection .page-section-title {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  text-wrap: nowrap;
+  width: calc(var(--sidebar-width) - 50px);
+}
 .sidebar_viewer .pdfrenderer_container{
-  background-color: var(--a-surface-neutral) !important;
+  background-color: #595959b3 !important;
 }
 
 .sidebar_viewer .pagenumber{
@@ -30,24 +44,8 @@
   left: 0%;
 }
 
-.sidebar_viewer.pagesize_medium .pdfrenderer_container {
-  width: 220px;
-}
-
 .sidebar_viewer.inactive .pdfrenderer_container {
   left: -100%;
-}
-
-.sidebar_viewer.pagesize_small .pdfrenderer_container {
-  width: 100px;
-}
-
-.sidebar_viewer.pagesize_small .navds-heading {
-  font-size: 12px;
-}
-.sidebar_viewer.pagesize_small .pagesection .checkbox .navds-checkbox__label {
-  display: flex;
-  flex-direction: column;
 }
 
 .sidebar_viewer.pagesize_small .pdfrenderer_container .thumbnail_decorator {
@@ -60,11 +58,45 @@
 }
 
 .sidebar_viewer .pdfrenderer_container {
-  width: 350px;
+  width: var(--sidebar-width)
 }
 
 .sidebar_viewer .pdfrenderer_container .pdfViewer {
-  background-color: var(--a-surface-neutral);
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+
+.sidebar_viewer .thumbnail_page_container .page {
+  width: calc(var(--page-width)*var(--scale-factor)) !important;
+  height: calc(var(--page-height)*var(--scale-factor)) !important;
+  margin: auto;
+}
+
+.sidebar_viewer .thumbnail_page_container .maskingItem {
+  z-index: 0 !important;
+  top: calc(var(--masking-top)*var(--scale-factor)) !important;
+  left: calc(var(--masking-left)*var(--scale-factor)) !important;
+  transform: inherit !important;
+}
+.sidebar_viewer .thumbnail_page_container .page canvas{
+  transform: scale(1) !important;
+}
+
+.sidebar_viewer .thumbnail_page_container .page .canvasWrapper{
+  width: inherit !important;
+  height: inherit !important;
+}
+
+.sidebar_viewer .pdfrenderer_container .pdfViewer-wrapper{
+  overflow-y: auto;
+  overflow-x: hidden !important;
+}
+
+.sidebar_viewer .pdfrenderer_container .pdfViewer {
+  background-color: unset;
+  overflow: unset;
+  width: unset !important;
 }
 
 
@@ -82,6 +114,11 @@
 
 .thumbnail_page_container.infocus .page {
   opacity: 100%;
+
+}
+
+.thumbnail_decorator.deleted .page {
+  opacity: 10%;
 
 }
 

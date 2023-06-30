@@ -11,17 +11,18 @@ import { useContext } from "react";
 import { useState } from "react";
 import { v4 as uuidV4 } from "uuid";
 
-import useListener from "../hooks/useListener";
 import { IMaskingItemProps } from "./MaskingItem";
 import MaskingUtils from "./MaskinUtils";
 export interface MaskingContainerContextProps {
     enabled?: boolean;
+    addNewElementMode?: boolean;
     items: IMaskingItemProps[];
     initItems: (items: IMaskingItemProps[]) => void;
     isAddNewElementMode: boolean;
     activeId: string;
     addItem: (pageNumber: number, scale: number, x: number, y: number) => void;
     initAddItem: () => void;
+    exitAddItemMode: (removeDuplicateGhostItem: boolean) => void;
     removeItem: (id: string) => void;
     duplicateItem: (id: string) => void;
     focusItem: (id: string) => void;
@@ -54,29 +55,17 @@ function MaskingContainer({
     const sensors = useSensors(useSensor(MouseSensor));
 
     const divRef = useRef<HTMLDivElement>(null);
-    useListener("keydown", document, (e: KeyboardEvent) => {
-        if (!activeId) return;
-        const isDeleteButtonPressed = e.code.toLowerCase() == "delete";
-        if (isDeleteButtonPressed) {
-            removeItem(activeId);
-        } else if (e.ctrlKey && e.key?.toLowerCase() == "d") {
-            duplicateItem(activeId);
-        }
-    });
 
     const initAddItem = () => setAddNewElementMode(true);
+    const exitAddItemMode = (removeDuplicateGhostItem: boolean) => {
+        removeDuplicateGhostItem &&
+            hasDuplicatedOrGhostItem() &&
+            getDuplicatedOrGhostedItem().map((i) => removeItem(i.id));
+        setAddNewElementMode(false);
+    };
     const hasDuplicatedOrGhostItem = () => getDuplicatedOrGhostedItem().length > 0;
     const getDuplicatedOrGhostedItem = () =>
         maskingItems.filter((item) => ["DUPLICATED", "GHOSTED"].includes(item.state));
-
-    function keyDownHandler(e: React.KeyboardEvent) {
-        if (e.key == "Escape") {
-            hasDuplicatedOrGhostItem() && getDuplicatedOrGhostedItem().map((i) => removeItem(i.id));
-            setAddNewElementMode(false);
-        } else if (e.key == "+" || (e.ctrlKey && e.key?.toLowerCase() == "n")) {
-            initAddItem();
-        }
-    }
 
     function handleDragStart(event) {
         setActiveId(event.active.id);
@@ -169,12 +158,13 @@ function MaskingContainer({
                     console.log(
                         "onDragEnd",
                         scale,
+                        event.delta,
                         item.coordinates,
                         MaskingUtils.getDragEndCoordinates(event, item.coordinates, scale)
                     );
                     return {
                         ...item,
-                        parentId: event.over?.id ?? item.parentId,
+                        parentId: item.parentId,
                         coordinates: {
                             ...MaskingUtils.getDragEndCoordinates(event, item.coordinates, scale),
                         },
@@ -232,7 +222,7 @@ function MaskingContainer({
     }
 
     return (
-        <div tabIndex={0} onKeyDown={keyDownHandler} ref={divRef}>
+        <div tabIndex={0} ref={divRef}>
             <DndContext
                 onDragStart={handleDragStart}
                 onDragEnd={onDragEnd}
@@ -245,9 +235,11 @@ function MaskingContainer({
                         items: maskingItems,
                         isAddNewElementMode: addNewElementMode,
                         activeId,
+                        addNewElementMode,
                         enabled,
                         initItems: setMaskingItems,
                         initAddItem,
+                        exitAddItemMode,
                         addItem,
                         focusItem,
                         duplicateItem,

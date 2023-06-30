@@ -108,7 +108,6 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
         if (dokumentMetadata?.state == "LOCKED") return "view_only_unlockable";
         return "edit";
     };
-    console.log(documentFile.detached);
 
     return (
         <PdfEditorContextProvider

@@ -88,7 +88,7 @@ function PdfEditorContextProviderWithMasking({
     useEffect(() => {
         const hasChanged = !objectsDeepEqual(history.current, getEditDocumentMetadata());
         if (!isUndoRedoChange.current && hasChanged) {
-            setHistory(history.push(getEditDocumentMetadata()));
+            setHistory((prevHistory) => prevHistory.push(getEditDocumentMetadata()));
         }
         isUndoRedoChange.current = false;
     }, [items, removedPages, history]);
@@ -115,13 +115,6 @@ function PdfEditorContextProviderWithMasking({
             });
     }
 
-    function onRedoUndoEvent(event) {
-        if (event.ctrlKey && !event.shiftKey && event.key === "z") {
-            undoState();
-        } else if (event.ctrlKey && event.shiftKey && event.key === "Z") {
-            redoState();
-        }
-    }
     function undoState() {
         if (history.canUndo) {
             initItems(history.previous.items);
@@ -218,7 +211,7 @@ function PdfEditorContextProviderWithMasking({
     }
 
     return (
-        <div onKeyDown={onRedoUndoEvent} tabIndex={-1} ref={divRef}>
+        <div tabIndex={-1} ref={divRef}>
             <PdfEditorContext.Provider
                 value={{
                     mode,

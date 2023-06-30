@@ -6,7 +6,7 @@ import React from "react";
 export interface PdfDocumentContextProps {
     pdfDocument: PDFDocumentProxy;
     renderPageIndexes: number[];
-    onPageLoaded: (pageNumber: number, page: PDFPageProxy) => void;
+    onPageLoaded?: (pageNumber: number, page: PDFPageProxy) => void;
     scale: number;
     renderText: boolean;
     pdfEventBus?: React.MutableRefObject<EventBus>;

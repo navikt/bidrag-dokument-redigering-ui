@@ -3,23 +3,21 @@ import "./pdf_viewer.css";
 
 import * as pdfjsLib from "pdfjs-dist";
 import { PDFDocumentProxy } from "pdfjs-dist";
-import { EventBus, PDFViewer } from "pdfjs-dist/web/pdf_viewer";
 // import pdfdoc from "pdfjs-dist/build/pdf.worker.js";
 import { MutableRefObject, useRef } from "react";
 import React from "react";
 import { useEffect } from "react";
 import { PropsWithChildren } from "react";
 import { useState } from "react";
+import { TransformComponent, useTransformEffect } from "react-zoom-pan-pinch";
 
 import { createArrayWithLength, removeDuplicates } from "../utils/ObjectUtils";
 import { TimerUtils } from "../utils/TimerUtils";
 import { PdfDocumentType } from "../utils/types";
 import { PdfDocumentContext } from "./PdfDocumentContext";
+import { getVisibleElements } from "./pdfjslib/ui_utils";
 import PdfUtils, { ScrollDirection } from "./PdfUtils";
 
-const DEFAULT_SCALE_DELTA = 1.1;
-const MIN_SCALE = 0.1;
-const MAX_SCALE = 10.0;
 // pdfjsLib.GlobalWorkerOptions.workerSrc = `${environment.url.static_url}/pdf.worker.js`;
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.js", import.meta.url).toString();
 
@@ -38,10 +36,11 @@ interface PdfDocumentProps extends PropsWithChildren<unknown> {
     file: PdfDocumentType;
     documentRef?: MutableRefObject<PdfDocumentRef>;
     renderText?: boolean;
+    zoom?: boolean;
     scale?: number;
     overscanCount?: number;
     onLoading?: () => void;
-    onDocumentLoaded?: (pagesCount: number, pages: number[], IncreaseScaleFn, DecreaseScaleFn) => void;
+    onDocumentLoaded?: (pagesCount: number, pages: number[]) => void;
     onError?: (message: string) => void;
     onPageChange?: (currentPageNumber: number, previousPageNumber: number) => void;
     onScroll?: (currentPageNumber: number, scrollDirection: ScrollDirection) => void;
@@ -50,26 +49,23 @@ interface PdfDocumentProps extends PropsWithChildren<unknown> {
 export default function PdfDocument({
     id,
     file,
-    scale = 1.3,
-    onError,
     documentRef,
+    zoom = true,
     onDocumentLoaded,
     onPageChange,
     overscanCount = 5,
     children,
     onScroll,
+    scale,
     renderText = true,
 }: PropsWithChildren<PdfDocumentProps>) {
     const divRef = useRef<HTMLDivElement>(null);
     const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy>();
     const [renderPageIndexes, setRenderPageIndexes] = useState<number[]>([]);
-    const [currentScale, setCurrentScale] = useState(1);
-    const curretnScaleRef = useRef(1);
+    const [currentScale, setCurrentScale] = useState(scale);
     const isMouseOver = useRef(false);
     const pdfDocumentRef = useRef<PDFDocumentProxy>();
-    const pdfViewerRef = useRef<PDFViewer>();
     const isRendering = useRef<boolean>(false);
-    const pdfEventBus = useRef<EventBus>();
     const pageElements = useRef<Element[]>([]);
     const lastKnownScrollPosition = useRef(0);
     const currentPageNumberRef = useRef(1);
@@ -88,17 +84,6 @@ export default function PdfDocument({
         }
     }, []);
 
-    // useEffect(() => {
-    //     if (pdfViewerRef.current) {
-    //         console.log(scale, pdfViewerRef.current.currentScale);
-    //         if (pdfViewerRef.current.currentScale < scale) {
-    //             pdfViewerRef.current.increaseScale();
-    //         } else {
-    //             pdfViewerRef.current.decreaseScale();
-    //         }
-    //         pdfViewerRef.current.update();
-    //     }
-    // }, [scale]);
     function getPageElements() {
         if (!divRef.current || !pdfDocumentRef.current) return;
         if (pageElements.current.length != pdfDocumentRef.current.numPages) {
@@ -114,131 +99,13 @@ export default function PdfDocument({
         const pageElement = PdfUtils.getPageElement(divRef.current, pageNumber);
         pageElement?.scrollIntoView({ block: "center", behavior: "auto" });
     }
-    function increaseScale2(ticks?: number, scaleFactor?: number) {
-        let newScale = curretnScaleRef.current;
-        if (scaleFactor > 1) {
-            newScale = Math.round(newScale * scaleFactor * 100) / 100;
-        } else {
-            let steps = ticks ?? 1;
-            console.log(steps, newScale, DEFAULT_SCALE_DELTA);
-            do {
-                //@ts-ignore
-                newScale = Math.ceil((newScale * DEFAULT_SCALE_DELTA).toFixed(2) * 10) / 10;
-            } while (--steps > 0 && newScale < MAX_SCALE);
-        }
-        const newScaleAdjusted = Math.min(MAX_SCALE, newScale);
-        console.log("Increase scale 2", ticks, scaleFactor, newScaleAdjusted);
-        setCurrentScale(newScaleAdjusted);
-        curretnScaleRef.current = newScaleAdjusted;
-    }
 
-    function decreaseScale2(ticks?: number, scaleFactor?: number) {
-        let newScale = curretnScaleRef.current;
-        if (scaleFactor > 0 && scaleFactor < 1) {
-            newScale = Math.round(newScale * scaleFactor * 100) / 100;
-        } else {
-            let steps = ticks ?? 1;
-            do {
-                //@ts-ignore
-                newScale = Math.floor((newScale / DEFAULT_SCALE_DELTA).toFixed(2) * 10) / 10;
-            } while (--steps > 0 && newScale > MIN_SCALE);
-        }
-        const newScaleAdjusted = Math.max(MIN_SCALE, newScale);
-        console.log("Decrease scale 2", ticks, scaleFactor, newScaleAdjusted);
-
-        setCurrentScale(newScaleAdjusted);
-        curretnScaleRef.current = newScaleAdjusted;
-    }
-
-    function increaseScale(ticks: number, scaleFactor?: number) {
-        console.log(pdfViewerRef.current.currentScale);
-        pdfViewerRef.current.increaseScale({ drawingDelay: 5000, steps: ticks, scaleFactor });
-        cssTransform();
-        return pdfViewerRef.current.currentScale;
-    }
-
-    function decreaseScale(ticks: number, scaleFactor?: number) {
-        pdfViewerRef.current.decreaseScale({ drawingDelay: 5000, steps: ticks, scaleFactor });
-        cssTransform();
-        return pdfViewerRef.current.currentScale;
-    }
-
-    function cssTransform() {
-        const visible = pdfViewerRef.current._getVisiblePages();
-        console.log(visible);
-        // visible.views.forEach((v) => {
-        //     const pdfPage = v.view as PDFPageView;
-        //     const canvas = pdfPage.canvas;
-        //     const viewport = pdfPage.viewport;
-        //     canvas.style.height = `${viewport.height}px`;
-        //     canvas.style.width = `${viewport.width}px`;
-        // });
-    }
     async function loadDocument() {
         const documentBuffer = file instanceof Blob ? await file.arrayBuffer() : file;
         return pdfjsLib
             .getDocument(documentBuffer)
             .promise.then((pdfDoc) => {
-                console.log("HEREr", pdfDoc);
                 pdfDocumentRef.current = pdfDoc;
-                pdfEventBus.current = new EventBus();
-                pdfViewerRef.current = new PDFViewer({
-                    eventBus: pdfEventBus.current,
-                    container: divRef.current,
-                    useOnlyCssZoom: false,
-                    annotationMode: 0,
-                    isOffscreenCanvasSupported: false,
-                    removePageBorders: true,
-                    maxCanvasPixels: -1,
-                });
-                // pdfViewerRef.current.defaultRenderingQueue = false;
-                pdfViewerRef.current.setDocument(pdfDoc);
-                // pdfViewerRef.current.renderingQueue.idleTimeout = 100;
-                pdfEventBus.current.on(
-                    "pagesinit",
-                    (e) => {
-                        const pdfViewer = e.source as PDFViewer;
-                        const pagesCount = pdfViewer.pagesCount;
-                        // pdfViewerRef.current.currentScale = 1;
-                        // console.log(pdfViewerRef.current.getPageView(0));
-                        // const viewPort = pdfViewerRef.current.getPageView(0).viewPort;
-                        // viewPort.style.setProperty("--scale-factor", viewPort.scale);
-                        pdfViewerRef.current.currentScaleValue = "auto";
-                        onDocumentLoaded?.(
-                            pagesCount,
-                            createArrayWithLength(pagesCount).map((i) => i + 1),
-                            increaseScale,
-                            decreaseScale
-                        );
-                    },
-                    { once: true }
-                );
-
-                pdfEventBus.current.on("pagerendered", (e) => {
-                    const pageView = pdfViewerRef.current.getPageView(e.pageNumber - 1);
-                    const scale = pdfViewerRef.current.currentScale;
-                    // pageView.draw();
-                    // pageView.canvas.style = `transform: rotate(0deg) scale(${scale}, ${scale});`;
-                    // console.log(pageView, e);
-                });
-
-                pdfEventBus.current.on("updateviewarea", (e) => {
-                    const visiblePages = pdfViewerRef.current._getVisiblePages();
-                    const scale = pdfViewerRef.current.currentScale;
-                    // visiblePages.views.forEach((_view) => {
-                    //     const pageView = _view.view as PDFPageView;
-                    //     pageView.reset();
-                    //     pageView.draw();
-                    // });
-                    // console.log(visiblePages.views);
-
-                    // pdfViewerRef.current.forceRendering(null);
-                    // pdfViewerRef.current.update();
-                    // pageView.draw();
-                    // pageView.canvas.style = `transform: rotate(0deg) scale(${scale}, ${scale});`;
-                    // console.log(visiblePages, e);
-                });
-
                 return pdfDoc;
             })
             .then((pdfDoc) => {
@@ -250,28 +117,20 @@ export default function PdfDocument({
             })
             .then((pdfDoc) => {
                 setPdfDocument(pdfDoc);
+                divRef.current?.style.setProperty("--scale-factor", currentScale.toString());
                 if (documentRef) {
                     documentRef.current = {
                         documentElement: divRef.current!,
-                        containerTopLeft: () => pdfViewerRef.current.containerTopLeft,
-                        containerElement: () => pdfViewerRef.current.container,
-                        currentScale: () => pdfViewerRef.current.currentScale,
+                        containerTopLeft: () => [divRef.current.offsetTop, divRef.current.offsetLeft],
+                        containerElement: () => divRef.current,
+                        currentScale: () => currentScale,
                         scrollToPage,
                     };
-                    // documentRef.current = {
-                    //     documentElement: divRef.current!,
-                    //     containerTopLeft: () => [divRef.current.offsetTop, divRef.current.offsetLeft],
-                    //     containerElement: () => divRef.current,
-                    //     currentScale: () => curretnScaleRef.current,
-                    //     scrollToPage,
-                    // };
                 }
-                // onDocumentLoaded?.(
-                //     pdfDoc.numPages,
-                //     createArrayWithLength(pdfDoc.numPages).map((i) => i + 1),
-                //     increaseScale2,
-                //     decreaseScale2
-                // );
+                onDocumentLoaded?.(
+                    pdfDoc.numPages,
+                    createArrayWithLength(pdfDoc.numPages).map((i) => i + 1)
+                );
             })
             .catch(function (reason) {
                 console.error("Error: " + reason + "asdasd -- " + id, reason);
@@ -279,9 +138,30 @@ export default function PdfDocument({
             .finally();
     }
 
-    function getVisiblePageIndexes() {
-        // return PdfUtils.getVisiblePageIndexes(divRef.current!, getPageElements()!);
-        return [1];
+    function getVisiblePageIndexes(sortByVisibility = true) {
+        const views = getPageElements().map((elem) => ({
+            div: elem as HTMLElement,
+            id: elem.getAttribute("data-index"),
+        }));
+        const visiblePages = getVisibleElements({
+            scrollEl: divRef.current as HTMLElement,
+            views,
+            sortByVisibility,
+            rtl: true,
+        });
+        return Array.from(visiblePages.ids).map((id) => parseInt(id as string));
+    }
+
+    function _getVisibleElements() {
+        const views = getPageElements().map((elem) => ({
+            div: elem as HTMLElement,
+            id: parseInt(elem.getAttribute("data-index")),
+        }));
+        return getVisibleElements({
+            scrollEl: getScrollElement() as HTMLElement,
+            views,
+            sortByVisibility: true,
+        });
     }
 
     function updateRenderPages(visiblePages: number[], currentPageIndex: number) {
@@ -306,12 +186,30 @@ export default function PdfDocument({
         }
     }
 
+    function getScrollElement() {
+        return divRef.current?.querySelector("#pdf_document_pages");
+    }
     function onScrollHandler() {
         if (!divRef.current) return;
-        const currentScrollHeight = divRef.current.scrollTop;
+        const currentScrollHeight = divRef.current.firstElementChild.scrollTop;
+        const visible = _getVisibleElements();
+        const visiblePages = visible.views;
+        let stillFullyVisible = false;
+
+        const currentPageIndex = currentPageNumberRef.current - 1;
         const currentVisiblePageIndexes = getVisiblePageIndexes();
-        const currentPageIndex = currentVisiblePageIndexes[0];
-        const currentPageNumber = currentPageIndex + 1;
+        for (const page of visiblePages) {
+            if (page.percent < 100) {
+                break;
+            }
+            if (page.id === currentPageIndex) {
+                stillFullyVisible = true;
+                break;
+            }
+        }
+        const updatedPageIndex = stillFullyVisible ? currentPageIndex : visiblePages[0]?.id ?? 0;
+        const currentPageNumber = updatedPageIndex + 1;
+
         if (isUserScrolling()) {
             onScrollThrottler.current(
                 currentPageNumber,
@@ -325,36 +223,93 @@ export default function PdfDocument({
     }
 
     function initEventListeners() {
-        divRef.current?.addEventListener("scroll", () => onScrollHandlerThrottler.current());
+        getScrollElement()?.addEventListener("scroll", () => onScrollHandlerThrottler.current());
+        // getScrollElement()?.addEventListener("wheel", (e) => onMouseWheelHandlerThrottler.current(e));
     }
 
     function isUserScrolling() {
         return isMouseOver.current;
     }
 
+    function renderPdfViewer() {
+        if (zoom) {
+            return (
+                <PdfDocumentZoom
+                    onScaleUpdated={setCurrentScale}
+                    containerRef={divRef}
+                    scrollElement={getScrollElement()}
+                >
+                    <div id={id} className="pdfViewer">
+                        {children}
+                    </div>
+                </PdfDocumentZoom>
+            );
+        }
+
+        return (
+            <div id={id} className="pdfViewer">
+                {children}
+            </div>
+        );
+    }
+
     return (
-        <PdfDocumentContext.Provider
-            value={{
-                renderPageIndexes,
-                pdfDocument,
-                scale: currentScale,
-                renderText,
-                pdfEventBus: pdfEventBus,
-                pdfViewerRef,
-            }}
-        >
-            <div
-                ref={divRef}
-                tabIndex={0}
-                className={"pdfrenderer_container"}
-                onMouseOver={() => (isMouseOver.current = true)}
-                onMouseLeave={() => (isMouseOver.current = false)}
-            >
-                {/* <div id={id} className="pdfViewer" /> */}
-                <div id={id} className="pdfViewer">
-                    {/* {children} */}
-                </div>
+        <PdfDocumentContext.Provider value={{ renderPageIndexes, pdfDocument, scale: currentScale, renderText }}>
+            <div ref={divRef} id={`container_${id}`} className={"pdfrenderer_container"}>
+                {renderPdfViewer()}
             </div>
         </PdfDocumentContext.Provider>
+    );
+}
+
+type PdfDocumentZoomProps = {
+    containerRef: MutableRefObject<HTMLDivElement>;
+    onScaleUpdated: (scale: number) => void;
+    scrollElement: Element;
+};
+
+function PdfDocumentZoom({
+    children,
+    containerRef,
+    onScaleUpdated,
+    scrollElement,
+}: PropsWithChildren<PdfDocumentZoomProps>) {
+    const positionY = useRef(0);
+    const onMouseWheelHandlerThrottler = useRef(TimerUtils.throttleByAnimation(onMouseWheelHandler));
+    useTransformEffect(({ state, instance }) => {
+        containerRef.current?.style.setProperty("--scale-factor", state.scale.toString());
+        onScaleUpdated(state.scale);
+        positionY.current = state.positionY;
+    });
+
+    function onMouseWheelHandler(e: React.MouseEvent) {
+        if (!containerRef.current) return;
+        if (e.ctrlKey || e.shiftKey || e.altKey) return;
+        const transformContainer = document.querySelector(".pdfViewer-transform") as HTMLDivElement;
+        const currentScrollHeight = containerRef.current.firstElementChild.scrollTop;
+        const transformRect = transformContainer.getBoundingClientRect();
+        if (currentScrollHeight == 0 && transformRect.y != 0) {
+            if (transformContainer.style.translate) {
+                const translationY = parseInt(
+                    transformContainer.style.translate?.split(" ")[1]?.replace("px", "") ?? "0"
+                );
+
+                //@ts-ignore
+                const delta = e.deltaY;
+                const newValue = Math.max(-(translationY + Math.abs(delta)), positionY.current);
+                transformContainer.style.translate = `0 ${-newValue}px`;
+            } else {
+                transformContainer.style.translate = `0 ${transformRect.y + 10}px`;
+            }
+        }
+    }
+
+    useEffect(() => {
+        scrollElement?.addEventListener("wheel", (e) => onMouseWheelHandlerThrottler.current(e));
+    }, []);
+    return (
+        <TransformComponent contentClass="pdfViewer-content" wrapperClass="pdfViewer-wrapper">
+            {children}
+        </TransformComponent>
     );
 }

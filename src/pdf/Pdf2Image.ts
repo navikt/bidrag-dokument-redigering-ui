@@ -29,7 +29,7 @@ async function doc_render(pdfDocument: PDFDocumentProxy, pageNo) {
     }
     const page = await pdfDocument.getPage(pageNo);
     // Create a viewport at 100% scale
-    const viewport = page.getViewport({ scale: 2 });
+    const viewport = page.getViewport({ scale: 3 });
     const canvas = document.createElement("canvas");
     canvas.height = viewport.height;
     canvas.width = viewport.width;

@@ -1,10 +1,14 @@
 import "../index.css";
 
+import { MDXProvider } from "@mdx-js/react";
+import { BodyShort, Heading } from "@navikt/ds-react";
 import React, { PropsWithChildren } from "react";
 import { QueryClientProvider } from "react-query";
 import { QueryClient } from "react-query";
 
-// await initMock();
+import { initMock } from "../mock";
+const mdxComponents = { Heading, BodyShort };
+await initMock();
 const initReactQuery = () =>
     new QueryClient({
         defaultOptions: {
@@ -24,8 +28,10 @@ interface PageWrapperProps {
 }
 export default function PageWrapper({ children, name }: PropsWithChildren<PageWrapperProps>) {
     return (
-        <QueryClientProvider client={queryClient}>
-            <div className={name}>{children}</div>
-        </QueryClientProvider>
+        <MDXProvider components={mdxComponents}>
+            <QueryClientProvider client={queryClient}>
+                <div className={name}>{children}</div>
+            </QueryClientProvider>
+        </MDXProvider>
     );
 }

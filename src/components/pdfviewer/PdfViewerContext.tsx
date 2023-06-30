@@ -1,11 +1,13 @@
-import { PropsWithChildren, useContext, useRef, useState } from "react";
+import { MutableRefObject, PropsWithChildren, useContext, useRef, useState } from "react";
 import React from "react";
+import { useControls, useTransformContext, useTransformEffect } from "react-zoom-pan-pinch";
 
-import { DecreaseScaleFn, IncreaseScaleFn } from "../pdfcore/PdfDocument";
+import { PdfDocumentRef } from "../pdfcore/PdfDocument";
 import { PdfDocumentType } from "../utils/types";
 
 export interface PdfViewerContextProps {
     file: PdfDocumentType;
+    dokumentRef: MutableRefObject<PdfDocumentRef>;
     pages: number[];
     currentPage: number;
     scale: number;
@@ -13,17 +15,10 @@ export interface PdfViewerContextProps {
     pagesCount: number;
 
     onPageChange: (pagenumber: number) => void;
-    onDocumentLoaded?: (
-        pagesCount: number,
-        pages: number[],
-        increaseScale: IncreaseScaleFn,
-        decreaseScale: DecreaseScaleFn
-    ) => void;
-    updateScale: (newScale: number) => void;
+    onDocumentLoaded?: (pagesCount: number, pages: number[]) => void;
     zoom: {
         onZoomIn: (ticks?: number, scaleFactor?: number) => void;
         onZoomOut: (ticks?: number, scaleFactor?: number) => void;
-        onZoomChange: (scale: number) => void;
         resetZoom: () => void;
         zoomToFit: () => void;
     };
@@ -55,40 +50,51 @@ export default function PdfViewerContextProvider({
     const [pagesCount, setPagesCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [scale, setScale] = useState(1);
-    const increaseScaleFn = useRef<IncreaseScaleFn>();
-    const decreaseScaleFn = useRef<DecreaseScaleFn>();
+    const dokumentRef = useRef<PdfDocumentRef>();
+    const { zoomIn, zoomOut, resetTransform, centerView, zoomToElement } = useControls();
+    const instance = useTransformContext();
+    useTransformEffect((ref) => {
+        setScale(ref.state.scale);
+        // instance.wrapperComponent.style.height = "fit-content";
+    });
+
     function onZoomIn(ticks?: number, scaleFactor?: number) {
-        increaseScaleFn.current(ticks, scaleFactor);
+        zoomIn(undefined, undefined, "easeInOutCubic");
+        // instance.wrapperComponent.style.height = "100%";
+        // zoomToElement(document.getElementById(`droppable_page_${currentPage}`), scale + 0.1);
+        // setTransform(
+        //     instance.transformState.positionX,
+        //     instance.transformState.positionY,
+        //     instance.transformState.scale + 0.1
+        // );
         // setScale((prev) => prev + 0.2);
     }
 
     function onZoomOut(ticks?: number, scaleFactor?: number) {
-        decreaseScaleFn.current(ticks, scaleFactor);
+        // instance.wrapperComponent.style.height = "100%";
+        zoomOut();
         // setScale((prev) => Math.max(0, prev - 0.2));
     }
 
     function resetZoom() {
-        setScale(1.4);
+        resetTransform();
+        // console.log(document.getElementById("droppable_page_3"));
+        // zoomToElement(document.getElementById("droppable_page_3"), 2);
     }
     function zoomToFit() {
-        setScale(3);
+        centerView();
     }
-    function onDocumentLoaded(
-        pagesCount: number,
-        pages: number[],
-        increaseScale: IncreaseScaleFn,
-        decreaseScale: DecreaseScaleFn
-    ) {
+    function onDocumentLoaded(pagesCount: number, pages: number[]) {
         setPages(pages);
         setPagesCount(pagesCount);
         _onDocumentLoaded?.(pagesCount, pages);
-        increaseScaleFn.current = increaseScale;
-        decreaseScaleFn.current = decreaseScale;
     }
     function onPageChange(pagenumber: number) {
         setCurrentPage(pagenumber);
         _onPageChange?.(pagenumber);
+        dokumentRef.current.scrollToPage(pagenumber);
     }
+
     return (
         <PdfViewerContext.Provider
             value={{
@@ -99,12 +105,11 @@ export default function PdfViewerContextProvider({
                 onDocumentLoaded,
                 onPageChange,
                 scale,
-                updateScale: setScale,
+                dokumentRef,
                 zoom: {
                     onZoomIn,
                     onZoomOut,
                     resetZoom,
-                    onZoomChange: setScale,
                     zoomToFit,
                 },
             }}

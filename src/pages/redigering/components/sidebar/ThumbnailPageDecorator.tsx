@@ -2,34 +2,23 @@ import "./ThumbnailPageDecorator.less";
 
 import { AddCircleFilled, DeleteFilled } from "@navikt/ds-icons";
 import React, { CSSProperties, PropsWithChildren, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { KeepScale } from "react-zoom-pan-pinch";
 
 import { useMaskingContainer } from "../../../../components/masking/MaskingContainer";
 import MaskingItem from "../../../../components/masking/MaskingItem";
-import { renderPageChildrenFn } from "../../../../components/pdfviewer/BasePdfViewer";
+import PdfPage from "../../../../components/pdfcore/PdfPage";
+import { usePdfViewerContext } from "../../../../components/pdfviewer/PdfViewerContext";
 import { usePdfEditorContext } from "../PdfEditorContext";
 
 interface ThumbnailPageDecoratorProps extends PropsWithChildren<unknown> {
     pageNumber: number;
-
-    renderPageFn: renderPageChildrenFn;
 }
 
-export default function ThumbnailPageDecorator({ renderPageFn, pageNumber }: ThumbnailPageDecoratorProps) {
-    const { items } = useMaskingContainer();
+export default function ThumbnailPageDecorator({ pageNumber }: ThumbnailPageDecoratorProps) {
     const decoratorRef = useRef<HTMLDivElement>();
-    const [pageRef, setPageRef] = useState<Element>(null);
     const { removedPages, toggleDeletedPage, mode } = usePdfEditorContext();
+    const { currentPage, onPageChange } = usePdfViewerContext();
     const isDeleted = removedPages.includes(pageNumber);
     const [mouseOver, setMouseOver] = useState(false);
-    const id = `thumbnail_page_${pageNumber}`;
-    function updatePageRef() {
-        const pageElement = decoratorRef.current?.querySelector(".page");
-        if (pageElement.querySelector(".loadingIcon") == null) {
-            setPageRef(pageElement);
-        }
-    }
     const isEnabled = mode == "remove_pages_only" || mode == "edit";
     return (
         <div
@@ -38,41 +27,56 @@ export default function ThumbnailPageDecorator({ renderPageFn, pageNumber }: Thu
             ref={decoratorRef}
             className={`thumbnail_decorator ${isDeleted ? "deleted" : ""}`}
         >
-            {renderPageFn(
-                () => updatePageRef(),
-                () => setPageRef(null)
-            )}
-            {pageRef &&
-                createPortal(
-                    <>
-                        {items
-                            .filter((item) => item.pageNumber == pageNumber)
-                            .map((item) => (
-                                <MaskingItem
-                                    disabled
-                                    {...item}
-                                    id={id + "_" + item.id}
-                                    scale={0.3}
-                                    key={id + "_" + item.id}
-                                />
-                            ))}
-                    </>,
-                    pageRef,
-                    id + "_masking"
-                )}
+            <PageContainer
+                pageNumber={pageNumber}
+                currentPage={currentPage}
+                index={pageNumber - 1}
+                key={"pagesection_" + (pageNumber - 1)}
+                onPageClick={onPageChange}
+            />
 
             {isEnabled && (
-                <KeepScale>
-                    <ThumbnailPageToolbar
-                        hidden={!mouseOver}
-                        onToggleDelete={() => toggleDeletedPage(pageNumber)}
-                        isDeleted={isDeleted}
-                    />
-                </KeepScale>
+                <ThumbnailPageToolbar
+                    hidden={!mouseOver}
+                    onToggleDelete={() => toggleDeletedPage(pageNumber)}
+                    isDeleted={isDeleted}
+                />
             )}
         </div>
     );
 }
+
+interface PdfPageContainerProps {
+    pageNumber: number;
+    currentPage: number;
+    onPageClick: (pageNumber: number) => void;
+    index: number;
+}
+const PageContainer = ({ pageNumber, onPageClick, index, currentPage }: PdfPageContainerProps) => {
+    const { items } = useMaskingContainer();
+    const id = `thumbnail_page_${pageNumber}`;
+    return (
+        <div
+            onClick={() => onPageClick(pageNumber)}
+            className={`thumbnail_page_container ${currentPage == pageNumber ? "infocus" : ""}`}
+        >
+            <PdfPage pageNumber={pageNumber} index={index} key={"tpage_index_" + index}>
+                {items
+                    .filter((item) => item.pageNumber == pageNumber)
+                    .map((item, index) => (
+                        <MaskingItem
+                            disabled
+                            {...item}
+                            id={id + "_" + item.id}
+                            scale={0.3}
+                            key={id + "_" + item.id + index}
+                        />
+                    ))}
+            </PdfPage>
+            <div className={"pagenumber"}>{pageNumber}</div>
+        </div>
+    );
+};
 
 interface ThumbnailPageToolbarProps {
     isDeleted: boolean;

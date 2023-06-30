@@ -1,0 +1,38 @@
+.redigering-info-knapp {
+    position: absolute;
+    left: 95%;
+    bottom: 35px;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background-color: white;
+}
+
+.redigering-info-content {
+    width: max-content;
+}
+
+.redigering-info-content .keyboard-shortcut-container {}
+
+.redigering-info-content kbd {
+    align-items: center;
+    background-color: var(--a-surface-info-subtle);
+    border-radius: 0.3rem;
+    box-sizing: border-box;
+    display: flex;
+    font-family: inherit;
+    font-size: .625rem;
+    line-height: 1;
+    padding: .5rem;
+    word-break: keep-all;
+}
+
+.keyboard-shortcut-line {
+    align-items: center;
+    border-bottom: 1px solid black;
+    -webkit-column-gap: .5rem;
+    column-gap: 2rem;
+    display: flex;
+    font-size: .875rem;
+    justify-content: space-between;
+    padding: .375rem .75rem;
+}

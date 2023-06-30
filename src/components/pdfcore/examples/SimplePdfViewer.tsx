@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 
 import { PdfDocumentType } from "../.././basepdfviewer/types";
-import PdfDocument, { PdfDocumentRef } from "../PdfDocument";
+import PdfDocument, { PdfDocumentRef } from "../PdfDocument2";
 import PdfPage from "../PdfPage";
 
 interface BasePdfRendererProps {

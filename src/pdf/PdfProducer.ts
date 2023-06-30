@@ -1,10 +1,10 @@
 import { FileUtils } from "@navikt/bidrag-ui-common";
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, PDFPage, rgb } from "pdf-lib";
 import { PDFFont } from "pdf-lib";
 import { RotationTypes } from "pdf-lib";
 import { StandardFonts } from "pdf-lib/es";
 
-import { IMaskingItemProps } from "../components/masking/MaskingItem";
+import { ICoordinates, IMaskingItemProps } from "../components/masking/MaskingItem";
 import { PdfDocumentType } from "../components/utils/types";
 import { EditDocumentMetadata } from "../types/EditorTypes";
 import pdf2Image from "./Pdf2Image";
@@ -105,33 +105,105 @@ export class PdfProducer {
         items
             .sort((a, b) => (a.pageNumber > b.pageNumber ? 1 : -1))
             .forEach((item) => {
+                console.log(item);
                 const page = this.pdfDocument.getPage(item.pageNumber - 1);
                 const relativeScale = 1;
+                const itemCoordinates = item.coordinates;
+                const shortestSide = Math.min(itemCoordinates.height, itemCoordinates.width);
+                const coordinatesAdjusted = this.getCoordinatesAfterRotation(page, itemCoordinates);
                 const coordinates = {
-                    x: item.coordinates.x * relativeScale,
-                    y: (-item.coordinates.y - item.coordinates.height) * relativeScale,
+                    x: coordinatesAdjusted.x,
+                    y: coordinatesAdjusted.y,
                     width: item.coordinates.width * relativeScale,
                     height: item.coordinates.height * relativeScale,
                     color: rgb(1, 1, 1),
                     borderColor: rgb(0, 0, 0),
-                    borderWidth: 1,
+                    borderWidth: shortestSide < 200 ? 0.5 : 1,
                     opacity: 1,
                 };
                 page.drawRectangle(coordinates);
                 const text = "Skjermet";
-                const fontSize = Math.max(text.length, (coordinates.height / coordinates.width) * 10);
+                const shouldRotateText = itemCoordinates.height > itemCoordinates.width;
+                const fontSize = this.getFontsize(coordinates.width, coordinates.height);
+                const rotation = page.getRotation().angle;
                 page.drawText(text, {
-                    x: coordinates.x + coordinates.width / 2 - text.length * 2,
-                    y: coordinates.y + coordinates.height / 2.5,
+                    x: coordinatesAdjusted.x + coordinates.width / 2 - (shouldRotateText ? 0 : fontSize * 2),
+                    y: coordinatesAdjusted.y + coordinates.height / 2.5,
                     size: fontSize,
                     opacity: 0.5,
                     rotate: {
                         type: RotationTypes.Degrees,
-                        angle: -page.getRotation().angle,
+                        angle: -page.getRotation().angle + (shouldRotateText ? 90 : 0),
                     },
                     color: rgb(0.1, 0.1, 0.1),
                 });
             });
+    }
+
+    private getCoordinatesAfterRotation(page: PDFPage, itemCoordinates: ICoordinates) {
+        const pageRotation = page.getRotation().angle;
+        const pageWidth = page.getWidth();
+        const pageHeight = page.getHeight();
+        const rotationRads = (pageRotation * Math.PI) / 180;
+
+        //These coords are now from bottom/left
+        const coordsFromBottomLeft = {
+            x: itemCoordinates.x,
+            y: itemCoordinates.y,
+        };
+        if (pageRotation === 90 || pageRotation === 270) {
+            coordsFromBottomLeft.y = itemCoordinates.width - itemCoordinates.y;
+        } else {
+            coordsFromBottomLeft.y = -itemCoordinates.height - itemCoordinates.y;
+        }
+
+        let drawX = null;
+        let drawY = null;
+        if (pageRotation === 90) {
+            drawX =
+                coordsFromBottomLeft.x * Math.cos(rotationRads) -
+                coordsFromBottomLeft.y * Math.sin(rotationRads) +
+                pageWidth;
+            drawY = coordsFromBottomLeft.x * Math.sin(rotationRads) + coordsFromBottomLeft.y * Math.cos(rotationRads);
+        } else if (pageRotation === 180) {
+            drawX = -coordsFromBottomLeft.x + pageWidth - itemCoordinates.width;
+            drawY = -coordsFromBottomLeft.y + pageHeight - itemCoordinates.height;
+        } else if (pageRotation === 270) {
+            drawX = coordsFromBottomLeft.x * Math.cos(rotationRads) - coordsFromBottomLeft.y * Math.sin(rotationRads);
+            drawY =
+                coordsFromBottomLeft.x * Math.sin(rotationRads) +
+                coordsFromBottomLeft.y * Math.cos(rotationRads) +
+                pageHeight;
+        } else {
+            //no rotation
+            drawX = coordsFromBottomLeft.x;
+            drawY = coordsFromBottomLeft.y;
+        }
+
+        console.log(pageRotation, drawX, drawY, itemCoordinates, coordsFromBottomLeft);
+        // drawX = coordsFromBottomLeft.x;
+        // drawY = coordsFromBottomLeft.y;
+        return {
+            x: drawX,
+            y: drawY,
+        };
+    }
+    private getFontsize(width: number, height: number) {
+        const longestSide = Math.max(height, width);
+        if (longestSide < 30) {
+            return 2;
+        } else if (longestSide < 50) {
+            return 3;
+        } else if (longestSide < 80) {
+            return 4;
+        } else if (longestSide < 150) {
+            return 8;
+        } else if (longestSide < 200) {
+            return 12;
+        } else if (longestSide < 300) {
+            return 14;
+        }
+        return 16;
     }
 
     removePages(removePages: number[]): PdfProducer {
