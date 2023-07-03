@@ -82,7 +82,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
                 activationKeys: ["Control"],
             }}
             panning={{
-                activationKeys: ["Shift", "Space"],
+                activationKeys: ["Shift", " "],
             }}
             onTransformed={(props) => {
                 props.instance.contentComponent.style.setProperty("--scale-factor", props.state.scale.toString());

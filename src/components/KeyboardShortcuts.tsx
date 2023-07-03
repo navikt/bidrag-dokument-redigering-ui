@@ -19,7 +19,6 @@ export default function KeyboardShortcuts() {
     }, [addNewElementMode]);
 
     useWindowListener("keydown", (e: KeyboardEvent) => {
-        console.log("Key pressed", e.key, e);
         onRedoUndoEvent(e);
         keyDownHandler(e);
         if (!activeId) return;
