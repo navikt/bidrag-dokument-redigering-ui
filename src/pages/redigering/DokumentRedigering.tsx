@@ -2,7 +2,7 @@ import "./DokumentRedigering.css";
 
 import { useDroppable } from "@dnd-kit/core";
 import { Loader } from "@navikt/ds-react";
-import React, { CSSProperties, useEffect } from "react";
+import React, { CSSProperties } from "react";
 import { useState } from "react";
 import { useRef } from "react";
 import { ReactZoomPanPinchRef, TransformWrapper } from "react-zoom-pan-pinch";
@@ -27,24 +27,25 @@ interface DokumentRedigeringContainerProps {
 export default function DokumentRedigering({ documentFile }: DokumentRedigeringContainerProps) {
     const [isLoading, setIsLoading] = useState(true);
     const { hideSidebar } = usePdfEditorContext();
+    const { } = useMaskingContainer();
     const [pages, setPages] = useState([]);
     const { isOver, setNodeRef } = useDroppable({
         id: "document_editor",
     });
     const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null);
-    useEffect(() => {
-        window.addEventListener("wheel", handleMouseWheelEvent, {
-            passive: false,
-        });
-        return () => window?.removeEventListener("wheel", handleMouseWheelEvent);
-    }, []);
+    // useEffect(() => {
+    //     window.addEventListener("wheel", handleMouseWheelEvent, {
+    //         passive: true,
+    //     });
+    //     return () => window?.removeEventListener("wheel", handleMouseWheelEvent);
+    // }, []);
 
-    useEffect(() => {
-        window.addEventListener("scroll", handleScrollWheelEvent, {
-            passive: false,
-        });
-        return () => window?.removeEventListener("scroll", handleScrollWheelEvent);
-    }, []);
+    // useEffect(() => {
+    //     window.addEventListener("scroll", handleScrollWheelEvent, {
+    //         passive: true,
+    //     });
+    //     return () => window?.removeEventListener("scroll", handleScrollWheelEvent);
+    // }, []);
 
     function handleScrollWheelEvent(evt) {
         const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
@@ -78,16 +79,16 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
                 step: 0.8,
             }}
             wheel={{
-                step: 0.5,
+                step: 1,
                 activationKeys: ["Control"],
             }}
             panning={{
-                activationKeys: ["Shift", " "],
+                activationKeys: ["Shift"],
             }}
             onTransformed={(props) => {
                 props.instance.contentComponent.style.setProperty("--scale-factor", props.state.scale.toString());
                 const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
-                transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
+                // transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
             }}
         >
             <PdfViewerContextProvider

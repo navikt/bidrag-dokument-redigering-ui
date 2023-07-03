@@ -16,7 +16,7 @@ export default function useListener<K extends keyof WindowEventMap>(
     ...deps: any
 ) {
     useEffect(() => {
-        element.addEventListener(type, callback);
+        element.addEventListener(type, callback, { passive: true });
         return () => element.removeEventListener(type, callback);
     }, [deps]);
 }

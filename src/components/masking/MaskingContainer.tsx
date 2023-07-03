@@ -13,7 +13,6 @@ import { IMaskingItemProps } from "./MaskingItem";
 import MaskingUtils from "./MaskinUtils";
 export interface MaskingContainerContextProps {
     enabled?: boolean;
-    addNewElementMode?: boolean;
     items: IMaskingItemProps[];
     initItems: (items: IMaskingItemProps[]) => void;
     isAddNewElementMode: boolean;
@@ -152,13 +151,6 @@ function MaskingContainer({
         setMaskingItems((items) => [
             ...items.map((item) => {
                 if (item.id == itemId) {
-                    console.log(
-                        "onDragEnd",
-                        scale,
-                        event.delta,
-                        item.coordinates,
-                        MaskingUtils.getDragEndCoordinates(event, item.coordinates, scale)
-                    );
                     return {
                         ...item,
                         parentId: item.parentId,
@@ -203,7 +195,6 @@ function MaskingContainer({
                         items: maskingItems,
                         isAddNewElementMode: addNewElementMode,
                         activeId,
-                        addNewElementMode,
                         enabled,
                         initItems: setMaskingItems,
                         initAddItem,

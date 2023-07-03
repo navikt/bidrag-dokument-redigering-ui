@@ -5,18 +5,18 @@ import { useWindowListener } from "./hooks/useListener";
 import { useMaskingContainer } from "./masking/MaskingContainer";
 
 export default function KeyboardShortcuts() {
-    const { activeId, removeItem, duplicateItem, initAddItem, exitAddItemMode, addNewElementMode } =
+    const { activeId, removeItem, duplicateItem, initAddItem, exitAddItemMode, isAddNewElementMode } =
         useMaskingContainer();
 
     const { onUndo, onRedo } = usePdfEditorContext();
 
     useEffect(() => {
         document.oncontextmenu = (e) => {
-            if (addNewElementMode) {
+            if (isAddNewElementMode) {
                 e.preventDefault();
             }
         };
-    }, [addNewElementMode]);
+    }, [isAddNewElementMode]);
 
     useWindowListener("keydown", (e: KeyboardEvent) => {
         onRedoUndoEvent(e);
