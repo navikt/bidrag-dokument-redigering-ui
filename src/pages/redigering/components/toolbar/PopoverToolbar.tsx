@@ -1,7 +1,7 @@
 import "./PopoverToolbar.css";
 
 import { EraserIcon, MinusIcon } from "@navikt/aksel-icons";
-import { ShrinkIcon } from "@navikt/aksel-icons";
+import { ExpandIcon, ShrinkIcon } from "@navikt/aksel-icons";
 import { FileXMarkIcon } from "@navikt/aksel-icons";
 import { ArrowRedoIcon, ArrowUndoIcon } from "@navikt/aksel-icons";
 import { Add } from "@navikt/ds-icons";
@@ -14,7 +14,7 @@ import { usePdfEditorContext } from "../PdfEditorContext";
 
 export default function PopoverToolbar() {
     const { scale, zoom, pagesCount, currentPage } = usePdfViewerContext();
-    const { resetZoom, onZoomOut, onZoomIn } = zoom;
+    const { resetZoom, onZoomOut, onZoomIn, zoomToFit } = zoom;
     const { removedPages, mode, dokumentMetadata, toggleDeletedPage } = usePdfEditorContext();
     const { initAddItem } = useMaskingContainer();
 
@@ -31,15 +31,38 @@ export default function PopoverToolbar() {
         <div className={"popover-toolbar"}>
             <div className={"buttons_row"}>
                 <div className={"zoom_buttons flex flex-row gap-3 text-white"}>
-                    <Button onClick={resetZoom} size={"xsmall"} variant={"tertiary-neutral"} icon={<ShrinkIcon />} />
+                    {scale > 1 ? (
+                        <Button
+                            onClick={resetZoom}
+                            size={"xsmall"}
+                            variant={"tertiary-neutral"}
+                            icon={<ShrinkIcon />}
+                            title="Tilpass til siden"
+                        />
+                    ) : (
+                        <Button
+                            onClick={zoomToFit}
+                            size={"xsmall"}
+                            variant={"tertiary-neutral"}
+                            icon={<ExpandIcon />}
+                            title="Tilpass til bredde"
+                        />
+                    )}
                     <Button
                         onClick={() => onZoomOut()}
                         size={"xsmall"}
                         variant={"tertiary-neutral"}
                         icon={<MinusIcon />}
+                        title="Zoom ut"
                     />
                     <div>{Math.round(scale * 100)}%</div>
-                    <Button onClick={() => onZoomIn()} size={"xsmall"} variant={"tertiary-neutral"} icon={<Add />} />
+                    <Button
+                        onClick={() => onZoomIn()}
+                        size={"xsmall"}
+                        variant={"tertiary-neutral"}
+                        icon={<Add />}
+                        title="Zoom inn"
+                    />
                 </div>
                 <div className={"divider"}></div>
                 <div style={{ marginLeft: "10px", marginRight: "10px" }} className="flex flex-row gap-2 text-white">
@@ -54,6 +77,7 @@ export default function PopoverToolbar() {
                             variant={"tertiary-neutral"}
                             icon={<EraserIcon />}
                             iconPosition={"left"}
+                            title="Ny maskering"
                         >
                             Masker
                         </Button>
@@ -66,6 +90,7 @@ export default function PopoverToolbar() {
                             variant={"tertiary-neutral"}
                             icon={<FileXMarkIcon />}
                             iconPosition={"left"}
+                            title="Fjern side"
                         >
                             Fjern side
                         </Button>
@@ -85,6 +110,7 @@ function UndoRedoButtons() {
             <Button
                 onClick={onUndo}
                 size={"small"}
+                title="Angre"
                 disabled={!history.canUndo}
                 variant={"tertiary-neutral"}
                 icon={<ArrowUndoIcon />}
@@ -94,6 +120,7 @@ function UndoRedoButtons() {
                 onClick={onRedo}
                 disabled={!history.canRedo}
                 size={"small"}
+                title="Gjør om"
                 variant={"tertiary-neutral"}
                 icon={<ArrowRedoIcon />}
                 iconPosition={"left"}

@@ -411,10 +411,10 @@
     react-day-picker "8.3.4"
     react-modal "3.15.1"
 
-"@navikt/ds-tailwind@4.4.1":
-  version "4.4.1"
-  resolved "https://npm.pkg.github.com/download/@navikt/ds-tailwind/4.4.1/5da97838979dc88dac7e42ea53bed9297a007378#5da97838979dc88dac7e42ea53bed9297a007378"
-  integrity sha512-Dw2+86CgNPHxyTRwoxz3UflNyj6WmDx238PzSLNruPp8RuZL0AbEePYgUnjnK1MEE2ve0uYnTPvnxO+53JxpyQ==
+"@navikt/ds-tailwind@^4.5.0":
+  version "4.5.0"
+  resolved "https://npm.pkg.github.com/download/@navikt/ds-tailwind/4.5.0/a1a370a33ab14ee5df759aa18433597cb6909a57#a1a370a33ab14ee5df759aa18433597cb6909a57"
+  integrity sha512-V9WpqgNqnvP6zGVZX4TDVhPlnhHslBXKA14QKR7YBOEBYs1STjE79oLHwHdjpnHpI/6KhpWtnR6iN73gXJRf3w==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
@@ -6042,7 +6042,7 @@ pkg-dir@^4.2.0:
   dependencies:
     find-up "^4.0.0"
 
-postcss-import@^15.1.0:
+postcss-import@15.1.0, postcss-import@^15.1.0:
   version "15.1.0"
   resolved "https://registry.yarnpkg.com/postcss-import/-/postcss-import-15.1.0.tgz#41c64ed8cc0e23735a9698b3249ffdbf704adc70"
   integrity sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew==

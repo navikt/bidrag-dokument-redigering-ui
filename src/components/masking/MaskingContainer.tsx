@@ -1,7 +1,5 @@
 import { DndContext, MouseSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { DragEndEvent } from "@dnd-kit/core";
-import { Modifier } from "@dnd-kit/core";
-import { ClientRect } from "@dnd-kit/core";
 import { Active } from "@dnd-kit/core/dist/store";
 import { restrictToParentElement } from "@dnd-kit/modifiers";
 import { Transform } from "@dnd-kit/utilities";
@@ -20,7 +18,7 @@ export interface MaskingContainerContextProps {
     initItems: (items: IMaskingItemProps[]) => void;
     isAddNewElementMode: boolean;
     activeId: string;
-    addItem: (pageNumber: number, scale: number, x: number, y: number) => void;
+    addItem: (pageNumber: number, x: number, y: number) => void;
     initAddItem: () => void;
     exitAddItemMode: (removeDuplicateGhostItem: boolean) => void;
     removeItem: (id: string) => void;
@@ -128,11 +126,10 @@ function MaskingContainer({
             ];
         });
     }
-    function addItem(pageNumber: number, scale: number, x: number, y: number) {
+    function addItem(pageNumber: number, x: number, y: number) {
         if (hasDuplicatedOrGhostItem()) return;
         const parentId = `droppable_page_${pageNumber}`;
 
-        console.log("addItem", x, y);
         setMaskingItems((items) => [
             ...items,
             {
@@ -174,36 +171,7 @@ function MaskingContainer({
             }),
         ]);
     }
-    const restrictToParentElemen2t: Modifier = ({ containerNodeRect, draggingNodeRect, transform, over, active }) => {
-        if (!draggingNodeRect || !active) {
-            return transform;
-        }
 
-        const container = document.getElementById(active.id as string).parentElement.getBoundingClientRect();
-        console.log("HERER", draggingNodeRect, containerNodeRect, container, active);
-
-        return restrictToBoundingRect(transform, draggingNodeRect, container);
-    };
-    function restrictToBoundingRect(transform: Transform, rect: ClientRect, boundingRect: ClientRect): Transform {
-        const value = {
-            ...transform,
-        };
-
-        if (rect.top + transform.y <= boundingRect.top) {
-            value.y = boundingRect.top - rect.top;
-        } else if (rect.bottom + transform.y >= boundingRect.top + boundingRect.height) {
-            value.y = boundingRect.top + boundingRect.height - rect.bottom;
-        }
-
-        if (rect.left + transform.x <= boundingRect.left) {
-            value.x = boundingRect.left - rect.left;
-        } else if (rect.right + transform.x >= boundingRect.left + boundingRect.width) {
-            value.x = boundingRect.left + boundingRect.width - rect.right;
-        }
-
-        console.log(boundingRect);
-        return value;
-    }
     function disableDrag(args: { active: Active | null; transform: Transform }) {
         const { transform } = args;
 

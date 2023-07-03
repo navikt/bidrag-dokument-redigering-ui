@@ -5,10 +5,6 @@ export interface ICoordinates {
     height: number;
 }
 
-interface IResizeDelta {
-    width: number;
-    height: number;
-}
 export interface IMaskingItemProps {
     id: string;
     state?: "GHOSTED" | "DUPLICATED" | "ITEM";

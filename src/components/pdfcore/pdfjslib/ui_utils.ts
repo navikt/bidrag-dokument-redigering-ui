@@ -18,23 +18,12 @@ const DEFAULT_SCALE = 1.0;
 const DEFAULT_SCALE_DELTA = 1.1;
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 10.0;
-const UNKNOWN_SCALE = 0;
-const MAX_AUTO_SCALE = 1.25;
-const SCROLLBAR_PADDING = 40;
-const VERTICAL_PADDING = 5;
 
 const RenderingStates = {
     INITIAL: 0,
     RUNNING: 1,
     PAUSED: 2,
     FINISHED: 3,
-};
-
-const PresentationModeState = {
-    UNKNOWN: 0,
-    NORMAL: 1,
-    CHANGING: 2,
-    FULLSCREEN: 3,
 };
 
 const SidebarView = {
@@ -46,68 +35,10 @@ const SidebarView = {
     LAYERS: 4,
 };
 
-const RendererType = {
-    CANVAS: "canvas",
-    SVG: "svg",
-};
-
 const TextLayerMode = {
     DISABLE: 0,
     ENABLE: 1,
 };
-
-const ScrollMode = {
-    UNKNOWN: -1,
-    VERTICAL: 0, // Default value.
-    HORIZONTAL: 1,
-    WRAPPED: 2,
-    PAGE: 3,
-};
-
-const SpreadMode = {
-    UNKNOWN: -1,
-    NONE: 0, // Default value.
-    ODD: 1,
-    EVEN: 2,
-};
-
-const CursorTool = {
-    SELECT: 0, // The default value.
-    HAND: 1,
-    ZOOM: 2,
-};
-
-// Used by `PDFViewerApplication`, and by the API unit-tests.
-const AutoPrintRegExp = /\bprint\s*\(/;
-
-/**
- * Scale factors for the canvas, necessary with HiDPI displays.
- */
-class OutputScale {
-    sx: number;
-    sy: number;
-
-    constructor() {
-        const pixelRatio = window.devicePixelRatio || 1;
-
-        /**
-         * @type {number} Horizontal scale.
-         */
-        this.sx = pixelRatio;
-
-        /**
-         * @type {number} Vertical scale.
-         */
-        this.sy = pixelRatio;
-    }
-
-    /**
-     * @type {boolean} Returns `true` when scaling is required, `false` otherwise.
-     */
-    get scaled() {
-        return this.sx !== 1 || this.sy !== 1;
-    }
-}
 
 /**
  * Scrolls specified element into view of its parent.
@@ -157,48 +88,6 @@ function scrollIntoView(element: HTMLElement, spot: any, scrollMatches = false) 
 }
 
 /**
- * Helper function to start monitoring the scroll event and converting them into
- * PDF.js friendly one: with scroll debounce and scroll direction.
- */
-function watchScroll(viewAreaElement: HTMLElement, callback: (state: any) => void) {
-    const debounceScroll = function (evt: Event) {
-        if (rAF) {
-            return;
-        }
-        // schedule an invocation of scroll for next animation frame.
-        rAF = window.requestAnimationFrame(function viewAreaElementScrolled() {
-            rAF = null;
-
-            const currentX = viewAreaElement.scrollLeft;
-            const lastX = state.lastX;
-            if (currentX !== lastX) {
-                state.right = currentX > lastX;
-            }
-            state.lastX = currentX;
-            const currentY = viewAreaElement.scrollTop;
-            const lastY = state.lastY;
-            if (currentY !== lastY) {
-                state.down = currentY > lastY;
-            }
-            state.lastY = currentY;
-            callback(state);
-        });
-    };
-
-    const state = {
-        right: true,
-        down: true,
-        lastX: viewAreaElement.scrollLeft,
-        lastY: viewAreaElement.scrollTop,
-        _eventHandler: debounceScroll,
-    };
-
-    let rAF: number | null = null;
-    viewAreaElement.addEventListener("scroll", debounceScroll, true);
-    return state;
-}
-
-/**
  * Helper function to parse query string (e.g. ?param1=value&param2=...).
  * @param {string}
  * @returns {Map}
@@ -211,7 +100,11 @@ function parseQueryString(query: string) {
     return params;
 }
 
+//@ts-ignore
+// eslint-disable-next-line no-control-regex
 const NullCharactersRegExp = /\x00/g;
+//@ts-ignore
+// eslint-disable-next-line no-control-regex
 const InvisibleCharactersRegExp = /[\x01-\x1F]/g;
 
 /**
@@ -288,6 +181,8 @@ function approximateFraction(x: number) {
         c = 1,
         d = 1;
     // Limiting search to order 8.
+    //@ts-ignore
+    // eslint-disable-next-line no-constant-condition
     while (true) {
         // Generating next term in sequence (order of q).
         const p = a + c,
@@ -635,14 +530,6 @@ function isValidRotation(angle: number) {
     return Number.isInteger(angle) && angle % 90 === 0;
 }
 
-function isValidScrollMode(mode: any) {
-    return Number.isInteger(mode) && Object.values(ScrollMode).includes(mode) && mode !== ScrollMode.UNKNOWN;
-}
-
-function isValidSpreadMode(mode: any) {
-    return Number.isInteger(mode) && Object.values(SpreadMode).includes(mode) && mode !== SpreadMode.UNKNOWN;
-}
-
 function isPortraitOrientation(size: { width: number; height: number }) {
     return size.width <= size.height;
 }
@@ -755,70 +642,10 @@ function getActiveOrFocusedElement() {
     return curActiveOrFocused;
 }
 
-/**
- * Converts API PageLayout values to the format used by `BaseViewer`.
- * @param {string} mode - The API PageLayout value.
- * @returns {Object}
- */
-function apiPageLayoutToViewerModes(layout: string) {
-    let scrollMode = ScrollMode.VERTICAL,
-        spreadMode = SpreadMode.NONE;
-
-    switch (layout) {
-        case "SinglePage":
-            scrollMode = ScrollMode.PAGE;
-            break;
-        case "OneColumn":
-            break;
-        case "TwoPageLeft":
-            scrollMode = ScrollMode.PAGE;
-        /* falls through */
-        case "TwoColumnLeft":
-            spreadMode = SpreadMode.ODD;
-            break;
-        case "TwoPageRight":
-            scrollMode = ScrollMode.PAGE;
-        /* falls through */
-        case "TwoColumnRight":
-            spreadMode = SpreadMode.EVEN;
-            break;
-    }
-    return { scrollMode, spreadMode };
-}
-
-/**
- * Converts API PageMode values to the format used by `PDFSidebar`.
- * NOTE: There's also a "FullScreen" parameter which is not possible to support,
- *       since the Fullscreen API used in browsers requires that entering
- *       fullscreen mode only occurs as a result of a user-initiated event.
- * @param {string} mode - The API PageMode value.
- * @returns {number} A value from {SidebarView}.
- */
-function apiPageModeToSidebarView(mode: string) {
-    switch (mode) {
-        case "UseNone":
-            return SidebarView.NONE;
-        case "UseThumbs":
-            return SidebarView.THUMBS;
-        case "UseOutlines":
-            return SidebarView.OUTLINE;
-        case "UseAttachments":
-            return SidebarView.ATTACHMENTS;
-        case "UseOC":
-            return SidebarView.LAYERS;
-    }
-    return SidebarView.NONE; // Default value.
-}
-
 export {
     animationStarted,
-    apiPageLayoutToViewerModes,
-    apiPageModeToSidebarView,
-    approximateFraction,
-    AutoPrintRegExp,
     backtrackBeforeAllVisibleElements, // only exported for testing
     binarySearchFirstItem,
-    CursorTool,
     DEFAULT_SCALE,
     DEFAULT_SCALE_DELTA,
     DEFAULT_SCALE_VALUE,
@@ -828,31 +655,19 @@ export {
     getVisibleElements,
     isPortraitOrientation,
     isValidRotation,
-    isValidScrollMode,
-    isValidSpreadMode,
-    MAX_AUTO_SCALE,
     MAX_SCALE,
     MIN_SCALE,
     noContextMenuHandler,
     normalizeWheelEventDelta,
     normalizeWheelEventDirection,
-    OutputScale,
     parseQueryString,
-    PresentationModeState,
     ProgressBar,
     removeNullCharacters,
-    RendererType,
     RenderingStates,
     roundToDivide,
-    SCROLLBAR_PADDING,
     scrollIntoView,
-    ScrollMode,
     SidebarView,
-    SpreadMode,
     TextLayerMode,
-    UNKNOWN_SCALE,
-    VERTICAL_PADDING,
-    watchScroll,
 };
 
 // function listener(event) {

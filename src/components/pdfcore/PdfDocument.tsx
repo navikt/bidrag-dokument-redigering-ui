@@ -1,6 +1,6 @@
-import "./PdfRenderer.less";
 import "./pdf_viewer.css";
 
+import { LoggerService } from "@navikt/bidrag-ui-common";
 import * as pdfjsLib from "pdfjs-dist";
 import { PDFDocumentProxy } from "pdfjs-dist";
 // import pdfdoc from "pdfjs-dist/build/pdf.worker.js";
@@ -133,9 +133,8 @@ export default function PdfDocument({
                 );
             })
             .catch(function (reason) {
-                console.error("Error: " + reason + "asdasd -- " + id, reason);
-            })
-            .finally();
+                LoggerService.error(`Error loading PDF document`, reason);
+            });
     }
 
     function getVisiblePageIndexes(sortByVisibility = true) {
@@ -185,9 +184,22 @@ export default function PdfDocument({
             currentPageNumberRef.current = currentPageNumber;
         }
     }
+    function getScrollParent(node) {
+        const isElement = node instanceof HTMLElement;
+        const overflowY = isElement && window.getComputedStyle(node).overflowY;
+        const isScrollable = overflowY !== "visible" && overflowY !== "hidden";
 
+        if (!node) {
+            return null;
+        } else if (isScrollable && node.scrollHeight >= node.clientHeight) {
+            return node;
+        }
+        console.log(node);
+
+        return getScrollParent(node.parentNode) || document.body;
+    }
     function getScrollElement() {
-        return divRef.current?.querySelector("#pdf_document_pages");
+        return divRef.current?.querySelector(`#${id}`);
     }
     function onScrollHandler() {
         if (!divRef.current) return;
@@ -223,7 +235,7 @@ export default function PdfDocument({
     }
 
     function initEventListeners() {
-        getScrollElement()?.addEventListener("scroll", () => onScrollHandlerThrottler.current());
+        getScrollElement().addEventListener("scroll", () => onScrollHandlerThrottler.current());
         // getScrollElement()?.addEventListener("wheel", (e) => onMouseWheelHandlerThrottler.current(e));
     }
 

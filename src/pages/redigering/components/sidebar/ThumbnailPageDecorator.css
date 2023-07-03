@@ -1,0 +1,59 @@
+.pagesize_minimized .thumbnail_toolbar {
+  visibility: hidden !important;
+}
+
+.thumbnail_toolbar {
+  display: inline-block;
+  position: relative;
+  border-radius: 4px;
+  z-index: 3;
+  bottom: 85px;
+  left: 50%;
+  transform: translateX(-40%);
+}
+
+.thumbnail_toolbar button svg {
+  vertical-align: middle;
+  margin-bottom: 2px;
+  height: 1.2em;
+  width: 1.2em;
+}
+
+
+.thumbnail_decorator.deleted .thumbnail_page_container .pagecontainer .page {
+  opacity: 4% !important;
+}
+
+.thumbnail_decorator.deleted .thumbnail_page_container .pagecontainer .page.infocus {
+  opacity: 10% !important;
+
+}
+
+.thumbnail_decorator .button {
+  width: fit-content;
+  position: absolute;
+  right: 12px;
+  cursor: pointer;
+}
+
+.thumbnail_decorator .button svg {
+  height: 30px;
+  width: 25px;
+  fill-opacity: 100%;
+}
+
+.thumbnail_decorator .delete_button {
+  color: #db5656;
+}
+
+.thumbnail_decorator .delete_button:hover {
+  color: red;
+}
+
+.thumbnail_decorator .add_button {
+  color: green;
+}
+
+.thumbnail_decorator .add_button:hover {
+  color: #7cdb56;
+}

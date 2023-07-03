@@ -26,7 +26,7 @@ module.exports = {
         rules: [
             {
                 test: /\.css$/,
-                include: path.resolve(__dirname, "src"),
+                exclude: /node_modules/,
                 use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
             },
             {
@@ -68,21 +68,6 @@ module.exports = {
                                         refresh: isDevelopment,
                                     },
                                 },
-                            },
-                        },
-                    },
-                ],
-            },
-            {
-                test: /\.less$/i,
-                use: [
-                    MiniCssExtractPlugin.loader,
-                    "css-loader",
-                    {
-                        loader: "less-loader",
-                        options: {
-                            lessOptions: {
-                                paths: [path.resolve(__dirname, "node_modules")],
                             },
                         },
                     },

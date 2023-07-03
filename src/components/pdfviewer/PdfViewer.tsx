@@ -1,11 +1,7 @@
-import React, { MutableRefObject, PropsWithChildren } from "react";
+import React, { PropsWithChildren } from "react";
 
-import PdfDocument, { PdfDocumentRef } from "../pdfcore/PdfDocument";
+import PdfDocument from "../pdfcore/PdfDocument";
 import { usePdfViewerContext } from "./PdfViewerContext";
-interface PdfViewerProps {
-    documentRef: MutableRefObject<PdfDocumentRef>;
-}
-
 export default function PdfViewer({ children }: PropsWithChildren<unknown>) {
     const { onPageChange, onDocumentLoaded, scale, file, dokumentRef } = usePdfViewerContext();
 

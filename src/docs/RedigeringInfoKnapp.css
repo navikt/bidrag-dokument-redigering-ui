@@ -9,18 +9,16 @@
 
 .redigering-info-content {
     width: max-content;
+    font-size: 2rem;
 }
 
-.redigering-info-content .keyboard-shortcut-container {}
 
 .redigering-info-content kbd {
     align-items: center;
     background-color: var(--a-surface-info-subtle);
-    border-radius: 0.3rem;
-    box-sizing: border-box;
+    border-radius: 0.1rem;
     display: flex;
     font-family: inherit;
-    font-size: .625rem;
     line-height: 1;
     padding: .5rem;
     word-break: keep-all;

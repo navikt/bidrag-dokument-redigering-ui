@@ -1,4 +1,4 @@
-import "./ThumbnailPageDecorator.less";
+import "./ThumbnailPageDecorator.css";
 
 import { AddCircleFilled, DeleteFilled } from "@navikt/ds-icons";
 import React, { CSSProperties, PropsWithChildren, useRef, useState } from "react";
@@ -105,7 +105,7 @@ function ThumbnailPageToolbar({ hidden, isDeleted, onToggleDelete }: ThumbnailPa
                 {isDeleted && (
                     <ToolbarButton
                         onClick={onToggleDelete}
-                        style={{ color: "var(--navds-global-color-green-500)" }}
+                        className="text-surface-success hover:text-surface-success-hover"
                         position={"center"}
                     >
                         <AddCircleFilled />

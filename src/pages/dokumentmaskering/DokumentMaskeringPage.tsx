@@ -10,6 +10,7 @@ import React, { useEffect } from "react";
 import { lastDokumenter, RedigeringQueries } from "../../api/queries";
 import LoadingIndicator from "../../components/LoadingIndicator";
 import { uint8ToBase64 } from "../../components/utils/DocumentUtils";
+import environment from "../../environment";
 import { EditDocumentMetadata } from "../../types/EditorTypes";
 import PageWrapper from "../PageWrapper";
 import PdfEditorContextProvider, { PdfEditorMode } from "../redigering/components/PdfEditorContext";
@@ -70,7 +71,7 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
     }
     function broadcastAndCloseWindow(config: EditDocumentMetadata, documentFile?: Uint8Array) {
         broadcast(config, documentFile);
-        // window.close();
+        environment.system.isProduction && window.close();
     }
 
     function saveDocument(config: EditDocumentMetadata) {

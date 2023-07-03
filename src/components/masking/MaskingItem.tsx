@@ -5,7 +5,7 @@ import { TrashIcon } from "@navikt/aksel-icons";
 import { FilesIcon } from "@navikt/aksel-icons";
 import { Button } from "@navikt/ds-react";
 import { Resizable } from "re-resizable";
-import React, { CSSProperties, useState } from "react";
+import React, { CSSProperties, useMemo, useState } from "react";
 import { useEffect } from "react";
 import { useRef } from "react";
 
@@ -66,6 +66,15 @@ export default function MaskingItem(props: IMaskingItemProps) {
         },
     });
 
+    const coordinates = useMemo(
+        () => ({
+            ...currentCoordinates,
+            width: currentCoordinates.width == 0 ? _coordinates.width : currentCoordinates.width,
+            height: currentCoordinates.height == 0 ? _coordinates.height : currentCoordinates.height,
+        }),
+        [currentCoordinates, _coordinates]
+    );
+
     useDndMonitor({
         onDragEnd(event: DragEndEvent) {
             const itemId = event.active.id;
@@ -93,8 +102,6 @@ export default function MaskingItem(props: IMaskingItemProps) {
         setNodeRef(element);
     }, [state, _coordinates]);
 
-    const coordinates = currentCoordinates;
-
     useEffect(() => {
         const element = document.getElementById(id);
         element.style.height = `calc(var(--scale-factor) * ${coordinates.height}px)`;
@@ -110,7 +117,6 @@ export default function MaskingItem(props: IMaskingItemProps) {
     };
 
     const isSelected = activeId == id;
-    const transformDraggable = transform ? { ...transform, scaleX: 1, scaleY: 1 } : undefined;
 
     if (disabled || !isMaskingEnabled) {
         return (

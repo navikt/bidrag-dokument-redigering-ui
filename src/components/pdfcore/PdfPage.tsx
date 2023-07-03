@@ -69,10 +69,12 @@ const PdfPageMemo = React.memo(
         function getStyle() {
             if (pageObject == null) return {};
             const { pageWidth, pageHeight } = pageObject.getViewport().rawDims as any;
-
+            const rotation = pageObject.getViewport().rotation;
+            const width = rotation == 90 || rotation == 270 ? pageHeight : pageWidth;
+            const height = rotation == 90 || rotation == 270 ? pageWidth : pageHeight;
             return {
-                "--page-width": `${pageWidth}px`,
-                "--page-height": `${pageHeight}px`,
+                "--page-width": `${width}px`,
+                "--page-height": `${height}px`,
                 width: "var(--page-width)",
                 height: "var(--page-height)",
             };
@@ -139,7 +141,7 @@ function PDFCanvas({ pdfPage, scale, pageNumber, children }: PropsWithChildren<P
         canvasElement.style.transform = `scale(${1 / scale})`;
     }
     function drawPage(scale: number) {
-        if (pdfPage == null || !scale) return;
+        if (pdfPage == null || !scale || !canvasRef.current) return;
         if (pageRenderTask.current != null) {
             pageRenderNextScale.current = scale;
             return;
@@ -157,6 +159,7 @@ function PDFCanvas({ pdfPage, scale, pageNumber, children }: PropsWithChildren<P
         pageRenderTask.current = pdfPage.render(renderContext);
         return pageRenderTask.current.promise
             .then(() => {
+                if (!canvasRef.current) return;
                 canvasRef.current.querySelector("canvas").replaceWith(canvas);
                 fitCanvasToPage(scale);
             })

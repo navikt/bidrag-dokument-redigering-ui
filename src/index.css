@@ -1,7 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-.pdfrenderer_container .react-transform-wrapper {
-    /* margin: auto; */
-}
+@import "tailwindcss/base";
+@import "@navikt/ds-css";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";

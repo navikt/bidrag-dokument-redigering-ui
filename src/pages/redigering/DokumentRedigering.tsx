@@ -1,8 +1,8 @@
-import "./DokumentRedigering.less";
+import "./DokumentRedigering.css";
 
 import { useDroppable } from "@dnd-kit/core";
 import { Loader } from "@navikt/ds-react";
-import React, { CSSProperties, PropsWithChildren, useEffect } from "react";
+import React, { CSSProperties, useEffect } from "react";
 import { useState } from "react";
 import { useRef } from "react";
 import { ReactZoomPanPinchRef, TransformWrapper } from "react-zoom-pan-pinch";
@@ -55,7 +55,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
         }
     }
 
-    function handleMouseWheelEvent(evt) {
+    function handleMouseWheelEvent(evt: MouseEvent) {
         const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
         if (evt.ctrlKey) {
             evt.preventDefault();
@@ -67,12 +67,16 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
 
     return (
         <TransformWrapper
-            initialScale={1}
+            initialScale={1.2}
             minScale={1}
+            maxScale={10}
             centerZoomedOut
             centerOnInit
             disablePadding
             ref={transformComponentRef}
+            doubleClick={{
+                step: 0.8,
+            }}
             wheel={{
                 step: 0.5,
                 activationKeys: ["Control"],
@@ -81,9 +85,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
                 activationKeys: ["Shift", " "],
             }}
             onTransformed={(props) => {
-                document
-                    .getElementById("container_pdf_document_pages")
-                    ?.style.setProperty("--scale-factor", props.state.scale.toString());
+                props.instance.contentComponent.style.setProperty("--scale-factor", props.state.scale.toString());
                 const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
                 transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
             }}
@@ -133,7 +135,7 @@ interface IPageDecoratorProps {
     pageNumber: number;
     isLoading: boolean;
 }
-function PageDecorator({ children, pageNumber }: PropsWithChildren<IPageDecoratorProps>) {
+function PageDecorator({ pageNumber }: IPageDecoratorProps) {
     const id = `droppable_page_${pageNumber}`;
     const divRef = useRef<HTMLDivElement>(null);
     const pageRef = useRef<HTMLDivElement>();
@@ -154,7 +156,7 @@ function PageDecorator({ children, pageNumber }: PropsWithChildren<IPageDecorato
 
     function onClick(e: React.MouseEvent) {
         const { x, y } = DomUtils.getMousePosition(id, e);
-        addItem(pageNumber, scale, x / scale, y / scale - divRef.current.clientHeight);
+        addItem(pageNumber, x / scale, y / scale - divRef.current.clientHeight);
         return;
     }
 

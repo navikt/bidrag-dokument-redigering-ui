@@ -19,14 +19,15 @@ export default function KeyboardShortcuts() {
     }, [addNewElementMode]);
 
     useWindowListener("keydown", (e: KeyboardEvent) => {
-        console.log(e.key);
         onRedoUndoEvent(e);
         keyDownHandler(e);
         if (!activeId) return;
         const isDeleteButtonPressed = e.code.toLowerCase() == "delete";
         if (isDeleteButtonPressed) {
+            //e.preventDefault();
             removeItem(activeId);
-        } else if (e.ctrlKey && e.key?.toLowerCase() == "d") {
+        } else if ((e.ctrlKey || e.metaKey) && e.key?.toLowerCase() == "d") {
+            //e.preventDefault();
             duplicateItem(activeId);
         }
     });
