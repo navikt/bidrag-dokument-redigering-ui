@@ -2,7 +2,7 @@ import "./DokumentRedigering.css";
 
 import { useDroppable } from "@dnd-kit/core";
 import { Loader } from "@navikt/ds-react";
-import React, { CSSProperties } from "react";
+import React, { CSSProperties, useEffect } from "react";
 import { useState } from "react";
 import { useRef } from "react";
 import { ReactZoomPanPinchRef, TransformWrapper } from "react-zoom-pan-pinch";
@@ -26,43 +26,66 @@ interface DokumentRedigeringContainerProps {
 }
 export default function DokumentRedigering({ documentFile }: DokumentRedigeringContainerProps) {
     const [isLoading, setIsLoading] = useState(true);
+    const zoomDisabledTimeout = useRef<NodeJS.Timeout>();
+    const scrollDisabledTimeout = useRef<NodeJS.Timeout>();
     const { hideSidebar } = usePdfEditorContext();
-    const { } = useMaskingContainer();
     const [pages, setPages] = useState([]);
     const { isOver, setNodeRef } = useDroppable({
         id: "document_editor",
     });
     const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null);
-    // useEffect(() => {
-    //     window.addEventListener("wheel", handleMouseWheelEvent, {
-    //         passive: true,
-    //     });
-    //     return () => window?.removeEventListener("wheel", handleMouseWheelEvent);
-    // }, []);
+    useEffect(() => {
+        window.addEventListener("wheel", handleMouseWheelEvent, {
+            passive: false,
+        });
+        return () => window?.removeEventListener("wheel", handleMouseWheelEvent);
+    }, []);
 
     // useEffect(() => {
     //     window.addEventListener("scroll", handleScrollWheelEvent, {
-    //         passive: true,
+    //         passive: false,
     //     });
     //     return () => window?.removeEventListener("scroll", handleScrollWheelEvent);
     // }, []);
 
+    function setScrollDisabledTimeout() {
+        if (scrollDisabledTimeout.current) {
+            clearTimeout(scrollDisabledTimeout.current);
+        }
+        scrollDisabledTimeout.current = setTimeout(function () {
+            scrollDisabledTimeout.current = null;
+        }, 2000);
+    }
+
+    function setZoomDisabledTimeout() {
+        if (zoomDisabledTimeout.current) {
+            clearTimeout(zoomDisabledTimeout.current);
+        }
+        zoomDisabledTimeout.current = setTimeout(function () {
+            zoomDisabledTimeout.current = null;
+        }, 2000);
+    }
+
     function handleScrollWheelEvent(evt) {
-        const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
-        if (evt.ctrlKey) {
-            transformComponentRef.current.instance.setKeyPressed(keyboardEvent);
-        } else {
-            transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
+        // const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
+        // if (evt.ctrlKey) {
+        //     transformComponentRef.current.instance.setKeyPressed(keyboardEvent);
+        // } else {
+        //     transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
+        // }
+
+        console.log("Scroll", evt);
+        if (evt.ctrlKey && scrollDisabledTimeout.current) {
+            evt.preventDefault();
+        } else if (evt.ctrlKey) {
+            setZoomDisabledTimeout();
         }
     }
 
     function handleMouseWheelEvent(evt: MouseEvent) {
-        const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
+        console.log("Wheel", evt.ctrlKey, zoomDisabledTimeout.current, scrollDisabledTimeout.current);
         if (evt.ctrlKey) {
             evt.preventDefault();
-            transformComponentRef.current.instance.setKeyPressed(keyboardEvent);
-        } else {
-            transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
         }
     }
 
