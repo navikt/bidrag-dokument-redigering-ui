@@ -6,8 +6,10 @@ import React, { PropsWithChildren } from "react";
 import { QueryClientProvider } from "react-query";
 import { QueryClient } from "react-query";
 
+import { initMock } from "../mock";
+
 const mdxComponents = { Heading, BodyShort };
-// await initMock();
+await initMock();
 const initReactQuery = () =>
     new QueryClient({
         defaultOptions: {

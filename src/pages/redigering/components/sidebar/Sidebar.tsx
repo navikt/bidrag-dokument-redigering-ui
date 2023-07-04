@@ -16,7 +16,7 @@ interface PageRangeDetails {
     range: [number, number];
 }
 interface SidebarProps {
-    onDocumentLoaded: (pagsNumber: number, pages: number[]) => void;
+    onDocumentLoaded?: (pagsNumber: number, pages: number[]) => void;
 }
 export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
     const { sidebarHidden, dokumentMetadata, hideSidebar } = usePdfEditorContext();
@@ -32,7 +32,7 @@ export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
 
     function _onDocumentLoaded(pagesCount: number, loadedPages: number[]) {
         documentRef.current.scrollToPage(1);
-        onDocumentLoaded(pagesCount, loadedPages);
+        onDocumentLoaded?.(pagesCount, loadedPages);
         setIsDocumentLoaded(true);
     }
 

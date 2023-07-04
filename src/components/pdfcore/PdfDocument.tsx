@@ -9,7 +9,12 @@ import React from "react";
 import { useEffect } from "react";
 import { PropsWithChildren } from "react";
 import { useState } from "react";
-import { TransformComponent, useTransformEffect } from "react-zoom-pan-pinch";
+import {
+    ReactZoomPanPinchContext,
+    TransformComponent,
+    useTransformEffect,
+    useTransformInit,
+} from "react-zoom-pan-pinch";
 
 import { createArrayWithLength, removeDuplicates } from "../utils/ObjectUtils";
 import { TimerUtils } from "../utils/TimerUtils";
@@ -184,20 +189,7 @@ export default function PdfDocument({
             currentPageNumberRef.current = currentPageNumber;
         }
     }
-    function getScrollParent(node) {
-        const isElement = node instanceof HTMLElement;
-        const overflowY = isElement && window.getComputedStyle(node).overflowY;
-        const isScrollable = overflowY !== "visible" && overflowY !== "hidden";
 
-        if (!node) {
-            return null;
-        } else if (isScrollable && node.scrollHeight >= node.clientHeight) {
-            return node;
-        }
-        console.log(node);
-
-        return getScrollParent(node.parentNode) || document.body;
-    }
     function getScrollElement() {
         return divRef.current?.querySelector(`#${id}`);
     }
@@ -236,7 +228,6 @@ export default function PdfDocument({
 
     function initEventListeners() {
         getScrollElement().addEventListener("scroll", () => onScrollHandlerThrottler.current());
-        // getScrollElement()?.addEventListener("wheel", (e) => onMouseWheelHandlerThrottler.current(e));
     }
 
     function isUserScrolling() {
@@ -249,7 +240,7 @@ export default function PdfDocument({
                 <PdfDocumentZoom
                     onScaleUpdated={setCurrentScale}
                     containerRef={divRef}
-                    scrollElement={getScrollElement()}
+                    getScrollElement={getScrollElement}
                 >
                     <div id={id} className="pdfViewer">
                         {children}
@@ -277,30 +268,40 @@ export default function PdfDocument({
 type PdfDocumentZoomProps = {
     containerRef: MutableRefObject<HTMLDivElement>;
     onScaleUpdated: (scale: number) => void;
-    scrollElement: Element;
+    getScrollElement: () => Element;
 };
 
 function PdfDocumentZoom({
     children,
     containerRef,
     onScaleUpdated,
-    scrollElement,
+    getScrollElement,
 }: PropsWithChildren<PdfDocumentZoomProps>) {
     const positionY = useRef(0);
     const onMouseWheelHandlerThrottler = useRef(TimerUtils.throttleByAnimation(onMouseWheelHandler));
+    const transformerRef = useRef<ReactZoomPanPinchContext>();
+    useTransformInit((props) => {
+        transformerRef.current = props.instance;
+    });
     useTransformEffect(({ state, instance }) => {
         containerRef.current?.style.setProperty("--scale-factor", state.scale.toString());
         onScaleUpdated(state.scale);
         positionY.current = state.positionY;
+        if (state.scale == 1) {
+            const transformContainer = transformerRef.current.contentComponent;
+            delete transformContainer.style.translate;
+        }
     });
 
     function onMouseWheelHandler(e: React.MouseEvent) {
         if (!containerRef.current) return;
         if (e.ctrlKey || e.shiftKey || e.altKey) return;
-        const transformContainer = document.querySelector(".pdfViewer-transform") as HTMLDivElement;
+        const transformContainer = transformerRef.current.contentComponent;
         const currentScrollHeight = containerRef.current.firstElementChild.scrollTop;
         const transformRect = transformContainer.getBoundingClientRect();
-        if (currentScrollHeight == 0 && transformRect.y != 0) {
+        if (transformerRef.current.transformState.scale == 1) {
+            delete transformContainer.style.translate;
+        } else if (currentScrollHeight == 0 && transformRect.y != 0) {
             if (transformContainer.style.translate) {
                 const translationY = parseInt(
                     transformContainer.style.translate?.split(" ")[1]?.replace("px", "") ?? "0"
@@ -308,7 +309,10 @@ function PdfDocumentZoom({
 
                 //@ts-ignore
                 const delta = e.deltaY;
-                const newValue = Math.max(-(translationY + Math.abs(delta)), positionY.current);
+                const newValue =
+                    -1 *
+                    Math.sign(positionY.current) *
+                    Math.min(Math.abs(translationY + delta), Math.abs(positionY.current));
                 transformContainer.style.translate = `0 ${-newValue}px`;
             } else {
                 transformContainer.style.translate = `0 ${transformRect.y + 10}px`;
@@ -317,8 +321,10 @@ function PdfDocumentZoom({
     }
 
     useEffect(() => {
-        scrollElement?.addEventListener("wheel", (e) => onMouseWheelHandlerThrottler.current(e));
+        // console.log(getScrollElement());
+        // getScrollElement()?.addEventListener("wheel", (e) => onMouseWheelHandlerThrottler.current(e));
     }, []);
+
     return (
         <TransformComponent contentClass="pdfViewer-content" wrapperClass="pdfViewer-wrapper">
             {children}

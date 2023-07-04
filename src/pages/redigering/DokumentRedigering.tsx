@@ -41,12 +41,12 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
         return () => window?.removeEventListener("wheel", handleMouseWheelEvent);
     }, []);
 
-    // useEffect(() => {
-    //     window.addEventListener("scroll", handleScrollWheelEvent, {
-    //         passive: false,
-    //     });
-    //     return () => window?.removeEventListener("scroll", handleScrollWheelEvent);
-    // }, []);
+    useEffect(() => {
+        window.addEventListener("scroll", handleScrollWheelEvent, {
+            passive: false,
+        });
+        return () => window?.removeEventListener("scroll", handleScrollWheelEvent);
+    }, []);
 
     function setScrollDisabledTimeout() {
         if (scrollDisabledTimeout.current) {
@@ -67,19 +67,19 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
     }
 
     function handleScrollWheelEvent(evt) {
-        // const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
-        // if (evt.ctrlKey) {
-        //     transformComponentRef.current.instance.setKeyPressed(keyboardEvent);
-        // } else {
-        //     transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
-        // }
+        const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
+        if (evt.ctrlKey) {
+            transformComponentRef.current.instance.setKeyPressed(keyboardEvent);
+        } else {
+            transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
+        }
 
         console.log("Scroll", evt);
-        if (evt.ctrlKey && scrollDisabledTimeout.current) {
-            evt.preventDefault();
-        } else if (evt.ctrlKey) {
-            setZoomDisabledTimeout();
-        }
+        // if (evt.ctrlKey && scrollDisabledTimeout.current) {
+        //     evt.preventDefault();
+        // } else if (evt.ctrlKey) {
+        //     setZoomDisabledTimeout();
+        // }
     }
 
     function handleMouseWheelEvent(evt: MouseEvent) {
@@ -87,11 +87,18 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
         if (evt.ctrlKey) {
             evt.preventDefault();
         }
+
+        const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
+        if (evt.ctrlKey) {
+            transformComponentRef.current.instance.setKeyPressed(keyboardEvent);
+        } else {
+            transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
+        }
     }
 
     return (
         <TransformWrapper
-            initialScale={1.2}
+            initialScale={1}
             minScale={1}
             maxScale={10}
             centerZoomedOut
@@ -111,7 +118,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
             onTransformed={(props) => {
                 props.instance.contentComponent.style.setProperty("--scale-factor", props.state.scale.toString());
                 const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
-                // transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
+                transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
             }}
         >
             <PdfViewerContextProvider
@@ -121,7 +128,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
                     setIsLoading(false);
                 }}
             >
-                {isLoading && <Loader />}
+                {isLoading && <Loader variant="inverted" style={{ margin: "auto", left: "50%", height: "100%" }} />}
                 <div
                     className={"editor"}
                     style={{ visibility: isLoading ? "hidden" : "unset" }}
@@ -134,11 +141,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
                     <PopoverToolbar />
                     <RedigeringInfoKnapp />
                     <div className={"pdfviewer"} style={{ display: "flex", flexDirection: "row" }}>
-                        <Sidebar
-                            onDocumentLoaded={() => {
-                                setIsLoading(false);
-                            }}
-                        />
+                        <Sidebar />
                         <PdfViewer>
                             {pages.map((pageNumber) => (
                                 <PageDecorator

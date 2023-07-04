@@ -18,19 +18,23 @@ export default function KeyboardShortcuts() {
         };
     }, [isAddNewElementMode]);
 
-    useWindowListener("keydown", (e: KeyboardEvent) => {
-        onRedoUndoEvent(e);
-        keyDownHandler(e);
-        if (!activeId) return;
-        const isDeleteButtonPressed = e.code.toLowerCase() == "delete";
-        if (isDeleteButtonPressed) {
-            //e.preventDefault();
-            removeItem(activeId);
-        } else if ((e.ctrlKey || e.metaKey) && e.key?.toLowerCase() == "d") {
-            //e.preventDefault();
-            duplicateItem(activeId);
-        }
-    });
+    useWindowListener(
+        "keydown",
+        (e: KeyboardEvent) => {
+            onRedoUndoEvent(e);
+            keyDownHandler(e);
+            if (!activeId) return;
+            const isDeleteButtonPressed = e.code.toLowerCase() == "delete";
+            if (isDeleteButtonPressed) {
+                //e.preventDefault();
+                removeItem(activeId);
+            } else if ((e.ctrlKey || e.metaKey) && e.key?.toLowerCase() == "d") {
+                e.preventDefault();
+                duplicateItem(activeId);
+            }
+        },
+        false
+    );
 
     useWindowListener("keyup", (e: KeyboardEvent) => {
         exitAddItemMode(false);
