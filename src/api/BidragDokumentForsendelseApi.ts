@@ -9,6 +9,55 @@
  * ---------------------------------------------------------------
  */
 
+/** Detaljer om behandling hvis forsendelsen inneholder brev for en behandling eller vedtak */
+export interface BehandlingInfoDto {
+    vedtakId?: string;
+    behandlingId?: string;
+    soknadId?: string;
+    engangsBelopType?: EngangsbelopType;
+    stonadType?: StonadType;
+    vedtakType?: VedtakType;
+    erFattetBeregnet?: boolean;
+    soknadFra?: SoknadFra;
+    roller: string[];
+}
+
+/** Arkivsystem hvor dokument er lagret */
+export enum DokumentArkivSystemDto {
+    JOARK = "JOARK",
+    MIDLERTIDLIG_BREVLAGER = "MIDLERTIDLIG_BREVLAGER",
+    UKJENT = "UKJENT",
+    BIDRAG = "BIDRAG",
+}
+
+/** Dette skal være UNDER_PRODUKSJON for redigerbare dokumenter som ikke er ferdigprodusert. Ellers settes det til FERDIGSTILT */
+export enum DokumentStatusTo {
+    IKKE_BESTILT = "IKKE_BESTILT",
+    BESTILLING_FEILET = "BESTILLING_FEILET",
+    AVBRUTT = "AVBRUTT",
+    UNDER_PRODUKSJON = "UNDER_PRODUKSJON",
+    UNDER_REDIGERING = "UNDER_REDIGERING",
+    FERDIGSTILT = "FERDIGSTILT",
+    MAKONTROLLERES = "MÅ_KONTROLLERES",
+    KONTROLLERT = "KONTROLLERT",
+}
+
+export enum EngangsbelopType {
+    DIREKTE_OPPGJOR = "DIREKTE_OPPGJOR",
+    ETTERGIVELSE = "ETTERGIVELSE",
+    ETTERGIVELSE_TILBAKEKREVING = "ETTERGIVELSE_TILBAKEKREVING",
+    TILBAKEKREVING = "TILBAKEKREVING",
+    SAERTILSKUDD = "SAERTILSKUDD",
+    GEBYR_MOTTAKER = "GEBYR_MOTTAKER",
+    GEBYR_SKYLDNER = "GEBYR_SKYLDNER",
+}
+
+/** Tema forsendelsen skal opprettes med */
+export enum JournalTema {
+    BID = "BID",
+    FAR = "FAR",
+}
+
 /** Adresse til mottaker hvis dokumentet sendes som brev */
 export interface MottakerAdresseTo {
     adresselinje1: string;
@@ -23,11 +72,16 @@ export interface MottakerAdresseTo {
     poststed?: string;
 }
 
+export enum MottakerIdentTypeTo {
+    FNR = "FNR",
+    SAMHANDLER = "SAMHANDLER",
+}
+
 export interface MottakerTo {
     ident?: string;
     språk?: string;
     navn?: string;
-    identType?: "FNR" | "SAMHANDLER";
+    identType?: MottakerIdentTypeTo;
     /** Adresse til mottaker hvis dokumentet sendes som brev */
     adresse?: MottakerAdresseTo;
 }
@@ -39,7 +93,7 @@ export interface OpprettDokumentForesporsel {
     /** Språket på inneholdet i dokumentet. */
     språk?: string;
     /** Arkivsystem hvor dokument er lagret */
-    arkivsystem?: "JOARK" | "MIDLERTIDLIG_BREVLAGER" | "UKJENT" | "BIDRAG";
+    arkivsystem?: DokumentArkivSystemDto;
     /**
      * Dato dokument ble opprettet
      * @format date-time
@@ -52,15 +106,7 @@ export interface OpprettDokumentForesporsel {
     /** DokumentmalId sier noe om dokumentets innhold og oppbygning. (Også kjent som brevkode) */
     dokumentmalId?: string;
     /** Dette skal være UNDER_PRODUKSJON for redigerbare dokumenter som ikke er ferdigprodusert. Ellers settes det til FERDIGSTILT */
-    status:
-        | "IKKE_BESTILT"
-        | "BESTILLING_FEILET"
-        | "AVBRUTT"
-        | "UNDER_PRODUKSJON"
-        | "UNDER_REDIGERING"
-        | "FERDIGSTILT"
-        | "MÅ_KONTROLLERES"
-        | "KONTROLLERT";
+    status: DokumentStatusTo;
     /** Om dokumentet med dokumentmalId skal bestilles. Hvis dette er satt til false så antas det at kallende system bestiller dokumentet selv. */
     bestillDokument: boolean;
 }
@@ -81,35 +127,83 @@ export interface OpprettForsendelseForesporsel {
     saksnummer: string;
     /** NAV-enheten som oppretter forsendelsen */
     enhet: string;
+    /** Detaljer om behandling hvis forsendelsen inneholder brev for en behandling eller vedtak */
+    behandlingInfo?: BehandlingInfoDto;
     /** Identifikator til batch kjøring forsendelsen ble opprettet av */
     batchId?: string;
     /** Tema forsendelsen skal opprettes med */
-    tema?: "BID" | "FAR";
+    tema?: JournalTema;
     /** Språk forsendelsen skal være på */
     språk?: string;
     /** Ident til saksbehandler som oppretter journalpost. Dette vil prioriteres over ident som tilhører tokenet til kallet. */
     saksbehandlerIdent?: string;
 }
 
+export enum SoknadFra {
+    BM_I_ANNEN_SAK = "BM_I_ANNEN_SAK",
+    BARN18AAR = "BARN_18_AAR",
+    NAV_BIDRAG = "NAV_BIDRAG",
+    FYLKESNEMDA = "FYLKESNEMDA",
+    NAV_INTERNASJONALT = "NAV_INTERNASJONALT",
+    KOMMUNE = "KOMMUNE",
+    KONVERTERING = "KONVERTERING",
+    BIDRAGSMOTTAKER = "BIDRAGSMOTTAKER",
+    NORSKE_MYNDIGHET = "NORSKE_MYNDIGHET",
+    BIDRAGSPLIKTIG = "BIDRAGSPLIKTIG",
+    UTENLANDSKE_MYNDIGHET = "UTENLANDSKE_MYNDIGHET",
+    VERGE = "VERGE",
+    TRYGDEETATEN_INNKREVING = "TRYGDEETATEN_INNKREVING",
+    KLAGE_ANKE = "KLAGE_ANKE",
+}
+
+export enum StonadType {
+    BIDRAG = "BIDRAG",
+    FORSKUDD = "FORSKUDD",
+    BIDRAG18AAR = "BIDRAG18AAR",
+    EKTEFELLEBIDRAG = "EKTEFELLEBIDRAG",
+    MOTREGNING = "MOTREGNING",
+    OPPFOSTRINGSBIDRAG = "OPPFOSTRINGSBIDRAG",
+}
+
+export enum VedtakType {
+    INDEKSREGULERING = "INDEKSREGULERING",
+    ALDERSJUSTERING = "ALDERSJUSTERING",
+    OPPHOR = "OPPHØR",
+    ALDERSOPPHOR = "ALDERSOPPHØR",
+    REVURDERING = "REVURDERING",
+    FASTSETTELSE = "FASTSETTELSE",
+    INNKREVING = "INNKREVING",
+    KLAGE = "KLAGE",
+    ENDRING = "ENDRING",
+    ENDRING_MOTTAKER = "ENDRING_MOTTAKER",
+}
+
 /** Metadata til en respons etter dokumenter i forsendelse ble opprettet */
 export interface DokumentRespons {
     dokumentreferanse: string;
+    /** Dokumentreferanse hvis dokumentet er lenke til et dokument i annen forsendelse */
+    lenkeTilDokumentreferanse?: string;
+    /** Originale dokumentreferanse hvis er kopi av en ekstern dokument (feks fra JOARK) */
+    originalDokumentreferanse?: string;
+    /** Originale journalpostid hvis er kopi av en ekstern dokument (feks fra JOARK) */
+    originalJournalpostId?: string;
+    forsendelseId?: string;
     tittel: string;
     /** @format date-time */
     dokumentDato: string;
     journalpostId?: string;
     dokumentmalId?: string;
     redigeringMetadata?: string;
-    status?:
-        | "IKKE_BESTILT"
-        | "BESTILLING_FEILET"
-        | "AVBRUTT"
-        | "UNDER_PRODUKSJON"
-        | "UNDER_REDIGERING"
-        | "FERDIGSTILT"
-        | "MÅ_KONTROLLERES"
-        | "KONTROLLERT";
-    arkivsystem?: "JOARK" | "MIDLERTIDLIG_BREVLAGER" | "UKJENT" | "BIDRAG";
+    /** Dette skal være UNDER_PRODUKSJON for redigerbare dokumenter som ikke er ferdigprodusert. Ellers settes det til FERDIGSTILT */
+    status?: DokumentStatusTo;
+    /** Arkivsystem hvor dokument er lagret */
+    arkivsystem?: DokumentArkivSystemDto;
+}
+
+/** Type på forsendelse. Kan være NOTAT eller UTGÅENDE */
+export enum ForsendelseTypeTo {
+    UTGAENDE = "UTGÅENDE",
+    NOTAT = "NOTAT",
 }
 
 /** Metadata til en respons etter forsendelse ble opprettet */
@@ -119,6 +213,8 @@ export interface OpprettForsendelseRespons {
      * @format int64
      */
     forsendelseId?: number;
+    /** Type på forsendelse. Kan være NOTAT eller UTGÅENDE */
+    forsendelseType?: ForsendelseTypeTo;
     /** Liste med dokumenter som er knyttet til journalposten */
     dokumenter: DokumentRespons[];
 }
@@ -198,6 +294,22 @@ export interface DistribuerJournalpostResponse {
     bestillingsId?: string;
 }
 
+export interface HentDokumentValgRequest {
+    vedtakType?: VedtakType;
+    behandlingType?: string;
+    soknadFra?: SoknadFra;
+    erFattetBeregnet?: boolean;
+    vedtakId?: string;
+    behandlingId?: string;
+    enhet?: string;
+}
+
+export interface DokumentMalDetaljer {
+    beskrivelse: string;
+    type: "UTGÅENDE" | "NOTAT";
+    kanBestilles: boolean;
+}
+
 /** Metadata for dokument som skal knyttes til forsendelsen. Første dokument i listen blir automatisk satt som hoveddokument i forsendelsen */
 export interface OppdaterDokumentForesporsel {
     /** JournalpostId til dokumentet hvis det er allerede er lagret i arkivsystem */
@@ -220,39 +332,27 @@ export interface OppdaterForsendelseForesporsel {
      * @format date-time
      */
     dokumentDato?: string;
+    /** Ident til brukeren som journalposten gjelder. Kan bare oppdateres hvis status = UNDER_OPPRETTELSE */
+    gjelderIdent?: string;
+    mottaker?: MottakerTo;
+    /** NAV-enheten som oppretter forsendelsen. Kan bare oppdateres hvis status = UNDER_OPPRETTELSE */
+    enhet?: string;
+    /** Tema forsendelsen skal opprettes med */
+    tema?: JournalTema;
+    /** Språk forsendelsen skal være på */
+    språk?: string;
+    /** Tittelen på forsendelse. Dette er tittel som vil vises i journalen i Bisys og i forsendelse skjermbildet */
+    tittel?: string;
 }
 
 /** Metadata til en respons etter journalpost ble oppdatert */
 export interface OppdaterForsendelseResponse {
     /** ForsendelseId på forsendelse som ble opprettet */
     forsendelseId?: string;
+    /** Tittel på forsendelsen */
+    tittel?: string;
     /** Liste med dokumenter som er knyttet til journalposten */
     dokumenter: DokumentRespons[];
-}
-
-/** Metadata for dokument som skal knyttes til journalpost */
-export interface OpprettDokumentDto {
-    /** Dokumentets tittel */
-    tittel: string;
-    /** Typen dokument. Brevkoden sier noe om dokumentets innhold og oppbygning. */
-    brevkode?: string;
-    /** Referansen til dokumentet hvis det er lagret i et annet arkivsystem */
-    dokumentreferanse?: string;
-    /**
-     * Selve PDF dokumentet formatert som Base64
-     * @deprecated
-     */
-    dokument?: string;
-    /** @format byte */
-    fysiskDokument?: string;
-}
-
-/** Metadata til en respons etter journalpost ble opprettet */
-export interface OpprettJournalpostResponse {
-    /** Journalpostid på journalpost som ble opprettet */
-    journalpostId?: string;
-    /** Liste med dokumenter som er knyttet til journalposten */
-    dokumenter: OpprettDokumentDto[];
 }
 
 export interface FerdigstillDokumentRequest {
@@ -350,6 +450,14 @@ export interface DokumentMetadata {
     arkivsystem: "JOARK" | "MIDLERTIDLIG_BREVLAGER" | "UKJENT" | "BIDRAG";
 }
 
+/** Metadata om behandling */
+export interface BehandlingInfoResponseDto {
+    vedtakId?: string;
+    behandlingId?: string;
+    soknadId?: string;
+    behandlingType?: string;
+}
+
 /** Metadata om forsendelse */
 export interface ForsendelseResponsTo {
     /** Ident til brukeren som journalposten gjelder */
@@ -363,6 +471,8 @@ export interface ForsendelseResponsTo {
     enhet?: string;
     /** Tema på forsendelsen */
     tema?: string;
+    /** Metadata om behandling */
+    behandlingInfo?: BehandlingInfoResponseDto;
     /** Ident på saksbehandler eller applikasjon som opprettet forsendelsen */
     opprettetAvIdent?: string;
     /** Navn på saksbehandler eller applikasjon som opprettet forsendelsen */
@@ -372,9 +482,9 @@ export interface ForsendelseResponsTo {
     /** Journalpostid som forsendelsen ble arkivert på. Dette vil bli satt hvis status er FERDIGSTILT */
     arkivJournalpostId?: string;
     /** Type på forsendelse. Kan være NOTAT eller UTGÅENDE */
-    forsendelseType?: "UTGÅENDE" | "NOTAT";
+    forsendelseType?: ForsendelseTypeTo;
     /** Status på forsendelsen */
-    status?: "UNDER_PRODUKSJON" | "FERDIGSTILT" | "SLETTET" | "DISTRIBUERT" | "DISTRIBUERT_LOKALT";
+    status?: ForsendelseStatusTo;
     /**
      * Dato forsendelsen ble opprettet
      * @format date
@@ -390,6 +500,16 @@ export interface ForsendelseResponsTo {
      * @format date
      */
     distribuertDato?: string;
+}
+
+/** Status på forsendelsen */
+export enum ForsendelseStatusTo {
+    UNDER_OPPRETTELSE = "UNDER_OPPRETTELSE",
+    UNDER_PRODUKSJON = "UNDER_PRODUKSJON",
+    FERDIGSTILT = "FERDIGSTILT",
+    SLETTET = "SLETTET",
+    DISTRIBUERT = "DISTRIBUERT",
+    DISTRIBUERT_LOKALT = "DISTRIBUERT_LOKALT",
 }
 
 /** Metadata om en aktør */
@@ -495,8 +615,27 @@ export interface JournalpostDto {
     mottattDato?: string;
     /** Inngående (I), utgående (U) journalpost; (X) internt notat */
     dokumentType?: string;
-    /** Journalpostens status, (A, D, J, M, O, R, S, T, U, KP, EJ, E) */
+    /**
+     * Journalpostens status, (A, D, J, M, O, R, S, T, U, KP, EJ, E)
+     * @deprecated
+     */
     journalstatus?: string;
+    /** Journalpostens status */
+    status?:
+        | "MOTTATT"
+        | "JOURNALFØRT"
+        | "EKSPEDERT"
+        | "DISTRIBUERT"
+        | "AVBRUTT"
+        | "KLAR_FOR_DISTRIBUSJON"
+        | "RETUR"
+        | "FERDIGSTILT"
+        | "FEILREGISTRERT"
+        | "RESERVERT"
+        | "UTGÅR"
+        | "UNDER_OPPRETTELSE"
+        | "UNDER_PRODUKSJON"
+        | "UKJENT";
     /** Om journalposten er feilført på bidragssak */
     feilfort?: boolean;
     /** Metadata for kode vs dekode i et kodeobjekt */
@@ -565,16 +704,10 @@ export interface DokumentDetaljer {
 
 export interface DokumentRedigeringMetadataResponsDto {
     tittel: string;
-    status:
-        | "IKKE_BESTILT"
-        | "BESTILLING_FEILET"
-        | "AVBRUTT"
-        | "UNDER_PRODUKSJON"
-        | "UNDER_REDIGERING"
-        | "FERDIGSTILT"
-        | "MÅ_KONTROLLERES"
-        | "KONTROLLERT";
-    forsendelseStatus: "UNDER_PRODUKSJON" | "FERDIGSTILT" | "SLETTET" | "DISTRIBUERT" | "DISTRIBUERT_LOKALT";
+    /** Dette skal være UNDER_PRODUKSJON for redigerbare dokumenter som ikke er ferdigprodusert. Ellers settes det til FERDIGSTILT */
+    status: DokumentStatusTo;
+    /** Status på forsendelsen */
+    forsendelseStatus: ForsendelseStatusTo;
     redigeringMetadata?: string;
     dokumenter: DokumentDetaljer[];
 }
@@ -585,6 +718,23 @@ export interface JournalpostResponse {
     journalpost?: JournalpostDto;
     /** alle saker som journalposten er tilknyttet */
     sakstilknytninger: string[];
+}
+
+/** Metadata om forsendelse */
+export interface ForsendelseIkkeDistribuertResponsTo {
+    /** Forsendelseid med BIF- prefiks */
+    forsendelseId?: string;
+    /** Bidragsak som forsendelsen er knyttet til */
+    saksnummer?: string;
+    /** NAV-enheten som oppretter forsendelsen */
+    enhet?: string;
+    /** Tittel på hoveddokumentet i forsendelsen */
+    tittel?: string;
+    /**
+     * Dato forsendelsen ble opprettet
+     * @format date-time
+     */
+    opprettetDato?: string;
 }
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, HeadersDefaults, ResponseType } from "axios";
@@ -867,6 +1017,48 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
             }),
 
         /**
+         * @description Henter dokumentmaler som er støttet av applikasjonen
+         *
+         * @tags forsendelse-innsyn-kontroller
+         * @name HentDokumentValg
+         * @request POST:/api/forsendelse/dokumentvalg
+         * @secure
+         */
+        hentDokumentValg: (data: HentDokumentValgRequest, params: RequestParams = {}) =>
+            this.request<Record<string, DokumentMalDetaljer>, any>({
+                path: `/api/forsendelse/dokumentvalg`,
+                method: "POST",
+                body: data,
+                secure: true,
+                type: ContentType.Json,
+                ...params,
+            }),
+
+        /**
+         * @description Hent forsendelse med forsendelseid
+         *
+         * @tags forsendelse-innsyn-kontroller
+         * @name HentForsendelse
+         * @request GET:/api/forsendelse/{forsendelseIdMedPrefix}
+         * @secure
+         */
+        hentForsendelse: (
+            forsendelseIdMedPrefix: string,
+            query?: {
+                /** journalposten tilhører sak */
+                saksnummer?: string;
+            },
+            params: RequestParams = {}
+        ) =>
+            this.request<any, ForsendelseResponsTo>({
+                path: `/api/forsendelse/${forsendelseIdMedPrefix}`,
+                method: "GET",
+                query: query,
+                secure: true,
+                ...params,
+            }),
+
+        /**
          * No description
          *
          * @tags endre-forsendelse-kontroller
@@ -893,23 +1085,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * No description
          *
          * @tags endre-forsendelse-kontroller
-         * @name FerdigstillForsendelse
-         * @summary Ferdigstiller forsendelse ved å arkivere forsendelsen i Joark og dermed klargjør for eventuell distribuering
-         * @request PATCH:/api/forsendelse/{forsendelseIdMedPrefix}/ferdigstill
-         * @secure
-         */
-        ferdigstillForsendelse: (forsendelseIdMedPrefix: string, params: RequestParams = {}) =>
-            this.request<OpprettJournalpostResponse, OpprettJournalpostResponse>({
-                path: `/api/forsendelse/${forsendelseIdMedPrefix}/ferdigstill`,
-                method: "PATCH",
-                secure: true,
-                ...params,
-            }),
-
-        /**
-         * No description
-         *
-         * @tags endre-forsendelse-kontroller
          * @name OppdaterDokument
          * @summary Oppdater dokument i en forsendelsee
          * @request PATCH:/api/forsendelse/{forsendelseIdMedPrefix}/dokument/{dokumentreferanse}
@@ -927,27 +1102,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
                 body: data,
                 secure: true,
                 type: ContentType.Json,
-                ...params,
-            }),
-
-        /**
-         * No description
-         *
-         * @tags endre-forsendelse-kontroller
-         * @name OpphevFerdigstillingAvDokument
-         * @summary Opphev ferdigstilling av dokument i en forsendelse
-         * @request PATCH:/api/forsendelse/{forsendelseIdMedPrefix}/dokument/{dokumentreferanse}/opphevFerdigstill
-         * @secure
-         */
-        opphevFerdigstillingAvDokument: (
-            forsendelseIdMedPrefix: string,
-            dokumentreferanse: string,
-            params: RequestParams = {}
-        ) =>
-            this.request<DokumentRespons, any>({
-                path: `/api/forsendelse/${forsendelseIdMedPrefix}/dokument/${dokumentreferanse}/opphevFerdigstill`,
-                method: "PATCH",
-                secure: true,
                 ...params,
             }),
 
@@ -1093,12 +1247,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          *
          * @tags forsendelse-innsyn-kontroller
          * @name StottedeDokumentmaler
-         * @request OPTIONS:/api/forsendelse/v2/dokumentmaler
+         * @request OPTIONS:/api/forsendelse/dokumentmaler
          * @secure
          */
         stottedeDokumentmaler: (params: RequestParams = {}) =>
             this.request<string[], any>({
-                path: `/api/forsendelse/v2/dokumentmaler`,
+                path: `/api/forsendelse/dokumentmaler`,
                 method: "OPTIONS",
                 secure: true,
                 ...params,
@@ -1107,14 +1261,14 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         /**
          * @description Henter dokumentmaler som er støttet av applikasjonen
          *
-         * @tags forsendelse-journal-kontroller
-         * @name StottedeDokumentmaler1
-         * @request OPTIONS:/api/forsendelse/dokumentmaler
+         * @tags forsendelse-innsyn-kontroller
+         * @name StottedeDokumentmalDetaljer
+         * @request OPTIONS:/api/forsendelse/dokumentmaler/detaljer
          * @secure
          */
-        stottedeDokumentmaler1: (params: RequestParams = {}) =>
-            this.request<string[], any>({
-                path: `/api/forsendelse/dokumentmaler`,
+        stottedeDokumentmalDetaljer: (params: RequestParams = {}) =>
+            this.request<Record<string, DokumentMalDetaljer>, any>({
+                path: `/api/forsendelse/dokumentmaler/detaljer`,
                 method: "OPTIONS",
                 secure: true,
                 ...params,
@@ -1129,7 +1283,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * @request OPTIONS:/api/forsendelse/dokument/{forsendelseIdMedPrefix}
          * @secure
          */
-        hentDokumentMetadata: (forsendelseIdMedPrefix: string, dokumentreferanse: string, params: RequestParams = {}) =>
+        hentDokumentMetadata: (forsendelseIdMedPrefix: string, params: RequestParams = {}) =>
             this.request<DokumentMetadata[], any>({
                 path: `/api/forsendelse/dokument/${forsendelseIdMedPrefix}`,
                 method: "OPTIONS",
@@ -1176,54 +1330,14 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
             }),
 
         /**
-         * @description Hent forsendelse med forsendelseid
-         *
-         * @tags forsendelse-innsyn-kontroller
-         * @name HentForsendelse
-         * @request GET:/api/forsendelse/v2/{forsendelseIdMedPrefix}
-         * @secure
-         */
-        hentForsendelse: (
-            forsendelseIdMedPrefix: string,
-            query?: {
-                /** journalposten tilhører sak */
-                saksnummer?: string;
-            },
-            params: RequestParams = {}
-        ) =>
-            this.request<any, ForsendelseResponsTo>({
-                path: `/api/forsendelse/v2/${forsendelseIdMedPrefix}`,
-                method: "GET",
-                query: query,
-                secure: true,
-                ...params,
-            }),
-
-        /**
-         * @description Hent alle forsendelse med saksnummer
-         *
-         * @tags forsendelse-innsyn-kontroller
-         * @name HentJournal
-         * @request GET:/api/forsendelse/v2/sak/{saksnummer}/journal
-         * @secure
-         */
-        hentJournal: (saksnummer: string, params: RequestParams = {}) =>
-            this.request<ForsendelseResponsTo[], any>({
-                path: `/api/forsendelse/v2/sak/${saksnummer}/journal`,
-                method: "GET",
-                secure: true,
-                ...params,
-            }),
-
-        /**
          * @description Hent alle forsendelse som har saksnummer
          *
          * @tags forsendelse-journal-kontroller
-         * @name HentJournal1
+         * @name HentJournal
          * @request GET:/api/forsendelse/sak/{saksnummer}/journal
          * @secure
          */
-        hentJournal1: (
+        hentJournal: (
             saksnummer: string,
             query?: {
                 fagomrade?: ("BID" | "FAR")[];
@@ -1234,6 +1348,38 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
                 path: `/api/forsendelse/sak/${saksnummer}/journal`,
                 method: "GET",
                 query: query,
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * @description Hent alle forsendelse med saksnummer
+         *
+         * @tags forsendelse-innsyn-kontroller
+         * @name HentJournal1
+         * @request GET:/api/forsendelse/sak/{saksnummer}/forsendelser
+         * @secure
+         */
+        hentJournal1: (saksnummer: string, params: RequestParams = {}) =>
+            this.request<ForsendelseResponsTo[], any>({
+                path: `/api/forsendelse/sak/${saksnummer}/forsendelser`,
+                method: "GET",
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * @description Hent alle forsendelse som er opprettet før dagens dato og ikke er distribuert
+         *
+         * @tags forsendelse-journal-kontroller
+         * @name HentForsendelserIkkeDistribuert
+         * @request GET:/api/forsendelse/journal/ikkedistribuert
+         * @secure
+         */
+        hentForsendelserIkkeDistribuert: (params: RequestParams = {}) =>
+            this.request<ForsendelseIkkeDistribuertResponsTo[], any>({
+                path: `/api/forsendelse/journal/ikkedistribuert`,
+                method: "GET",
                 secure: true,
                 ...params,
             }),
@@ -1250,6 +1396,38 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         kanDistribuere: (forsendelseIdMedPrefix: string, params: RequestParams = {}) =>
             this.request<void, void>({
                 path: `/api/forsendelse/journal/distribuer/${forsendelseIdMedPrefix}/enabled`,
+                method: "GET",
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * @description Henter dokumentmaler som er støttet av applikasjonen
+         *
+         * @tags forsendelse-innsyn-kontroller
+         * @name HentDokumentValgNotater
+         * @request GET:/api/forsendelse/dokumentvalg/notat
+         * @secure
+         */
+        hentDokumentValgNotater: (params: RequestParams = {}) =>
+            this.request<Record<string, DokumentMalDetaljer>, any>({
+                path: `/api/forsendelse/dokumentvalg/notat`,
+                method: "GET",
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * @description Henter dokumentmaler som er støttet av applikasjonen
+         *
+         * @tags forsendelse-innsyn-kontroller
+         * @name HentDokumentValgForForsendelse
+         * @request GET:/api/forsendelse/dokumentvalg/forsendelse/{forsendelseIdMedPrefix}
+         * @secure
+         */
+        hentDokumentValgForForsendelse: (forsendelseIdMedPrefix: string, params: RequestParams = {}) =>
+            this.request<Record<string, DokumentMalDetaljer>, any>({
+                path: `/api/forsendelse/dokumentvalg/forsendelse/${forsendelseIdMedPrefix}`,
                 method: "GET",
                 secure: true,
                 ...params,
