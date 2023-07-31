@@ -26,8 +26,6 @@ interface DokumentRedigeringContainerProps {
 }
 export default function DokumentRedigering({ documentFile }: DokumentRedigeringContainerProps) {
     const [isLoading, setIsLoading] = useState(true);
-    const zoomDisabledTimeout = useRef<NodeJS.Timeout>();
-    const scrollDisabledTimeout = useRef<NodeJS.Timeout>();
     const { hideSidebar } = usePdfEditorContext();
     const [pages, setPages] = useState([]);
     const { isOver, setNodeRef } = useDroppable({
@@ -48,24 +46,6 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
         return () => window?.removeEventListener("scroll", handleScrollWheelEvent);
     }, []);
 
-    function setScrollDisabledTimeout() {
-        if (scrollDisabledTimeout.current) {
-            clearTimeout(scrollDisabledTimeout.current);
-        }
-        scrollDisabledTimeout.current = setTimeout(function () {
-            scrollDisabledTimeout.current = null;
-        }, 2000);
-    }
-
-    function setZoomDisabledTimeout() {
-        if (zoomDisabledTimeout.current) {
-            clearTimeout(zoomDisabledTimeout.current);
-        }
-        zoomDisabledTimeout.current = setTimeout(function () {
-            zoomDisabledTimeout.current = null;
-        }, 2000);
-    }
-
     function handleScrollWheelEvent(evt) {
         const keyboardEvent = new KeyboardEvent("keydown", { key: "Control" });
         if (evt.ctrlKey) {
@@ -73,17 +53,9 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
         } else {
             transformComponentRef.current.instance.setKeyUnPressed(keyboardEvent);
         }
-
-        console.log("Scroll", evt);
-        // if (evt.ctrlKey && scrollDisabledTimeout.current) {
-        //     evt.preventDefault();
-        // } else if (evt.ctrlKey) {
-        //     setZoomDisabledTimeout();
-        // }
     }
 
     function handleMouseWheelEvent(evt: MouseEvent) {
-        console.log("Wheel", evt.ctrlKey, zoomDisabledTimeout.current, scrollDisabledTimeout.current);
         if (evt.ctrlKey) {
             evt.preventDefault();
         }
@@ -98,12 +70,19 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
 
     return (
         <TransformWrapper
-            initialScale={1}
+            initialScale={1.6}
             minScale={1}
             maxScale={10}
+            initialPositionY={-1000}
             centerZoomedOut
             centerOnInit
+            onInit={(ref) => {
+                const currentTransform = ref.state;
+                transformComponentRef.current.setTransform(currentTransform.positionX, 0, currentTransform.scale);
+            }}
             disablePadding
+            smooth
+            limitToBounds
             ref={transformComponentRef}
             doubleClick={{
                 step: 0.8,
@@ -128,7 +107,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
                     setIsLoading(false);
                 }}
             >
-                {isLoading && <Loader variant="inverted" style={{ margin: "auto", left: "50%", height: "100%" }} />}
+                {isLoading && <Loader variant="inverted" />}
                 <div
                     className={"editor"}
                     style={{ visibility: isLoading ? "hidden" : "unset" }}

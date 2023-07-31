@@ -1,7 +1,7 @@
 import "../index.css";
 
 import { MDXProvider } from "@mdx-js/react";
-import { BodyShort, Heading } from "@navikt/ds-react";
+import { BodyShort, Heading, Loader } from "@navikt/ds-react";
 import React, { PropsWithChildren } from "react";
 import { QueryClientProvider } from "react-query";
 import { QueryClient } from "react-query";
@@ -14,7 +14,7 @@ const initReactQuery = () =>
     new QueryClient({
         defaultOptions: {
             queries: {
-                suspense: false,
+                suspense: true,
                 staleTime: Infinity,
                 retry: 0,
                 useErrorBoundary: true,
@@ -31,7 +31,9 @@ export default function PageWrapper({ children, name }: PropsWithChildren<PageWr
     return (
         <MDXProvider components={mdxComponents}>
             <QueryClientProvider client={queryClient}>
-                <div className={name}>{children}</div>
+                <React.Suspense fallback={<Loader size="large"></Loader>}>
+                    <div className={name}>{children}</div>
+                </React.Suspense>
             </QueryClientProvider>
         </MDXProvider>
     );

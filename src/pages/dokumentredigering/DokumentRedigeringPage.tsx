@@ -4,6 +4,7 @@ import { EditDocumentBroadcastMessage } from "@navikt/bidrag-ui-common";
 import { Broadcast } from "@navikt/bidrag-ui-common";
 import { FileUtils } from "@navikt/bidrag-ui-common";
 import { BroadcastNames } from "@navikt/bidrag-ui-common";
+import { Loader } from "@navikt/ds-react";
 import React from "react";
 
 import { lastDokumenter } from "../../api/queries";
@@ -24,7 +25,9 @@ interface DokumentRedigeringPageProps {
 export default function DokumentRedigeringPage(props: DokumentRedigeringPageProps) {
     return (
         <PageWrapper name={"dokumentredigering"}>
-            <DokumentRedigeringContainer {...props} />
+            <React.Suspense fallback={<Loader size="large"></Loader>}>
+                <DokumentRedigeringContainer {...props} />
+            </React.Suspense>
         </PageWrapper>
     );
 }
