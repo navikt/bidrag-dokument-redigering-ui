@@ -1,6 +1,6 @@
 import { FileCheckmarkIcon } from "@navikt/aksel-icons";
-import { BodyShort, Button, ConfirmationPanel, Heading, Modal } from "@navikt/ds-react";
-import { useState } from "react";
+import { Alert, BodyShort, Button, Heading, Modal } from "@navikt/ds-react";
+import { useEffect, useState } from "react";
 import React from "react";
 
 import { usePdfEditorContext } from "../PdfEditorContext";
@@ -13,10 +13,10 @@ export default function SubmitPdfButton() {
     const [isConfirmedFinishedEditing, setConfirmedFinishedEditing] = useState(false);
     const [error, setError] = useState(false);
     async function _producePdf() {
-        if (!isConfirmedFinishedEditing) {
-            setError(true);
-            return;
-        }
+        // if (!isConfirmedFinishedEditing) {
+        //     setError(true);
+        //     return;
+        // }
         setProducingDocument(true);
 
         await finishPdf().finally(() => {
@@ -24,7 +24,9 @@ export default function SubmitPdfButton() {
             closeModal();
         });
     }
-
+    useEffect(() => {
+        Modal.setAppElement("body");
+    }, []);
     const openModal = () => setModalOpen(true);
     const closeModal = () => {
         setModalOpen(false);
@@ -43,31 +45,34 @@ export default function SubmitPdfButton() {
             </Button>
             {modalOpen && (
                 <Modal open onClose={closeModal} closeButton shouldCloseOnEsc shouldCloseOnOverlayClick>
-                    <Modal.Content>
+                    <Modal.Content className="max-w-[800px]">
                         <Heading spacing size={"large"}>
                             Er du ferdig med å kontrollere dokumentet?
                         </Heading>
                         <BodyShort spacing>
                             Velger du å ferdigstille dokumentet vil redigert dokument lagres og status på dokumentet bli
-                            satt til "KONTROLLERT".
-                            <br /> Dokumentet vil da kunne distribueres.
+                            satt til "KONTROLLERT". Det er mulig å låse opp for redigering senere hvis du ombestemmer
+                            deg.
                         </BodyShort>
-                        <ConfirmationPanel
+                        <Alert variant="warning" size="small" className="w-max">
+                            Før du ferdigstiller er det viktig at du har sett gjennom HELE dokumentet og "slettet"
+                            sensitiv informasjon som mottaker ikke skal ha innsyn på.
+                        </Alert>
+                        {/* <ConfirmationPanel
                             size="small"
                             checked={isConfirmedFinishedEditing}
                             label="Ja, jeg bekrefter at jeg har kontrollert dokumentet."
                             error={error ? "Du må bekrefte før kan ferdigstille" : false}
                             onChange={() => setConfirmedFinishedEditing((x) => !x)}
                         >
-                            Bekreft at du har sett gjennom dokumentet og "slettet" sensitiv informasjon som ikke skal
-                            være med i forsendelsen.
-                        </ConfirmationPanel>
+                            Bekreft at du har sett gjennom dokumentet og "slettet" sensitiv informasjon som mottaker ikke skal ha innsyn på.
+                        </ConfirmationPanel> */}
                         <ProduceDocumentStateIndicator />
                         <div className={"flex flex-row gap-2 pt-2"}>
-                            <Button variant={"primary"} onClick={_producePdf} loading={producingDocument}>
-                                Ferdigstill
+                            <Button size="small" variant={"primary"} onClick={_producePdf} loading={producingDocument}>
+                                Ferdigstill og lukk
                             </Button>
-                            <Button variant={"tertiary"} onClick={closeModal}>
+                            <Button size="small" variant={"tertiary"} onClick={closeModal}>
                                 Avbryt
                             </Button>
                         </div>

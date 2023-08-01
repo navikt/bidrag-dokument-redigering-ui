@@ -1,7 +1,6 @@
 import "./DokumentRedigering.css";
 
 import { useDroppable } from "@dnd-kit/core";
-import { Loader } from "@navikt/ds-react";
 import React, { CSSProperties, useEffect } from "react";
 import { useState } from "react";
 import { useRef } from "react";
@@ -16,6 +15,7 @@ import PdfViewerContextProvider, { usePdfViewerContext } from "../../components/
 import DomUtils from "../../components/utils/DomUtils";
 import { PdfDocumentType } from "../../components/utils/types";
 import RedigeringInfoKnapp from "../../docs/RedigeringInfoKnapp";
+import { LoadingIndicatorSkeletonDocuments } from "../PageWrapper";
 import { usePdfEditorContext } from "./components/PdfEditorContext";
 import Sidebar from "./components/sidebar/Sidebar";
 import EditorToolbar from "./components/toolbar/EditorToolbar";
@@ -70,18 +70,16 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
 
     return (
         <TransformWrapper
-            initialScale={1.6}
+            initialScale={1}
             minScale={1}
             maxScale={10}
-            initialPositionY={-1000}
             centerZoomedOut
             centerOnInit
-            onInit={(ref) => {
-                const currentTransform = ref.state;
-                transformComponentRef.current.setTransform(currentTransform.positionX, 0, currentTransform.scale);
-            }}
+            // onInit={(ref) => {
+            //     const currentTransform = ref.state;
+            //     transformComponentRef.current.setTransform(currentTransform.positionX, 0, currentTransform.scale);
+            // }}
             disablePadding
-            smooth
             limitToBounds
             ref={transformComponentRef}
             doubleClick={{
@@ -89,6 +87,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
             }}
             wheel={{
                 step: 1,
+                smoothStep: 0.01,
                 activationKeys: ["Control"],
             }}
             panning={{
@@ -107,27 +106,25 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
                     setIsLoading(false);
                 }}
             >
-                {isLoading && <Loader variant="inverted" />}
-                <div
-                    className={"editor"}
-                    style={{ visibility: isLoading ? "hidden" : "unset" }}
-                    onClick={hideSidebar}
-                    ref={setNodeRef}
-                >
+                <div className={"editor"} onClick={hideSidebar} ref={setNodeRef}>
                     <EditorToolbar />
                     {/* <FloatingToolbar /> */}
                     <KeyboardShortcuts />
                     <PopoverToolbar />
                     <RedigeringInfoKnapp />
-                    <div className={"pdfviewer"} style={{ display: "flex", flexDirection: "row" }}>
+                    {isLoading && (
+                        <div className={"pdfviewer w-auto m-auto h-[90vh] overflow-y-hidden"}>
+                            <LoadingIndicatorSkeletonDocuments />
+                        </div>
+                    )}
+                    <div
+                        className={"pdfviewer"}
+                        style={{ display: "flex", flexDirection: "row", visibility: isLoading ? "hidden" : "unset" }}
+                    >
                         <Sidebar />
                         <PdfViewer>
                             {pages.map((pageNumber) => (
-                                <PageDecorator
-                                    pageNumber={pageNumber}
-                                    isLoading={isLoading}
-                                    key={"page_decorator_" + pageNumber}
-                                />
+                                <PageDecorator pageNumber={pageNumber} key={"page_decorator_" + pageNumber} />
                             ))}
                         </PdfViewer>
                     </div>
@@ -139,7 +136,6 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
 
 interface IPageDecoratorProps {
     pageNumber: number;
-    isLoading: boolean;
 }
 function PageDecorator({ pageNumber }: IPageDecoratorProps) {
     const id = `droppable_page_${pageNumber}`;

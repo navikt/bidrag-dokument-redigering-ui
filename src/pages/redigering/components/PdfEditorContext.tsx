@@ -41,6 +41,7 @@ export const PdfEditorContext = React.createContext<PdfEditorContextProps>({} as
 export type SaveState = "PENDING" | "ERROR" | "IDLE";
 interface IPdfEditorContextProviderProps {
     mode: PdfEditorMode;
+    submitOnSave?: boolean;
     journalpostId: string;
     dokumentreferanse: string;
     dokumentMetadata?: IDocumentMetadata;
@@ -66,6 +67,7 @@ function PdfEditorContextProviderWithMasking({
     dokumentreferanse,
     dokumentMetadata,
     documentFile,
+    submitOnSave,
     onSave,
     onSaveAndClose,
     onSubmit,
@@ -180,13 +182,25 @@ function PdfEditorContextProviderWithMasking({
     }
 
     async function onSavePdf(closeAfterSave?: boolean): Promise<void> {
-        return savePdf(getEditDocumentMetadata(), closeAfterSave);
+        return savePdf(getEditDocumentMetadata(), closeAfterSave, submitOnSave);
     }
-    async function savePdf(saveEditDocumentData: EditDocumentMetadata, closeAfterSave?: boolean): Promise<void> {
+    async function savePdf(
+        saveEditDocumentData: EditDocumentMetadata,
+        closeAfterSave?: boolean,
+        submit?: boolean
+    ): Promise<void> {
         setIsSavingDocumentConfig(true);
         setLastSavedData(saveEditDocumentData);
-        if (closeAfterSave) await onSaveAndClose?.(saveEditDocumentData);
-        else await onSave?.(saveEditDocumentData);
+        if (closeAfterSave) {
+            if (submit) {
+                const { documentFile } = await getProcessedPdf();
+                await onSubmit(saveEditDocumentData, documentFile)
+                    .then(() => updateSaveState("IDLE"))
+                    .catch(() => updateSaveState("ERROR"));
+            } else {
+                await onSaveAndClose?.(saveEditDocumentData);
+            }
+        } else await onSave?.(saveEditDocumentData);
         setIsSavingDocumentConfig(false);
         return Promise.resolve();
     }

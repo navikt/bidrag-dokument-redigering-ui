@@ -69,22 +69,24 @@ export default function PopoverToolbar() {
                     <div>{currentPageNotIncludingRemoved}</div> <div>av</div> <div>{editedPagesCount}</div>
                 </div>
                 <div className={"divider"}></div>
-                {isEditMode && isEditable && (
+                {isEditable && (
                     <div className={"editor_buttons"}>
-                        <Button
-                            onClick={initAddItem}
-                            size={"small"}
-                            variant={"tertiary-neutral"}
-                            icon={<EraserIcon />}
-                            iconPosition={"left"}
-                            title="Ny maskering"
-                        >
-                            Masker
-                        </Button>
+                        {isEditMode && (
+                            <Button
+                                onClick={initAddItem}
+                                size={"small"}
+                                variant={"tertiary-neutral"}
+                                icon={<EraserIcon />}
+                                iconPosition={"left"}
+                                title="Ny maskering"
+                            >
+                                Masker
+                            </Button>
+                        )}
 
                         <Button
                             onClick={() => {
-                                toggleDeletedPage(currentPage);
+                                toggleDeletedPage(currentPageNotIncludingRemoved);
                             }}
                             size={"small"}
                             variant={"tertiary-neutral"}
@@ -92,9 +94,9 @@ export default function PopoverToolbar() {
                             iconPosition={"left"}
                             title="Fjern side"
                         >
-                            Fjern side
+                            Fjern side {currentPageNotIncludingRemoved}
                         </Button>
-                        <UndoRedoButtons />
+                        {isEditMode && <UndoRedoButtons />}
                     </div>
                 )}
             </div>

@@ -9,12 +9,7 @@ import React from "react";
 import { useEffect } from "react";
 import { PropsWithChildren } from "react";
 import { useState } from "react";
-import {
-    ReactZoomPanPinchContext,
-    TransformComponent,
-    useTransformEffect,
-    useTransformInit,
-} from "react-zoom-pan-pinch";
+import { TransformComponent, useTransformContext, useTransformEffect } from "react-zoom-pan-pinch";
 
 import { createArrayWithLength, removeDuplicates } from "../utils/ObjectUtils";
 import { TimerUtils } from "../utils/TimerUtils";
@@ -40,7 +35,6 @@ interface PdfDocumentProps extends PropsWithChildren<unknown> {
     id: string;
     file: PdfDocumentType;
     documentRef?: MutableRefObject<PdfDocumentRef>;
-    renderText?: boolean;
     zoom?: boolean;
     scale?: number;
     overscanCount?: number;
@@ -62,7 +56,6 @@ export default function PdfDocument({
     children,
     onScroll,
     scale,
-    renderText = true,
 }: PropsWithChildren<PdfDocumentProps>) {
     const divRef = useRef<HTMLDivElement>(null);
     const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy>();
@@ -227,7 +220,7 @@ export default function PdfDocument({
     }
 
     function initEventListeners() {
-        getScrollElement().addEventListener("scroll", () => onScrollHandlerThrottler.current());
+        getScrollElement()?.addEventListener("scroll", () => onScrollHandlerThrottler.current());
     }
 
     function isUserScrolling() {
@@ -257,7 +250,7 @@ export default function PdfDocument({
     }
 
     return (
-        <PdfDocumentContext.Provider value={{ renderPageIndexes, pdfDocument, scale: currentScale, renderText }}>
+        <PdfDocumentContext.Provider value={{ renderPageIndexes, pdfDocument, scale: currentScale }}>
             <div ref={divRef} id={`container_${id}`} className={"pdfrenderer_container"}>
                 {renderPdfViewer()}
             </div>
@@ -279,51 +272,66 @@ function PdfDocumentZoom({
 }: PropsWithChildren<PdfDocumentZoomProps>) {
     const positionY = useRef(0);
     const onMouseWheelHandlerThrottler = useRef(TimerUtils.throttleByAnimation(onMouseWheelHandler));
-    const transformerRef = useRef<ReactZoomPanPinchContext>();
-    useTransformInit((props) => {
-        transformerRef.current = props.instance;
-    });
+    const { contentComponent, getContext, setTransformState } = useTransformContext();
     useTransformEffect(({ state, instance }) => {
         containerRef.current?.style.setProperty("--scale-factor", state.scale.toString());
         onScaleUpdated(state.scale);
-        positionY.current = state.positionY;
-        if (state.scale == 1) {
-            const transformContainer = transformerRef.current.contentComponent;
-            delete transformContainer.style.translate;
-        }
+        // positionY.current = state.positionY;
+        // if (state.scale == 1) {
+        //     const transformContainer = contentComponent;
+        //     delete transformContainer.style.translate;
+        // }
     });
 
     function onMouseWheelHandler(e: React.MouseEvent) {
         if (!containerRef.current) return;
         if (e.ctrlKey || e.shiftKey || e.altKey) return;
-        const transformContainer = transformerRef.current.contentComponent;
-        const currentScrollHeight = containerRef.current.firstElementChild.scrollTop;
-        const transformRect = transformContainer.getBoundingClientRect();
-        if (transformerRef.current.transformState.scale == 1) {
-            delete transformContainer.style.translate;
-        } else if (currentScrollHeight == 0 && transformRect.y != 0) {
-            if (transformContainer.style.translate) {
-                const translationY = parseInt(
-                    transformContainer.style.translate?.split(" ")[1]?.replace("px", "") ?? "0"
-                );
-
-                //@ts-ignore
-                const delta = e.deltaY;
-                const newValue =
-                    -1 *
-                    Math.sign(positionY.current) *
-                    Math.min(Math.abs(translationY + delta), Math.abs(positionY.current));
-                transformContainer.style.translate = `0 ${-newValue}px`;
-            } else {
-                transformContainer.style.translate = `0 ${transformRect.y + 10}px`;
-            }
+        const state = getContext().state;
+        const boundingRect = containerRef.current.firstElementChild.getBoundingClientRect();
+        const translationY = state.positionY;
+        //@ts-ignore
+        const delta = e.deltaY;
+        const currentScrollHeight = Math.abs(boundingRect.height - boundingRect.bottom) - 100;
+        console.log("Delta Y", delta, currentScrollHeight, translationY);
+        const isScrollingUp = delta < 0;
+        if (currentScrollHeight == 0 && translationY < 0 && isScrollingUp) {
+            const newValue = translationY - delta * 0.5;
+            setTransformState(state.scale, state.positionX, newValue);
         }
     }
 
-    useEffect(() => {
-        // console.log(getScrollElement());
-        // getScrollElement()?.addEventListener("wheel", (e) => onMouseWheelHandlerThrottler.current(e));
-    }, []);
+    function onMouseWheelHandler2(e: React.MouseEvent) {
+        // if (!containerRef.current) return;
+        // if (e.ctrlKey || e.shiftKey || e.altKey) return;
+        // const transformContainer = transformerRef.current.contentComponent;
+        // const currentScrollHeight = containerRef.current.firstElementChild.scrollTop;
+        // const transformRect = transformContainer.getBoundingClientRect();
+        // if (transformerRef.current.transformState.scale == 1) {
+        //     delete transformContainer.style.translate;
+        // } else if (currentScrollHeight == 0 && transformRect.y != 0) {
+        //     if (transformContainer.style.translate) {
+        //         const translationY = parseInt(
+        //             transformContainer.style.translate?.split(" ")[1]?.replace("px", "") ?? "0"
+        //         );
+        //         //@ts-ignore
+        //         const delta = e.deltaY;
+        //         const newValue =
+        //             -1 *
+        //             Math.sign(positionY.current) *
+        //             Math.min(Math.abs(translationY + delta), Math.abs(positionY.current));
+        //         transformContainer.style.translate = `0 ${-newValue}px`;
+        //     } else {
+        //         transformContainer.style.translate = `0 ${transformRect.y + 10}px`;
+        //     }
+        // }
+    }
+
+    // useEffect(() => {
+    //     // console.log(getScrollElement());
+    //     const scrollElement = getScrollElement();
+    //     scrollElement?.addEventListener("wheel", (e) => onMouseWheelHandlerThrottler.current(e));
+    //     return () => scrollElement?.removeEventListener("wheel", (e) => onMouseWheelHandlerThrottler.current(e));
+    // }, []);
 
     return (
         <TransformComponent contentClass="pdfViewer-content" wrapperClass="pdfViewer-wrapper">

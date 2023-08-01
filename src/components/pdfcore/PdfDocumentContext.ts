@@ -8,7 +8,6 @@ export interface PdfDocumentContextProps {
     renderPageIndexes: number[];
     onPageLoaded?: (pageNumber: number, page: PDFPageProxy) => void;
     scale: number;
-    renderText: boolean;
     pdfEventBus?: React.MutableRefObject<EventBus>;
     pdfViewerRef?: React.MutableRefObject<PDFViewer>;
 }

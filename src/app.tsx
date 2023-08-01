@@ -13,6 +13,7 @@ export default function App() {
         <React.StrictMode>
             <BrowserRouter>
                 <Routes>
+                    <Route path="/rediger/" element={<DokumentRedigeringPageWrapper />} />
                     <Route path="/rediger/:journalpostId" element={<DokumentRedigeringPageWrapper />} />
                     <Route
                         path="/rediger/:journalpostId/:dokumentreferanse"

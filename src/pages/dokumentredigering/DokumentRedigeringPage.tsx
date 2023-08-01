@@ -8,7 +8,6 @@ import { Loader } from "@navikt/ds-react";
 import React from "react";
 
 import { lastDokumenter } from "../../api/queries";
-import LoadingIndicator from "../../components/LoadingIndicator";
 import { EditDocumentMetadata } from "../../types/EditorTypes";
 import PageWrapper from "../PageWrapper";
 import PdfEditorContextProvider from "../redigering/components/PdfEditorContext";
@@ -35,23 +34,20 @@ export default function DokumentRedigeringPage(props: DokumentRedigeringPageProp
 function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumenter }: DokumentRedigeringPageProps) {
     const { data: documentFile, isLoading } = lastDokumenter(journalpostId, dokumentreferanse, dokumenter, true, false);
 
-    if (isLoading) {
-        return <LoadingIndicator title="Laster dokument..." />;
-    }
-
     if (!isLoading && !documentFile) {
         return <div>Det skjedde en feil ved lasting av dokument</div>;
     }
     function broadcast(document: Uint8Array, config: EditDocumentMetadata) {
         const params = queryParams();
         const message: BroadcastMessage<EditDocumentBroadcastMessage> = Broadcast.convertToBroadcastMessage(params.id, {
+            document: FileUtils._arrayBufferToBase64(document),
             documentFile: FileUtils._arrayBufferToBase64(document),
             config: JSON.stringify(config),
         });
         Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
     }
-    function broadcastAndCloseWindow(config: EditDocumentMetadata, document: Uint8Array) {
-        broadcast(document, config);
+    async function broadcastAndCloseWindow(config: EditDocumentMetadata, document: Uint8Array) {
+        await broadcast(document, config);
         window.close();
     }
 
@@ -61,6 +57,7 @@ function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumen
             journalpostId={journalpostId}
             dokumentreferanse={dokumentreferanse}
             documentFile={documentFile}
+            submitOnSave
             onSubmit={broadcastAndCloseWindow}
         >
             <DokumentRedigering documentFile={documentFile} />

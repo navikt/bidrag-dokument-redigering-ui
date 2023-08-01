@@ -19,7 +19,7 @@ export default function ProduceDocumentStateIndicator() {
 
     const progress = Math.min(100, produceAndSaveProgress.progress ?? 0);
     return (
-        <BodyLong className="w-full p-2">
+        <BodyLong className="w-2/3 p-2">
             <BodyShort>{renderText()}</BodyShort>
             <div className="w-full bg-gray-200 rounded-full h-1.5 mb-4 dark:bg-gray-400 mt-2">
                 <div

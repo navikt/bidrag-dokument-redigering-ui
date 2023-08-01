@@ -41,13 +41,14 @@ export default function UnlockPdfButton() {
                         </BodyShort>
                         <div className={"flex flex-row gap-2 pt-2"}>
                             <Button
+                                size="small"
                                 variant={"primary"}
                                 onClick={unlockDocument}
                                 loading={opphevFerdigstillFn.isLoading}
                             >
                                 Lås opp for redigering
                             </Button>
-                            <Button variant={"tertiary"} onClick={closeModal}>
+                            <Button size="small" variant={"tertiary"} onClick={closeModal}>
                                 Avbryt
                             </Button>
                         </div>

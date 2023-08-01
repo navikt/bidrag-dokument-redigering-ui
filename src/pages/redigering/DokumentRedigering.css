@@ -30,3 +30,6 @@ body {
   display: flex;
   flex-direction: column;
 }
+.navds-skeleton {
+  background-color: var(--a-gray-500);
+}

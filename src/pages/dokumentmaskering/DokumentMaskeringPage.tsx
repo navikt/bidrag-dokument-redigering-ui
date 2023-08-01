@@ -8,7 +8,6 @@ import { Alert, Heading } from "@navikt/ds-react";
 import React, { useEffect } from "react";
 
 import { lastDokumenter, RedigeringQueries } from "../../api/queries";
-import LoadingIndicator from "../../components/LoadingIndicator";
 import { uint8ToBase64 } from "../../components/utils/DocumentUtils";
 import environment from "../../environment";
 import { EditDocumentMetadata } from "../../types/EditorTypes";
@@ -44,10 +43,6 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
         window.addEventListener("beforeunload", onWindowClose);
         return () => window.removeEventListener("beforeunload", onWindowClose);
     }, []);
-
-    if (isFetching) {
-        return <LoadingIndicator title="Laster dokumentet..." />;
-    }
 
     if (!isFetching && !documentFile) {
         return (

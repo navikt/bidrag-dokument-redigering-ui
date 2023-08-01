@@ -67,7 +67,6 @@ export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
                 file={documentFile}
                 documentRef={documentRef}
                 overscanCount={10}
-                renderText={false}
                 onDocumentLoaded={_onDocumentLoaded}
             >
                 <div>
@@ -120,7 +119,7 @@ function PageSection({ title, pageRange, index }: IPageSectionProps) {
                         size={"small"}
                         className={"checkbox"}
                     >
-                        <Heading size={"xsmall"} style={{ color: "white" }} className={"ml-2 page-section-title"}>
+                        <Heading size={"xsmall"} style={{ color: "white" }} className={"ml-2 page-section-title w-max"}>
                             {title}
                         </Heading>
                     </Checkbox>

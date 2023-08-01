@@ -12,7 +12,6 @@ export default function PdfViewer({ children }: PropsWithChildren<unknown>) {
             documentRef={dokumentRef}
             scale={scale}
             overscanCount={10}
-            renderText={false}
             onPageChange={onPageChange}
             onDocumentLoaded={(pagesCount: number, pages: number[]) => {
                 onDocumentLoaded(pagesCount, pages);

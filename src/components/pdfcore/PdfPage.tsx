@@ -28,7 +28,6 @@ const PdfPageMemo = React.memo(
         renderPageIndexes,
         scale,
         children,
-        renderText,
         pageNumber,
         style,
         index,

@@ -110,19 +110,20 @@ function FloatingToolbarContainer() {
                     {currentPageNotIncludingRemoved} av {editedPagesCount}
                 </div>
                 <div className={"divider"}></div>
-                {isEditMode && isEditable && (
+                {isEditable && (
                     <div className={"editor_buttons"}>
-                        <Button
-                            // onClick={() => initAddItem(currentPage, scale, currentPageNotIncludingRemoved)}
-                            onClick={initAddItem}
-                            size={"small"}
-                            variant={"tertiary-neutral"}
-                            icon={<EraserIcon />}
-                            iconPosition={"left"}
-                        >
-                            Masker
-                        </Button>
-
+                        {isEditMode && (
+                            <Button
+                                // onClick={() => initAddItem(currentPage, scale, currentPageNotIncludingRemoved)}
+                                onClick={initAddItem}
+                                size={"small"}
+                                variant={"tertiary-neutral"}
+                                icon={<EraserIcon />}
+                                iconPosition={"left"}
+                            >
+                                Masker
+                            </Button>
+                        )}
                         <Button
                             onClick={() => {
                                 toggleDeletedPage(currentPage);
@@ -134,7 +135,7 @@ function FloatingToolbarContainer() {
                         >
                             Fjern side
                         </Button>
-                        <UndoRedoButtons />
+                        {isEditMode && <UndoRedoButtons />})
                     </div>
                 )}
             </div>

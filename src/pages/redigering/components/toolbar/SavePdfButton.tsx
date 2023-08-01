@@ -40,10 +40,10 @@ export default function SavePdfButton() {
                         </Heading>
                         <BodyShort>Er du sikker på at du vil avslutte redigering?</BodyShort>
                         <div className={"flex flex-row gap-2 pt-2"}>
-                            <Button variant={"primary"} onClick={_producePdf} loading={savingDocument}>
+                            <Button size="small" variant={"primary"} onClick={_producePdf} loading={savingDocument}>
                                 Lagre og lukk
                             </Button>
-                            <Button variant={"tertiary"} onClick={closeModal}>
+                            <Button size="small" variant={"tertiary"} onClick={closeModal}>
                                 Avbryt
                             </Button>
                         </div>
