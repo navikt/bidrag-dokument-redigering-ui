@@ -12,6 +12,7 @@ export default function SubmitPdfButton() {
     const [modalOpen, setModalOpen] = useState(false);
     const [isConfirmedFinishedEditing, setConfirmedFinishedEditing] = useState(false);
     const [error, setError] = useState(false);
+    const [submitError, setSubmitError] = useState<string>();
     async function _producePdf() {
         // if (!isConfirmedFinishedEditing) {
         //     setError(true);
@@ -19,10 +20,18 @@ export default function SubmitPdfButton() {
         // }
         setProducingDocument(true);
 
-        await finishPdf().finally(() => {
-            setProducingDocument(false);
-            closeModal();
-        });
+        await finishPdf()
+            .finally(() => {
+                setProducingDocument(false);
+            })
+            .then(closeModal)
+            .catch((error) => {
+                if (typeof error == "string") {
+                    setSubmitError(error ?? "ukjent feil");
+                } else {
+                    setSubmitError(error?.message ?? "ukjent feil");
+                }
+            });
     }
     useEffect(() => {
         Modal.setAppElement("body");
@@ -68,6 +77,13 @@ export default function SubmitPdfButton() {
                             Bekreft at du har sett gjennom dokumentet og "slettet" sensitiv informasjon som mottaker ikke skal ha innsyn på.
                         </ConfirmationPanel> */}
                         <ProduceDocumentStateIndicator />
+                        {submitError && (
+                            <Alert
+                                variant="error"
+                                size="small"
+                                className="mt-3 mb-3"
+                            >{`Kunne ikke ferdigstille dokument: ${submitError}`}</Alert>
+                        )}
                         <div className={"flex flex-row gap-2 pt-2"}>
                             <Button size="small" variant={"primary"} onClick={_producePdf} loading={producingDocument}>
                                 Ferdigstill og lukk

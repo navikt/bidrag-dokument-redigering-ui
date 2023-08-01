@@ -26,14 +26,14 @@ export default function DocumentStateIndicator() {
         } else if (produceAndSaveProgress.state == "ERROR") {
             return (
                 <>
-                    <XMarkOctagonIcon color={"white"} />
-                    <Heading size={"xsmall"}>Kunne ikke lagre</Heading>
+                    <XMarkOctagonIcon color="white" />
+                    <Heading size={"xsmall"}>Lagring feilet :/</Heading>
                 </>
             );
         }
         return (
             <>
-                <CheckmarkCircleFillIcon color={"white"} />
+                <CheckmarkCircleFillIcon color="white" />
                 <Heading size={"xsmall"}>Lagret</Heading>{" "}
             </>
         );

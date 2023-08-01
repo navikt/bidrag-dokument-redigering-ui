@@ -6,7 +6,7 @@ import { usePdfEditorContext } from "../PdfEditorContext";
 export default function ProduceDocumentStateIndicator() {
     const { produceAndSaveProgress } = usePdfEditorContext();
 
-    if (produceAndSaveProgress.state == "IDLE") {
+    if (produceAndSaveProgress.state == "IDLE" || produceAndSaveProgress.state == "ERROR") {
         return null;
     }
     function renderText() {

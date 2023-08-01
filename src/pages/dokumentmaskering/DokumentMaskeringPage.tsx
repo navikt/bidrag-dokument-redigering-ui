@@ -5,12 +5,14 @@ import { Broadcast } from "@navikt/bidrag-ui-common";
 import { FileUtils } from "@navikt/bidrag-ui-common";
 import { BroadcastNames } from "@navikt/bidrag-ui-common";
 import { Alert, Heading } from "@navikt/ds-react";
+import { AxiosError } from "axios";
 import React, { useEffect } from "react";
 
 import { lastDokumenter, RedigeringQueries } from "../../api/queries";
 import { uint8ToBase64 } from "../../components/utils/DocumentUtils";
 import environment from "../../environment";
 import { EditDocumentMetadata } from "../../types/EditorTypes";
+import { parseErrorMessageFromAxiosError } from "../../types/ErrorUtils";
 import PageWrapper from "../PageWrapper";
 import PdfEditorContextProvider, { PdfEditorMode } from "../redigering/components/PdfEditorContext";
 import DokumentRedigering from "../redigering/DokumentRedigering";
@@ -73,7 +75,9 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
         return new Promise<any>((resolve, reject) => {
             lagreEndringerFn.mutate(config, {
                 onSuccess: resolve,
-                onError: reject,
+                onError: (error: AxiosError) => {
+                    reject(parseErrorMessageFromAxiosError(error));
+                },
             });
         });
     }
@@ -93,7 +97,9 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
                         resolve();
                         broadcastAndCloseWindow(config, fysiskDokument);
                     },
-                    onError: reject,
+                    onError: (error: AxiosError) => {
+                        reject(parseErrorMessageFromAxiosError(error));
+                    },
                 }
             );
         });

@@ -35,7 +35,9 @@ export default class StateHistory<T> extends Record(DEFAULTS<T>()) {
     get canRedo() {
         return !this.redos.isEmpty();
     }
-
+    get stack(): List<T> {
+        return this.undos;
+    }
     /**
      * @return {Any?} the previous state
      */
@@ -73,7 +75,7 @@ export default class StateHistory<T> extends Record(DEFAULTS<T>()) {
      */
     undo(current: T) {
         this.currentValue = current;
-        if (!this.canUndo) return this;
+        if (this.undos.isEmpty()) return this;
 
         const newHistory = this.merge({
             undos: this.undos.pop(),

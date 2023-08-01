@@ -90,6 +90,7 @@ function PdfEditorContextProviderWithMasking({
     useEffect(() => {
         const hasChanged = !objectsDeepEqual(history.current, getEditDocumentMetadata());
         if (!isUndoRedoChange.current && hasChanged) {
+            console.log("add", getEditDocumentMetadata(), history.stack);
             setHistory((prevHistory) => prevHistory.push(getEditDocumentMetadata()));
         }
         isUndoRedoChange.current = false;
@@ -110,18 +111,22 @@ function PdfEditorContextProviderWithMasking({
     }
     function onSaveChanges(editDocumentMetadata: EditDocumentMetadata) {
         updateSaveState("SAVING_METADATA");
-        savePdf(editDocumentMetadata)
+        return savePdf(editDocumentMetadata)
             .then(() => updateSaveState("IDLE"))
-            .catch(() => {
+            .catch((e) => {
                 updateSaveState("ERROR");
+                throw e;
             });
     }
 
     function undoState() {
         if (history.canUndo) {
-            initItems(history.previous.items);
-            setRemovedPages(history.previous.removedPages);
-            setHistory(history.undo(getEditDocumentMetadata()));
+            console.log("prev items", history.previous.items, history.stack);
+            const undoBefore = history.canRedo;
+            const _history = undoBefore ? history.undo(getEditDocumentMetadata()) : history;
+            initItems(_history.previous.items);
+            setRemovedPages(_history.previous.removedPages);
+            setHistory(undoBefore ? _history : history.undo(getEditDocumentMetadata()));
             isUndoRedoChange.current = true;
         }
     }
@@ -145,9 +150,12 @@ function PdfEditorContextProviderWithMasking({
         if (!onSubmit) return;
         const { documentFile, config } = await getProcessedPdf();
         updateSaveState("SAVING_DOCUMENT");
-        await onSubmit(config, documentFile)
+        return await onSubmit(config, documentFile)
             .then(() => updateSaveState("IDLE"))
-            .catch(() => updateSaveState("ERROR"));
+            .catch((e) => {
+                updateSaveState("ERROR");
+                throw e;
+            });
     }
 
     function onProducePdfProgressUpdated(process: IProducerProgress) {
@@ -191,18 +199,19 @@ function PdfEditorContextProviderWithMasking({
     ): Promise<void> {
         setIsSavingDocumentConfig(true);
         setLastSavedData(saveEditDocumentData);
-        if (closeAfterSave) {
-            if (submit) {
-                const { documentFile } = await getProcessedPdf();
-                await onSubmit(saveEditDocumentData, documentFile)
-                    .then(() => updateSaveState("IDLE"))
-                    .catch(() => updateSaveState("ERROR"));
+        return new Promise<void>((resolve, reject) => {
+            if (closeAfterSave) {
+                if (submit) {
+                    finishPdf().then(resolve).catch(reject);
+                } else {
+                    onSaveAndClose?.(saveEditDocumentData).then(resolve).catch(reject);
+                }
             } else {
-                await onSaveAndClose?.(saveEditDocumentData);
+                onSave?.(saveEditDocumentData).then(resolve).catch(reject);
             }
-        } else await onSave?.(saveEditDocumentData);
-        setIsSavingDocumentConfig(false);
-        return Promise.resolve();
+        }).finally(() => {
+            setIsSavingDocumentConfig(false);
+        });
     }
 
     function getInitialRemovedPages(): number[] {
