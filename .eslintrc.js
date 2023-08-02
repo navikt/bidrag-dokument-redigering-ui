@@ -8,6 +8,10 @@ module.exports = {
         },
     },
     settings: {
+        "mdx/code-blocks": true,
+        // optional, if you want to disable language mapper, set it to `false`
+        // if you want to override the default language mapper inside, you can provide your own
+        "mdx/language-mapper": {},
         react: {
             version: "detect", // Tells eslint-plugin-react to automatically detect the version of React to use
         },
@@ -16,6 +20,7 @@ module.exports = {
     plugins: ["@typescript-eslint", "prettier", "json-format", "simple-import-sort", "unused-imports"],
     extends: [
         "eslint:recommended",
+        "plugin:mdx/recommended",
         "plugin:@typescript-eslint/eslint-recommended",
         "plugin:@typescript-eslint/recommended",
         "plugin:prettier/recommended",

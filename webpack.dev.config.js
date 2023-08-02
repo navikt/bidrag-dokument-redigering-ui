@@ -7,7 +7,7 @@ const ReactRefreshWebpackPlugin = require("@pmmmwh/react-refresh-webpack-plugin"
 
 module.exports = merge(webpackCommon, {
     mode: "development",
-    devtool: "eval-source-map",
+    devtool: "source-map",
     devServer: {
         historyApiFallback: true,
         devMiddleware: {

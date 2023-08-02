@@ -1,0 +1,45 @@
+.floating-toolbar {
+  position: absolute;
+  background-color: white;
+  z-index: 1000;
+  border: 1px solid black;
+}
+.floating-toolbar .handle {
+  align-self: center;
+}
+.floating-toolbar .handle:focus {
+  box-shadow: none;
+}
+
+.floating-toolbar .buttons_row {
+  padding: 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+}
+
+.floating-toolbar .buttons_row button:focus {
+  box-shadow: none;
+}
+.floating-toolbar .buttons_row .undo_redo_buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  align-items: center;
+
+}
+.floating-toolbar .buttons_row .editor_buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+
+}
+
+
+.floating-toolbar .divider {
+  width: 100%;
+  margin-bottom: 5px;
+  border-bottom: 2px solid var(--a-border-on-inverted);
+}

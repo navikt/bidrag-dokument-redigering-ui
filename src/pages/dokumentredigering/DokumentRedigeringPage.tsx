@@ -1,11 +1,17 @@
+import { queryParams } from "@navikt/bidrag-ui-common";
+import { BroadcastMessage } from "@navikt/bidrag-ui-common";
+import { EditDocumentBroadcastMessage } from "@navikt/bidrag-ui-common";
+import { Broadcast } from "@navikt/bidrag-ui-common";
+import { FileUtils } from "@navikt/bidrag-ui-common";
+import { BroadcastNames } from "@navikt/bidrag-ui-common";
+import { Loader } from "@navikt/ds-react";
 import React from "react";
-import { useEffect, useState } from "react";
 
-import LoadingIndicator from "../../components/LoadingIndicator";
-import { PdfDocumentType } from "../../components/pdfview/types";
-import DokumentService from "../../service/DokumentService";
+import { lastDokumenter } from "../../api/queries";
+import { EditDocumentMetadata } from "../../types/EditorTypes";
 import PageWrapper from "../PageWrapper";
-import DokumentRedigeringContainer from "./DokumentRedigeringContainer";
+import PdfEditorContextProvider from "../redigering/components/PdfEditorContext";
+import DokumentRedigering from "../redigering/DokumentRedigering";
 
 const url = "http://localhost:5173/test4.pdf";
 
@@ -15,54 +21,47 @@ interface DokumentRedigeringPageProps {
     dokumenter?: string[];
 }
 
-export default function DokumentRedigeringPage({
-    journalpostId,
-    dokumentreferanse,
-    dokumenter,
-}: DokumentRedigeringPageProps) {
-    const [isLoading, setIsLoading] = useState(true);
-
-    const [document, setDocument] = useState<PdfDocumentType>();
-    useEffect(() => {
-        lastDokument();
-    }, []);
-
-    async function lastDokument() {
-        if (dokumenter && dokumenter.length > 0) {
-            await new DokumentService()
-                .getDokumenter(dokumenter, true, false)
-                .then((doc) => (doc instanceof Blob ? doc.arrayBuffer() : doc))
-                .then(setDocument)
-                .finally(() => setIsLoading(false));
-        } else if (journalpostId) {
-            await new DokumentService()
-                .getDokument(journalpostId, dokumentreferanse, true, false)
-                .then((doc) => (doc instanceof Blob ? doc.arrayBuffer() : doc))
-                .then(setDocument)
-                .finally(() => setIsLoading(false));
-        }
-    }
-
+export default function DokumentRedigeringPage(props: DokumentRedigeringPageProps) {
     return (
         <PageWrapper name={"dokumentredigering"}>
-            <DokumentRedigering isLoading={isLoading} isError={!isLoading && !document} document={document} />
+            <React.Suspense fallback={<Loader size="large"></Loader>}>
+                <DokumentRedigeringContainer {...props} />
+            </React.Suspense>
         </PageWrapper>
     );
 }
 
-interface DokumentRedigeringProps {
-    document: PdfDocumentType;
-    isLoading: boolean;
-    isError: boolean;
-}
-function DokumentRedigering({ isLoading, isError, document }: DokumentRedigeringProps) {
-    if (isLoading) {
-        return <LoadingIndicator title="Laster dokument..." />;
-    }
+function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumenter }: DokumentRedigeringPageProps) {
+    const { data: documentFile, isLoading } = lastDokumenter(journalpostId, dokumentreferanse, dokumenter, true, false);
 
-    if (isError) {
+    if (!isLoading && !documentFile) {
         return <div>Det skjedde en feil ved lasting av dokument</div>;
     }
+    function broadcast(document: Uint8Array, config: EditDocumentMetadata) {
+        const params = queryParams();
+        const message: BroadcastMessage<EditDocumentBroadcastMessage> = Broadcast.convertToBroadcastMessage(params.id, {
+            document: FileUtils._arrayBufferToBase64(document),
+            documentFile: FileUtils._arrayBufferToBase64(document),
+            config: JSON.stringify(config),
+        });
+        Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
+    }
+    async function broadcastAndCloseWindow(config: EditDocumentMetadata, document: Uint8Array) {
+        await broadcast(document, config);
+        window.close();
+        return true;
+    }
 
-    return <DokumentRedigeringContainer document={document} />;
+    return (
+        <PdfEditorContextProvider
+            mode={"remove_pages_only"}
+            journalpostId={journalpostId}
+            dokumentreferanse={dokumentreferanse}
+            documentFile={documentFile}
+            submitOnSave
+            onSubmit={broadcastAndCloseWindow}
+        >
+            <DokumentRedigering documentFile={documentFile} />
+        </PdfEditorContextProvider>
+    );
 }

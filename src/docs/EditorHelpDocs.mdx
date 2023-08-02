@@ -1,0 +1,27 @@
+
+export const KeyboardShortcutLine = (props) => {
+    return <div className="keyboard-shortcut-line">
+            <div>{props.label}</div>
+            <div className="keyboard-shortcut-container"> 
+                <div className="flex flex-row gap-2 items-center">{props.children}</div>
+            </div>
+        </div> 
+}
+ 
+<Heading size="medium" className="border-solid border-gray-300 border-b-2 mb-4 mt-2" spacing>Hjelp dokumentredigering</Heading>
+
+<Heading spacing size="small">Tastatursnarveier</Heading>
+
+<div>
+    <div className="w-max">
+        <div className="rounded-md border-solid border-gray-300 border-2"> 
+            <KeyboardShortcutLine label="Flytt dokument"><kbd>Space</kbd> <kbd>Dra</kbd> eller <kbd>Shift</kbd> <kbd>Dra</kbd></KeyboardShortcutLine>
+            <KeyboardShortcutLine label="Slett maskering"><kbd>Klikk</kbd><kbd>Delete</kbd></KeyboardShortcutLine>
+            <KeyboardShortcutLine label="Dupliser maskering"><kbd>Klikk</kbd> <kbd>Control</kbd> <kbd>D</kbd></KeyboardShortcutLine>
+            <KeyboardShortcutLine label="Zoom inn / Zoom ut"><kbd>Ctrl</kbd> <kbd>Hjul</kbd></KeyboardShortcutLine>
+            <KeyboardShortcutLine label="Legg til ny maskering"><kbd>Ctrl</kbd> <kbd>Klikk og Hold</kbd> <kbd>Dra</kbd> <kbd>Slipp</kbd></KeyboardShortcutLine>
+            <KeyboardShortcutLine label="Angre"><kbd>Ctrl</kbd> <kbd>Z</kbd></KeyboardShortcutLine>
+            <KeyboardShortcutLine label="Gjør om"><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></KeyboardShortcutLine>
+        </div> 
+    </div>    
+</div>

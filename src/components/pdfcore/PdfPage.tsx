@@ -1,45 +1,40 @@
-import {
-    DefaultAnnotationLayerFactory,
-    DefaultStructTreeLayerFactory,
-    DefaultTextLayerFactory,
-    DefaultXfaLayerFactory,
-    EventBus,
-    PDFPageView,
-} from "pdfjs-dist/web/pdf_viewer";
-import React, { CSSProperties, useEffect, useRef, useState } from "react";
+import { RenderTask } from "pdfjs-dist";
+import { PDFPageProxy } from "pdfjs-dist/types/web/pdf_viewer";
+import React, { CSSProperties, MutableRefObject, PropsWithChildren, useEffect, useRef, useState } from "react";
 
 import { PdfDocumentContextProps, usePdfDocumentContext } from "./PdfDocumentContext";
+export type PageRenderedFn = (containerElement: HTMLDivElement) => void;
 
 interface PdfPageProps {
-    pageRendered?: () => void;
+    pageRendered?: PageRenderedFn;
+    pageDestroyed?: () => void;
     pageNumber: number;
     index: number;
     onPageClicked?: (pageNumber: number) => void;
     style?: CSSProperties;
+    pageRef?: MutableRefObject<HTMLDivElement>;
 }
 
-const PdfPage = (props: PdfPageProps) => {
+const PdfPage = (props: PropsWithChildren<PdfPageProps>) => {
     const contextProps = usePdfDocumentContext();
 
     return <PdfPageMemo {...props} {...contextProps} />;
 };
 
 type PdfPageMemoProps = PdfPageProps & PdfDocumentContextProps;
-
 const PdfPageMemo = React.memo(
     ({
         pdfDocument,
         renderPageIndexes,
         scale,
-        renderText,
+        children,
         pageNumber,
-        pageRendered,
         style,
         index,
-    }: PdfPageMemoProps) => {
+    }: PropsWithChildren<PdfPageMemoProps>) => {
         const [renderedPageNumber, setRenderedPageNumber] = useState(pageNumber);
+        const [pageObject, setPageObject] = useState<PDFPageProxy>();
         const divRef = useRef<HTMLDivElement>(null);
-        const pdfPageViewRef = useRef<PDFPageView>();
         const isDrawed = useRef<boolean>(false);
         const isPageRenderStarted = useRef<boolean>(false);
 
@@ -49,77 +44,142 @@ const PdfPageMemo = React.memo(
             }
             if (pdfDocument && !isPageRenderStarted.current) {
                 isPageRenderStarted.current = true;
-                renderPage()
-                    .then(pageRendered)
-                    .then(() => drawOrDestroyPage(renderPageIndexes))
-                    .catch(console.error);
+                renderPage().catch(console.error);
             }
 
             setRenderedPageNumber(pageNumber);
         }, [pdfDocument, pageNumber]);
 
-        useEffect(() => {
-            drawOrDestroyPage(renderPageIndexes);
-        }, [renderPageIndexes]);
-
-        useEffect(() => {
-            if (pdfPageViewRef.current) {
-                pdfPageViewRef.current.update({ scale });
-            }
-        }, [scale]);
-
         function hasPageNumberChanged() {
-            return renderedPageNumber != pageNumber && pdfPageViewRef.current;
+            return renderedPageNumber != pageNumber && isDrawed.current;
         }
 
-        function drawOrDestroyPage(renderPageIndexes: number[]) {
-            if (pdfPageViewRef.current) {
-                if (shouldRenderPage(renderPageIndexes) && !isDrawed.current) {
-                    pdfPageViewRef.current.draw();
-                    isDrawed.current = true;
-                } else if (!shouldRenderPage(renderPageIndexes) && isDrawed.current) {
-                    setTimeout(() => {
-                        pdfPageViewRef.current?.destroy();
-                    }, 100);
-                    isDrawed.current = false;
-                }
-            }
-        }
         function shouldRenderPage(renderPageIndexes: number[]) {
             return renderPageIndexes.includes(index);
         }
 
         function renderPage() {
+            isDrawed.current = false;
             return pdfDocument.getPage(pageNumber).then((page) => {
-                const eventBus = new EventBus();
-                // @ts-ignore
-                pdfPageViewRef.current = new PDFPageView({
-                    container: divRef.current,
-                    id: pageNumber,
-                    scale,
-                    defaultViewport: page.getViewport({ scale }),
-                    eventBus,
-                    textLayerFactory: renderText
-                        ? !pdfDocument.isPureXfa
-                            ? new DefaultTextLayerFactory()
-                            : null
-                        : null,
-                    annotationLayerFactory: renderText ? new DefaultAnnotationLayerFactory() : null,
-                    xfaLayerFactory: renderText ? (pdfDocument.isPureXfa ? new DefaultXfaLayerFactory() : null) : null,
-                    structTreeLayerFactory: renderText ? new DefaultStructTreeLayerFactory() : null,
-                });
-                pdfPageViewRef.current.setPdfPage(page);
-                return true;
+                setPageObject(page);
             });
         }
-        return <div data-index={index} style={style} className={"pagecontainer"} ref={divRef}></div>;
+
+        function getStyle() {
+            if (pageObject == null) return {};
+            const { pageWidth, pageHeight } = pageObject.getViewport().rawDims as any;
+            const rotation = pageObject.getViewport().rotation;
+            const width = rotation == 90 || rotation == 270 ? pageHeight : pageWidth;
+            const height = rotation == 90 || rotation == 270 ? pageWidth : pageHeight;
+            return {
+                "--page-width": `${width}px`,
+                "--page-height": `${height}px`,
+                width: "var(--page-width)",
+                height: "var(--page-height)",
+            };
+        }
+
+        return (
+            <div
+                data-index={index}
+                style={{
+                    ...style,
+                    ...getStyle(),
+                }}
+                className={"pagecontainer page"}
+                ref={divRef}
+                data-page-number={pageNumber}
+            >
+                {shouldRenderPage(renderPageIndexes) && (
+                    <PDFCanvas pdfPage={pageObject} scale={scale} pageNumber={pageNumber} />
+                )}
+                {children}
+            </div>
+        );
     },
     (prevProps, nextProps) =>
         !shouldRerenderPage(prevProps.renderPageIndexes, nextProps.renderPageIndexes, nextProps.index) &&
         prevProps.pdfDocument == nextProps.pdfDocument &&
         prevProps.scale == nextProps.scale &&
+        prevProps.children == nextProps.children &&
         nextProps.renderPageIndexes.includes(nextProps.index)
 );
+
+interface PDFCanvasProps {
+    pdfPage: PDFPageProxy;
+    pageNumber: number;
+    scale: number;
+}
+function PDFCanvas({ pdfPage, scale, pageNumber, children }: PropsWithChildren<PDFCanvasProps>) {
+    const pageRenderTask = useRef<RenderTask>();
+    const pageRenderNextScale = useRef<number>();
+    const timeoutId = useRef<NodeJS.Timeout>();
+    const canvasRef = useRef<HTMLDivElement>();
+
+    useEffect(() => {
+        pageRenderNextScale.current = scale;
+        if (timeoutId.current !== null) {
+            clearTimeout(timeoutId.current);
+        }
+        timeoutId.current = setTimeout(() => {
+            drawPage(pageRenderNextScale.current);
+            if (timeoutId.current !== null) {
+                clearTimeout(timeoutId.current);
+                timeoutId.current = null;
+            }
+        }, 200);
+    }, [scale]);
+
+    useEffect(() => {
+        drawPage(scale);
+    }, [pdfPage]);
+
+    function fitCanvasToPage(scale: number) {
+        const canvasElement = canvasRef.current.querySelector("canvas");
+        canvasElement.style.transformOrigin = "0px 0px";
+        canvasElement.style.transform = `scale(${1 / scale})`;
+    }
+    function drawPage(scale: number) {
+        if (pdfPage == null || !scale || !canvasRef.current) return;
+        if (pageRenderTask.current != null) {
+            pageRenderNextScale.current = scale;
+            return;
+        }
+        const viewport = pdfPage.getViewport({ scale: scale });
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+            canvasContext: context,
+            viewport: viewport,
+        };
+        pageRenderTask.current = pdfPage.render(renderContext);
+        return pageRenderTask.current.promise
+            .then(() => {
+                if (!canvasRef.current) return;
+                canvasRef.current.querySelector("canvas").replaceWith(canvas);
+                fitCanvasToPage(scale);
+            })
+            .catch((e) => {
+                console.debug("RENDERING CANCELLED", pageNumber, e);
+            })
+            .finally(() => {
+                pageRenderTask.current = null;
+                if (pageRenderNextScale.current !== null && pageRenderNextScale.current != scale) {
+                    drawPage(pageRenderNextScale.current);
+                    pageRenderNextScale.current = null;
+                }
+            });
+    }
+    return (
+        <div className="canvasWrapper" ref={canvasRef}>
+            <canvas className="canvas" />
+            {children}
+        </div>
+    );
+}
 
 function shouldRerenderPage(prevRenderPageIndexes: number[], renderPageIndexes: number[], index: number) {
     const changedFromNotVisibleToVisible = !prevRenderPageIndexes.includes(index) && renderPageIndexes.includes(index);

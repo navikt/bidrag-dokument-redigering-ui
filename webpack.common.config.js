@@ -18,13 +18,28 @@ module.exports = {
     },
     resolve: {
         extensions: [".tsx", ".ts", ".js", "jsx"],
+        fallback: {
+            fs: false,
+        },
     },
     module: {
         rules: [
             {
                 test: /\.css$/,
-                include: path.resolve(__dirname, "src"),
+                exclude: /node_modules/,
                 use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
+            },
+            {
+                test: /\.mdx?$/,
+                use: [
+                    {
+                        loader: "@mdx-js/loader",
+                        /** @type {import('@mdx-js/loader').Options} */
+                        options: {
+                            providerImportSource: "@mdx-js/react",
+                        },
+                    },
+                ],
             },
             {
                 test: /\.([jt]sx?)?$/,
@@ -38,8 +53,8 @@ module.exports = {
                             jsc: {
                                 target: "es2022",
                                 minify: {
-                                    compress: true,
-                                    mangle: true,
+                                    compress: !isDevelopment,
+                                    mangle: !isDevelopment,
                                 },
                                 parser: {
                                     syntax: "typescript",
@@ -59,23 +74,12 @@ module.exports = {
                 ],
             },
             {
-                test: /\.less$/i,
-                use: [
-                    MiniCssExtractPlugin.loader,
-                    "css-loader",
-                    {
-                        loader: "less-loader",
-                        options: {
-                            lessOptions: {
-                                paths: [path.resolve(__dirname, "node_modules")],
-                            },
-                        },
-                    },
-                ],
-            },
-            {
                 test: /\.svg$/,
                 loader: "svg-inline-loader",
+            },
+            {
+                test: /\.pdf.worker.js/,
+                type: "asset/resource",
             },
         ],
     },
@@ -92,7 +96,8 @@ module.exports = {
             name: "bidrag_dokument_redigering_ui",
             filename: "remoteEntry.js",
             exposes: {
-                "./DokumentRedigering": "./src/pages/dokumentredigering/DokumentRedigeringPage.tsx",
+                "./DokumentRedigering": "./src/app.tsx",
+                "./DokumentMaskering": "./src/pages/dokumentmaskering/DokumentMaskeringPage.tsx",
             },
             shared: {
                 react: { singleton: true, requiredVersion: deps.react },

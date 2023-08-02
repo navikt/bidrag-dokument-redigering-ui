@@ -1,8 +1,35 @@
 export type ScrollDirection = "up" | "down";
 
+export const PDF_MARGIN_PIXELS = 15;
 export default class PdfUtils {
+    static getPdfContainerElement() {
+        return document.querySelector(".pdfviewer_container .pdfrenderer_container") as HTMLDivElement;
+    }
+    static getPdfPagesElement() {
+        return document.querySelector(
+            ".pdfviewer_container .pdfrenderer_container #pdf_document_pages"
+        ) as HTMLDivElement;
+    }
+    static getCanvasSize(containerElement: HTMLElement): {
+        height: number;
+        width: number;
+        canvasHeight: number;
+        canvasWidth: number;
+    } {
+        const canvas = containerElement.querySelector(`.page canvas`) as HTMLCanvasElement;
+        return {
+            height: canvas.clientHeight,
+            width: canvas.clientWidth,
+            canvasHeight: canvas.height,
+            canvasWidth: canvas.width,
+        };
+    }
     static getPageElement(containerElement: HTMLDivElement, pageNumber: number) {
         return containerElement.querySelector(`.page[data-page-number="${pageNumber}"]`);
+    }
+
+    static getPageContainerElement(containerElement: HTMLDivElement, pageNumber: number) {
+        return containerElement.querySelector(`[data-index="${pageNumber}"]`) as HTMLDivElement;
     }
 
     static getElementDimensions(element: HTMLDivElement) {
@@ -40,6 +67,10 @@ export default class PdfUtils {
         };
     }
 
+    static getFirsVisiblePageElement(parentElement: HTMLDivElement, pageElements: Element[]) {
+        const visiblePageIndexes = this.getVisiblePageIndexes(parentElement, pageElements);
+        return pageElements[visiblePageIndexes[0]];
+    }
     static getVisiblePageIndexes(parentElement: HTMLDivElement, pageElements: Element[]) {
         return pageElements
             .map((pageElement, pageIndex) => ({
