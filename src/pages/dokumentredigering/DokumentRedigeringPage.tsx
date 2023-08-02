@@ -49,6 +49,7 @@ function DokumentRedigeringContainer({ journalpostId, dokumentreferanse, dokumen
     async function broadcastAndCloseWindow(config: EditDocumentMetadata, document: Uint8Array) {
         await broadcast(document, config);
         window.close();
+        return true;
     }
 
     return (

@@ -218,10 +218,10 @@ function PdfEditorContextProviderWithMasking({
                 if (submit) {
                     finishPdf().then(resolve).catch(reject);
                 } else {
-                    onSaveAndClose?.(saveEditDocumentData).then(resolve).catch(reject);
+                    onSaveAndClose?.(saveEditDocumentData).then(resolve).catch(reject) ?? resolve(false);
                 }
             } else {
-                onSave?.(saveEditDocumentData).then(resolve).catch(reject);
+                onSave?.(saveEditDocumentData).then(resolve).catch(reject) ?? resolve(false);
             }
         }).finally(() => {
             setIsSavingDocumentConfig(false);
