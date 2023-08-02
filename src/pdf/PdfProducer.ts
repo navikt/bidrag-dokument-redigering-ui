@@ -49,7 +49,9 @@ export class PdfProducer {
         const progress = _progress ?? pageNumber / totalPages;
         const percentageRange = this.stateToProgressPercentageRate(state);
 
-        return Math.round((percentageRange[1] - percentageRange[0]) * progress + percentageRange[0]);
+        const result = Math.round((percentageRange[1] - percentageRange[0]) * progress + percentageRange[0]);
+        console.log("Progress result", result, percentageRange, state, progress);
+        return result;
     }
 
     private stateToProgressPercentageRate(state: ProgressState): number[] {
@@ -99,11 +101,7 @@ export class PdfProducer {
             const jpgImage = await this.pdfDocument.embedPng(blob);
 
             newPage.drawImage(jpgImage, jpgImage.scaleToFit(width, height));
-            this.onProgressUpdated(
-                "CONVERT_PAGE_TO_IMAGE",
-                maskedPages[key - 1],
-                maskedPages[key - 1] / maskedPages.length
-            );
+            this.onProgressUpdated("CONVERT_PAGE_TO_IMAGE", maskedPages[key - 1], key / maskedPages.length);
         });
     }
 
@@ -126,7 +124,6 @@ export class PdfProducer {
                 const text = "Skjermet";
                 const fontSize = this.getFontsize(coordinates.width, coordinates.height);
                 const textCoordinates = this.calculateTextCoordinates(page, coordinates, itemCoordinates, text);
-                console.log("ROTATION", textCoordinates, coordinates);
                 page.drawText(text, {
                     x: textCoordinates.x,
                     y: textCoordinates.y,
@@ -241,21 +238,20 @@ export class PdfProducer {
 
     removePages(removePages: number[]): PdfProducer {
         let numberOfRemovedPages = 0;
+        const numberOfPagesToRemove = removePages.length;
         removePages
             .sort((a, b) => a - b)
             .forEach((page) => {
                 this.pdfDocument.removePage(Math.abs(page - 1 - numberOfRemovedPages));
                 numberOfRemovedPages += 1;
+                this.onProgressUpdated("REMOVE_PAGE", 0, numberOfRemovedPages / numberOfPagesToRemove);
             });
         return this;
     }
 
     async saveChanges(): Promise<PdfProducer> {
         this.processedDocument = await this.pdfDocument.save();
-        this.onProgressUpdate?.({
-            state: "SAVE_PDF",
-            progress: 100,
-        });
+        this.onProgressUpdated("SAVE_PDF", 0, 1);
         return this;
     }
 

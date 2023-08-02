@@ -26,7 +26,7 @@ interface DokumentRedigeringContainerProps {
 }
 export default function DokumentRedigering({ documentFile }: DokumentRedigeringContainerProps) {
     const [isLoading, setIsLoading] = useState(true);
-    const { hideSidebar } = usePdfEditorContext();
+    const { hideSidebar, onInit } = usePdfEditorContext();
     const [pages, setPages] = useState([]);
     const { isOver, setNodeRef } = useDroppable({
         id: "document_editor",
@@ -77,7 +77,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
             centerOnInit
             // onInit={(ref) => {
             //     const currentTransform = ref.state;
-            //     transformComponentRef.current.setTransform(currentTransform.positionX, 0, currentTransform.scale);
+            //     transformComponentRef.current.setTransform(currentTransform.positionX - 350, 0, 1.3);
             // }}
             disablePadding
             limitToBounds
@@ -86,8 +86,8 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
                 step: 0.8,
             }}
             wheel={{
-                step: 1,
-                smoothStep: 0.01,
+                step: 1.2,
+                smoothStep: 0.03,
                 activationKeys: ["Control"],
             }}
             panning={{
@@ -103,6 +103,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
                 documentFile={documentFile}
                 onDocumentLoaded={(pagesCount, pages) => {
                     setPages(pages);
+                    onInit(pagesCount);
                     setIsLoading(false);
                 }}
             >

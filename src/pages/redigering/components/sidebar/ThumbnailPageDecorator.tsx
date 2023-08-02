@@ -84,18 +84,20 @@ interface ThumbnailPageToolbarProps {
     onToggleDelete: () => void;
 }
 function ThumbnailPageToolbar({ hidden, isDeleted, onToggleDelete }: ThumbnailPageToolbarProps) {
+    const { isAllowedToDeletePage } = usePdfEditorContext();
     return (
         <div className={`thumbnail_toolbar ${hidden ? "invisible" : ""}`}>
             <div
-                className={"bg-white border-solid border border-slate-400 inline-flex rounded-md shadow-sm "}
+                className={
+                    "bg-white border-solid border border-border-default inline-flex rounded-md shadow-sm hover:border-border-strong"
+                }
                 role={"group"}
             >
-                {!isDeleted && (
+                {!isDeleted && isAllowedToDeletePage() && (
                     <>
                         <ToolbarButton
                             onClick={onToggleDelete}
-                            className={"rounded-md"}
-                            style={{ color: "var(--navds-global-color-nav-red)" }}
+                            className={"rounded-md text-surface-danger hover:text-surface-danger-hover"}
                             position={"center"}
                         >
                             <DeleteFilled />

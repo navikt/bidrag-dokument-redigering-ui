@@ -28,8 +28,10 @@
   text-overflow: ellipsis;
   overflow: hidden;
   text-wrap: nowrap;
-  width: calc(var(--sidebar-width) - 50px);
+  white-space: nowrap;
+  width: calc(var(--sidebar-width) - 70px);
 }
+
 .sidebar_viewer .pdfrenderer_container{
   background-color: #595959b3 !important;
 }

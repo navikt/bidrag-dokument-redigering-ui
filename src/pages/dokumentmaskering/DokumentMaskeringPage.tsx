@@ -82,11 +82,14 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
         });
     }
     function saveDocumentAndClose(config: EditDocumentMetadata) {
-        return saveDocument(config).then(() => broadcastAndCloseWindow(config));
+        return saveDocument(config).then(() => {
+            broadcastAndCloseWindow(config);
+            return true;
+        });
     }
 
     function saveAndFinishDocument(config: EditDocumentMetadata, fysiskDokument: Uint8Array) {
-        return new Promise<void>((resolve, reject) => {
+        return new Promise<boolean>((resolve, reject) => {
             ferdigstillDokumentFn.mutate(
                 {
                     fysiskDokument: uint8ToBase64(fysiskDokument),
@@ -94,7 +97,7 @@ function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: Dokume
                 },
                 {
                     onSuccess: () => {
-                        resolve();
+                        resolve(true);
                         broadcastAndCloseWindow(config, fysiskDokument);
                     },
                     onError: (error: AxiosError) => {

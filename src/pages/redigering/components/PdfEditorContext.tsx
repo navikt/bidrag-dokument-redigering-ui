@@ -7,11 +7,11 @@ import { MaskingContainer, useMaskingContainer } from "../../../components/maski
 import { TimerUtils } from "../../../components/utils/TimerUtils";
 import { PdfDocumentType } from "../../../components/utils/types";
 import { IProducerProgress, PdfProducer } from "../../../pdf/PdfProducer";
-import { EditDocumentMetadata, IDocumentMetadata } from "../../../types/EditorTypes";
+import { ClosingWindow, EditDocumentMetadata, IDocumentMetadata } from "../../../types/EditorTypes";
 
 export type PdfEditorMode = "view_only_unlockable" | "edit" | "remove_pages_only" | "view_only_locked";
 
-type ProduceAndSaveState = "PRODUCING" | "SAVING_DOCUMENT" | "SAVING_METADATA" | "IDLE" | "ERROR";
+type ProduceAndSaveState = "PRODUCING" | "SAVING_DOCUMENT" | "SAVING_METADATA" | "IDLE" | "ERROR" | "CLOSING_WINDOW";
 interface IProduceAndSaveDocumentProgress {
     state: ProduceAndSaveState;
     progress?: number;
@@ -22,12 +22,14 @@ interface PdfEditorContextProps {
     history: StateHistory<EditDocumentMetadata>;
     removedPages: number[];
     toggleDeletedPage: (page: number) => void;
-    savePdf: (closeAfterSave?: boolean) => Promise<void>;
+    savePdf: (closeAfterSave?: boolean) => Promise<ClosingWindow>;
     previewPdf: () => Promise<void>;
-    finishPdf: () => Promise<void>;
+    finishPdf: () => Promise<ClosingWindow>;
     onToggleSidebar: () => void;
     onUndo: () => void;
     onRedo: () => void;
+    onInit: (totalPages: number) => void;
+    isAllowedToDeletePage: () => boolean;
     hideSidebar: () => void;
     forsendelseId: string;
     sidebarHidden: boolean;
@@ -46,9 +48,9 @@ interface IPdfEditorContextProviderProps {
     dokumentreferanse: string;
     dokumentMetadata?: IDocumentMetadata;
     documentFile: PdfDocumentType;
-    onSave?: (config: EditDocumentMetadata) => Promise<void>;
-    onSaveAndClose?: (config: EditDocumentMetadata) => Promise<void>;
-    onSubmit?: (config: EditDocumentMetadata, document: Uint8Array) => Promise<void>;
+    onSave?: (config: EditDocumentMetadata) => Promise<ClosingWindow>;
+    onSaveAndClose?: (config: EditDocumentMetadata) => Promise<ClosingWindow>;
+    onSubmit?: (config: EditDocumentMetadata, document: Uint8Array) => Promise<ClosingWindow>;
 }
 
 export default function PdfEditorContextProvider(props: PropsWithChildren<IPdfEditorContextProviderProps>) {
@@ -77,8 +79,9 @@ function PdfEditorContextProviderWithMasking({
     const [produceAndSaveProgress, setProduceAndSaveProgress] = useState<IProduceAndSaveDocumentProgress>({
         state: "IDLE",
     });
-    const [sidebarHidden, setSidebarHidden] = useState(true);
+    const [sidebarHidden, setSidebarHidden] = useState(false);
     const [removedPages, setRemovedPages] = useState<number[]>(getInitialRemovedPages());
+    const totalPages = useRef(-1);
     const [lastSavedData, setLastSavedData] = useState(getEditDocumentMetadata());
     const [history, setHistory] = useState(new StateHistory<EditDocumentMetadata>(getEditDocumentMetadata()));
     const [isSavingEditDocumentConfig, setIsSavingDocumentConfig] = useState(false);
@@ -90,7 +93,6 @@ function PdfEditorContextProviderWithMasking({
     useEffect(() => {
         const hasChanged = !objectsDeepEqual(history.current, getEditDocumentMetadata());
         if (!isUndoRedoChange.current && hasChanged) {
-            console.log("add", getEditDocumentMetadata(), history.stack);
             setHistory((prevHistory) => prevHistory.push(getEditDocumentMetadata()));
         }
         isUndoRedoChange.current = false;
@@ -121,20 +123,19 @@ function PdfEditorContextProviderWithMasking({
 
     function undoState() {
         if (history.canUndo) {
-            console.log("prev items", history.previous.items, history.stack);
-            const undoBefore = history.canRedo;
-            const _history = undoBefore ? history.undo(getEditDocumentMetadata()) : history;
-            initItems(_history.previous.items);
-            setRemovedPages(_history.previous.removedPages);
-            setHistory(undoBefore ? _history : history.undo(getEditDocumentMetadata()));
+            const updatedHistory = history.undo(getEditDocumentMetadata());
+            initItems(updatedHistory.previous.items);
+            setRemovedPages(updatedHistory.previous.removedPages);
+            setHistory(updatedHistory);
             isUndoRedoChange.current = true;
         }
     }
     function redoState() {
         if (history.canRedo) {
-            initItems(history.next.items);
-            setRemovedPages(history.next.removedPages);
-            setHistory(history.redo(getEditDocumentMetadata()));
+            const nextHistory = history.next;
+            initItems(nextHistory.items);
+            setRemovedPages(nextHistory.removedPages);
+            setHistory(history.redo(nextHistory));
             isUndoRedoChange.current = true;
         }
     }
@@ -146,16 +147,29 @@ function PdfEditorContextProviderWithMasking({
         };
     }
 
-    async function finishPdf(): Promise<void> {
+    async function finishPdf(): Promise<ClosingWindow> {
         if (!onSubmit) return;
         const { documentFile, config } = await getProcessedPdf();
-        updateSaveState("SAVING_DOCUMENT");
+        updateSavingDocumentState(0);
         return await onSubmit(config, documentFile)
-            .then(() => updateSaveState("IDLE"))
+            .then((closingWindow: ClosingWindow) => {
+                updateSaveState(closingWindow ? "CLOSING_WINDOW" : "IDLE");
+                return closingWindow;
+            })
             .catch((e) => {
                 updateSaveState("ERROR");
                 throw e;
             });
+    }
+
+    function updateSavingDocumentState(currentValue: number) {
+        updateSaveState("SAVING_DOCUMENT", currentValue);
+        if (currentValue >= 95) {
+            return;
+        }
+        setTimeout(() => {
+            updateSavingDocumentState(currentValue + 5);
+        }, 200);
     }
 
     function onProducePdfProgressUpdated(process: IProducerProgress) {
@@ -189,17 +203,17 @@ function PdfEditorContextProviderWithMasking({
         FileUtils.openFile(documentFile);
     }
 
-    async function onSavePdf(closeAfterSave?: boolean): Promise<void> {
+    async function onSavePdf(closeAfterSave?: boolean): Promise<ClosingWindow> {
         return savePdf(getEditDocumentMetadata(), closeAfterSave, submitOnSave);
     }
     async function savePdf(
         saveEditDocumentData: EditDocumentMetadata,
         closeAfterSave?: boolean,
         submit?: boolean
-    ): Promise<void> {
+    ): Promise<ClosingWindow> {
         setIsSavingDocumentConfig(true);
         setLastSavedData(saveEditDocumentData);
-        return new Promise<void>((resolve, reject) => {
+        return new Promise<ClosingWindow>((resolve, reject) => {
             if (closeAfterSave) {
                 if (submit) {
                     finishPdf().then(resolve).catch(reject);
@@ -233,6 +247,14 @@ function PdfEditorContextProviderWithMasking({
         });
     }
 
+    function isAllowedToDeletePage() {
+        return removedPages.length + 1 < totalPages.current;
+    }
+
+    function onInit(_totalPages: number) {
+        totalPages.current = _totalPages;
+    }
+
     return (
         <div tabIndex={-1} ref={divRef}>
             <PdfEditorContext.Provider
@@ -243,12 +265,14 @@ function PdfEditorContextProviderWithMasking({
                     history,
                     onUndo: () => undoState(),
                     onRedo: () => redoState(),
+                    onInit,
                     dokumentreferanse,
                     dokumentMetadata,
                     isSavingEditDocumentConfig,
                     sidebarHidden,
                     hideSidebar: () => setSidebarHidden(true),
                     removedPages,
+                    isAllowedToDeletePage,
                     previewPdf,
                     onToggleSidebar,
                     toggleDeletedPage,

@@ -11,15 +11,17 @@ export default function ProduceDocumentStateIndicator() {
     }
     function renderText() {
         if (produceAndSaveProgress.state == "PRODUCING") {
-            return "Klargjør dokumentet. Vennligst vent (Ikke lukk vinduet/fanen).";
+            return "Klargjør dokumentet. Vennligst vent (ikke lukk vinduet/fanen).";
         } else if (produceAndSaveProgress.state == "SAVING_DOCUMENT") {
-            return "Lagrer dokumentet. Vennligst vent (Ikke lukk vinduet/fanen).";
+            return "Lagrer dokumentet. Vennligst vent (ikke lukk vinduet/fanen).";
+        } else if (produceAndSaveProgress.state == "CLOSING_WINDOW") {
+            return "Lukker vinduet/fanen...";
         }
     }
 
     const progress = Math.min(100, produceAndSaveProgress.progress ?? 0);
     return (
-        <BodyLong className="w-2/3 p-2">
+        <BodyLong className="w-full p-2">
             <BodyShort>{renderText()}</BodyShort>
             <div className="w-full bg-gray-200 rounded-full h-1.5 mb-4 dark:bg-gray-400 mt-2">
                 <div

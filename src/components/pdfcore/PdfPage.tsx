@@ -127,7 +127,7 @@ function PDFCanvas({ pdfPage, scale, pageNumber, children }: PropsWithChildren<P
                 clearTimeout(timeoutId.current);
                 timeoutId.current = null;
             }
-        }, 400);
+        }, 200);
     }, [scale]);
 
     useEffect(() => {

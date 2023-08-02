@@ -12,6 +12,10 @@
   display: none;
 }
 
+.page_decorator.deleted .maskingitem {
+  display: none;
+}
+
 body {
   overflow-x: hidden;
   overflow: hidden;

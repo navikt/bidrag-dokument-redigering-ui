@@ -78,12 +78,26 @@ export default function PdfDocument({
     useEffect(() => {
         if (!isRendering.current) {
             isRendering.current = true;
-            loadDocument().then(() => initEventListeners());
+            loadDocument().then(() => {
+                initEventListeners();
+            });
         }
+
+        const observer = new MutationObserver(resyncVisiblePagesOnMutation);
+        observer.observe(divRef.current, { attributes: true, childList: true, subtree: true });
+        return () => observer.disconnect();
     }, []);
 
+    function resyncVisiblePagesOnMutation(mutationList: MutationRecord[]) {
+        for (const mutation of mutationList) {
+            const isPageVisibilityChange = mutation.type === "attributes" && mutation.attributeName == "class";
+            if (isPageVisibilityChange) {
+                onScrollHandler();
+            }
+        }
+    }
     function getPageElements() {
-        if (!divRef.current || !pdfDocumentRef.current) return;
+        if (!divRef.current || !pdfDocumentRef.current) return [];
         if (pageElements.current.length != pdfDocumentRef.current.numPages) {
             pageElements.current = createArrayWithLength(pdfDocumentRef.current.numPages).map((i) => {
                 return divRef.current!.querySelector(`[data-index="${i}"]`) as HTMLDivElement;
@@ -136,10 +150,12 @@ export default function PdfDocument({
     }
 
     function getVisiblePageIndexes(sortByVisibility = true) {
-        const views = getPageElements().map((elem) => ({
-            div: elem as HTMLElement,
-            id: elem.getAttribute("data-index"),
-        }));
+        const views = getPageElements()
+            .filter((elem) => elem != null)
+            .map((elem) => ({
+                div: elem as HTMLElement,
+                id: elem.getAttribute("data-index"),
+            }));
         const visiblePages = getVisibleElements({
             scrollEl: divRef.current as HTMLElement,
             views,
@@ -150,10 +166,12 @@ export default function PdfDocument({
     }
 
     function _getVisibleElements() {
-        const views = getPageElements().map((elem) => ({
-            div: elem as HTMLElement,
-            id: parseInt(elem.getAttribute("data-index")),
-        }));
+        const views = getPageElements()
+            .filter((elem) => elem != null)
+            .map((elem) => ({
+                div: elem as HTMLElement,
+                id: parseInt(elem.getAttribute("data-index")),
+            }));
         return getVisibleElements({
             scrollEl: getScrollElement() as HTMLElement,
             views,
@@ -188,7 +206,24 @@ export default function PdfDocument({
     }
     function onScrollHandler() {
         if (!divRef.current) return;
-        const currentScrollHeight = divRef.current.firstElementChild.scrollTop;
+
+        const { currentVisiblePageIndexes, currentPageNumber } = getCurrentVisiblePage();
+
+        if (isUserScrolling()) {
+            const currentScrollHeight = divRef.current.firstElementChild.scrollTop;
+            onScrollThrottler.current(
+                currentPageNumber,
+                currentScrollHeight < lastKnownScrollPosition.current ? "up" : "down"
+            );
+            lastKnownScrollPosition.current = currentScrollHeight;
+        }
+
+        updateRenderPages(currentVisiblePageIndexes, currentPageNumber);
+        updateCurrentPage(currentPageNumber);
+    }
+
+    function getCurrentVisiblePage() {
+        if (!divRef.current) return;
         const visible = _getVisibleElements();
         const visiblePages = visible.views;
         let stillFullyVisible = false;
@@ -206,17 +241,7 @@ export default function PdfDocument({
         }
         const updatedPageIndex = stillFullyVisible ? currentPageIndex : visiblePages[0]?.id ?? 0;
         const currentPageNumber = updatedPageIndex + 1;
-
-        if (isUserScrolling()) {
-            onScrollThrottler.current(
-                currentPageNumber,
-                currentScrollHeight < lastKnownScrollPosition.current ? "up" : "down"
-            );
-            lastKnownScrollPosition.current = currentScrollHeight;
-        }
-
-        updateRenderPages(currentVisiblePageIndexes, currentPageNumber);
-        updateCurrentPage(currentPageNumber);
+        return { currentVisiblePageIndexes, currentPageNumber };
     }
 
     function initEventListeners() {

@@ -1,7 +1,7 @@
 import "./EditorToolbar.css";
 
 import { Hamburger } from "@navikt/ds-icons";
-import { Button, Heading } from "@navikt/ds-react";
+import { Button, Detail } from "@navikt/ds-react";
 import React from "react";
 
 import { usePdfEditorContext } from "../PdfEditorContext";
@@ -30,9 +30,7 @@ export default function EditorToolbar() {
                         <Hamburger />
                     </Button>
                     {dokumentMetadata?.title && (
-                        <Heading size={"xsmall"} className={"pl-2 document-title"}>
-                            {dokumentMetadata.title}
-                        </Heading>
+                        <Detail className={"pl-2 document-title text-white m-auto"}>{dokumentMetadata.title}</Detail>
                     )}
                 </div>
                 {isEditable ? (

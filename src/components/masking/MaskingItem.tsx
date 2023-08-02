@@ -142,6 +142,7 @@ export default function MaskingItem(props: IMaskingItemProps) {
                 id={id}
                 //@ts-ignore
                 tabIndex={isSelected ? 0 : 10000}
+                data-page-number={props.pageNumber}
                 {...attributes}
                 style={{
                     ...getStyle(coordinates, transform),

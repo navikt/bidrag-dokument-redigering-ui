@@ -10,7 +10,7 @@ export default function SavePdfButton() {
     const [savingDocument, setSavingDocument] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
 
-    async function _producePdf() {
+    async function _savePdf() {
         setSavingDocument(true);
 
         await savePdf(true).finally(() => {
@@ -40,7 +40,7 @@ export default function SavePdfButton() {
                         </Heading>
                         <BodyShort>Er du sikker på at du vil avslutte redigering?</BodyShort>
                         <div className={"flex flex-row gap-2 pt-2"}>
-                            <Button size="small" variant={"primary"} onClick={_producePdf} loading={savingDocument}>
+                            <Button size="small" variant={"primary"} onClick={_savePdf} loading={savingDocument}>
                                 Lagre og lukk
                             </Button>
                             <Button size="small" variant={"tertiary"} onClick={closeModal}>

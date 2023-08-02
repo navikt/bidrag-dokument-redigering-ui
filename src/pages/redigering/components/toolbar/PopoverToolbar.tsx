@@ -15,7 +15,7 @@ import { usePdfEditorContext } from "../PdfEditorContext";
 export default function PopoverToolbar() {
     const { scale, zoom, pagesCount, currentPage } = usePdfViewerContext();
     const { resetZoom, onZoomOut, onZoomIn, zoomToFit } = zoom;
-    const { removedPages, mode, dokumentMetadata, toggleDeletedPage } = usePdfEditorContext();
+    const { removedPages, mode, dokumentMetadata, toggleDeletedPage, isAllowedToDeletePage } = usePdfEditorContext();
     const { initAddItem } = useMaskingContainer();
 
     function removedPagesBefore(pageNumber: number) {
@@ -86,15 +86,16 @@ export default function PopoverToolbar() {
 
                         <Button
                             onClick={() => {
-                                toggleDeletedPage(currentPageNotIncludingRemoved);
+                                toggleDeletedPage(currentPage);
                             }}
+                            disabled={!isAllowedToDeletePage()}
                             size={"small"}
                             variant={"tertiary-neutral"}
                             icon={<FileXMarkIcon />}
                             iconPosition={"left"}
-                            title="Fjern side"
+                            title={isAllowedToDeletePage() ? "Fjern side" : "Kan ikke fjerne alle sider"}
                         >
-                            Fjern side {currentPageNotIncludingRemoved}
+                            Fjern side
                         </Button>
                         {isEditMode && <UndoRedoButtons />}
                     </div>

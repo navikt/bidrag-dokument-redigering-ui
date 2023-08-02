@@ -75,7 +75,7 @@ export default class StateHistory<T> extends Record(DEFAULTS<T>()) {
      */
     undo(current: T) {
         this.currentValue = current;
-        if (this.undos.isEmpty()) return this;
+        if (!this.canUndo) return this;
 
         const newHistory = this.merge({
             undos: this.undos.pop(),

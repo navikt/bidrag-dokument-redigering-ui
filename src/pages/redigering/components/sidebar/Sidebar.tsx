@@ -1,6 +1,7 @@
 import "./Sidebar.css";
 
-import { Checkbox, Heading } from "@navikt/ds-react";
+import { InformationSquareIcon } from "@navikt/aksel-icons";
+import { Checkbox, Detail, Popover } from "@navikt/ds-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import PdfDocument, { PdfDocumentRef } from "../../../../components/pdfcore/PdfDocument";
@@ -8,7 +9,6 @@ import { usePdfViewerContext } from "../../../../components/pdfviewer/PdfViewerC
 import { createArrayWithLength } from "../../../../components/utils/ObjectUtils";
 import { usePdfEditorContext } from "../PdfEditorContext";
 import ThumbnailPageDecorator from "./ThumbnailPageDecorator";
-
 type PAGE_SIZE = "large" | "medium" | "small";
 
 interface PageRangeDetails {
@@ -70,9 +70,7 @@ export default function Sidebar({ onDocumentLoaded }: SidebarProps) {
                 onDocumentLoaded={_onDocumentLoaded}
             >
                 <div>
-                    <Heading size={"small"} className={"align-middle text-white text-center border-white title "}>
-                        Innhold
-                    </Heading>
+                    <Detail className={"align-middle text-white text-center border-white title "}>Innhold</Detail>
                     {isDocumentLoaded && pages.length > 0 && (
                         <section>
                             {getPageRanges().map((r, index) => (
@@ -93,7 +91,7 @@ interface IPageSectionProps {
 }
 function PageSection({ title, pageRange, index }: IPageSectionProps) {
     const pagesLength = pageRange[1] - pageRange[0];
-    const { toggleDeletedPage, removedPages } = usePdfEditorContext();
+    const { toggleDeletedPage, removedPages, isAllowedToDeletePage } = usePdfEditorContext();
     const pagesInSection = useMemo(() => createArrayWithLength(pagesLength, pageRange[0]), [pageRange]);
 
     const getDeletedPages = () => pagesInSection.filter((pageNumber) => removedPages.includes(pageNumber));
@@ -102,6 +100,7 @@ function PageSection({ title, pageRange, index }: IPageSectionProps) {
     const isAllPagesDeleted = pagesInSection.length == getDeletedPages().length;
     const isSomePagesDeleted = getDeletedPages().length > 0 && pagesInSection.length > getDeletedPages().length;
     function toggleDeletePages() {
+        // if (!isAllowedToDeletePage()) return;
         if (isAllPagesDeleted) {
             getDeletedPages().forEach(toggleDeletedPage);
         } else {
@@ -111,7 +110,7 @@ function PageSection({ title, pageRange, index }: IPageSectionProps) {
     return (
         <>
             {title && (
-                <div className={"pl-3 pagesection"} style={{ top: `${30 * index * 0 + 25}px` }}>
+                <div className={"pl-3 pagesection"} style={{ top: `${30 * index * 0 + 20}px` }}>
                     <Checkbox
                         onClick={toggleDeletePages}
                         checked={getDeletedPages().length == 0}
@@ -119,9 +118,13 @@ function PageSection({ title, pageRange, index }: IPageSectionProps) {
                         size={"small"}
                         className={"checkbox"}
                     >
-                        <Heading size={"xsmall"} style={{ color: "white" }} className={"ml-2 page-section-title w-max"}>
-                            {title}
-                        </Heading>
+                        <Detail
+                            style={{ color: "white" }}
+                            className={"ml-2 page-section-title w-max flex items-center flex-row gap-[5px]"}
+                        >
+                            <span>{index == 0 ? "Hoveddokument" : `Vedlegg ${index}`}</span>
+                            <DocumentTitlePopover title={title} />
+                        </Detail>
                     </Checkbox>
                 </div>
             )}
@@ -130,6 +133,34 @@ function PageSection({ title, pageRange, index }: IPageSectionProps) {
                     <ThumbnailPageDecorator pageNumber={pagenumber} key={"ThumbnailPageDecorator_" + pagenumber} />
                 ))}
             </div>
+        </>
+    );
+}
+
+function DocumentTitlePopover({ title }: { title: string }) {
+    const [openState, setOpenState] = useState(false);
+    const buttonRef = useRef();
+    return (
+        <>
+            <span
+                ref={buttonRef}
+                className="text-white hover:text-text-action scale-[1.2]"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setOpenState(true);
+                }}
+            >
+                <InformationSquareIcon />
+            </span>
+            <Popover
+                className="w-full"
+                open={openState}
+                onClose={() => setOpenState(false)}
+                anchorEl={buttonRef.current}
+            >
+                <Popover.Content className="text-text-default whitespace-pre-line">{title}</Popover.Content>
+            </Popover>
         </>
     );
 }

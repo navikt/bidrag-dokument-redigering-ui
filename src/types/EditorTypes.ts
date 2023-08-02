@@ -15,3 +15,5 @@ export interface EditDocumentMetadata {
     items: IMaskingItemProps[];
     removedPages: number[];
 }
+
+export type ClosingWindow = boolean;
