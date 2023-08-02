@@ -87,7 +87,7 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
             }}
             wheel={{
                 step: 1.2,
-                smoothStep: 0.03,
+                smoothStep: 0.01,
                 activationKeys: ["Control"],
             }}
             panning={{
