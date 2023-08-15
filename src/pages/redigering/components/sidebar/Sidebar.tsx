@@ -1,6 +1,5 @@
 import "./Sidebar.css";
 
-import { InformationSquareIcon } from "@navikt/aksel-icons";
 import { Checkbox, Detail, Popover } from "@navikt/ds-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
@@ -122,7 +121,6 @@ function PageSection({ title, pageRange, index }: IPageSectionProps) {
                             style={{ color: "white" }}
                             className={"ml-2 page-section-title w-max flex items-center flex-row gap-[5px]"}
                         >
-                            <span>{index == 0 ? "Hoveddokument" : `Vedlegg ${index}`}</span>
                             <DocumentTitlePopover title={title} />
                         </Detail>
                     </Checkbox>
@@ -144,14 +142,11 @@ function DocumentTitlePopover({ title }: { title: string }) {
         <>
             <span
                 ref={buttonRef}
-                className="text-white hover:text-text-action scale-[1.2]"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    setOpenState(true);
-                }}
+                className="truncate"
+                onMouseOver={() => setOpenState(true)}
+                onMouseLeave={() => setOpenState(false)}
             >
-                <InformationSquareIcon />
+                {title}
             </span>
             <Popover
                 className="w-full"
