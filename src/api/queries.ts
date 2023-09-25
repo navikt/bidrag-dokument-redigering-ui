@@ -6,7 +6,7 @@ import { PdfDocumentType } from "../components/utils/types";
 import { EditDocumentMetadata, IDocumentMetadata } from "../types/EditorTypes";
 import { BIDRAG_DOKUMENT_API } from "./api";
 import { BIDRAG_FORSENDELSE_API } from "./api";
-import { FerdigstillDokumentRequest } from "./BidragDokumentForsendelseApi";
+import { DokumentStatusTo, FerdigstillDokumentRequest } from "./BidragDokumentForsendelseApi";
 
 export const DokumentQueryKeys = {
     dokument: ["dokument"],
@@ -83,7 +83,6 @@ export const lastDokumenter = (
             }
             return BIDRAG_DOKUMENT_API.dokument.hentDokument(
                 journalpostId,
-                null,
                 {
                     resizeToA4,
                     optimizeForPrint,
@@ -117,6 +116,14 @@ export const RedigeringQueries = {
             },
             select: (data): IDocumentMetadata => {
                 const response = data.data;
+                if (![DokumentStatusTo.MAKONTROLLERES, DokumentStatusTo.UNDER_REDIGERING].includes(response.status)) {
+                    return {
+                        documentDetails: response.dokumenter,
+                        title: response.tittel,
+                        forsendelseState: response.forsendelseStatus == "UNDER_PRODUKSJON" ? "EDITABLE" : "LOCKED",
+                        state: "LOCKED",
+                    };
+                }
                 return {
                     editorMetadata: response.redigeringMetadata
                         ? (JSON.parse(response.redigeringMetadata) as EditDocumentMetadata)
@@ -124,10 +131,7 @@ export const RedigeringQueries = {
                     documentDetails: response.dokumenter,
                     title: response.tittel,
                     forsendelseState: response.forsendelseStatus == "UNDER_PRODUKSJON" ? "EDITABLE" : "LOCKED",
-                    state:
-                        response.status == "MÅ_KONTROLLERES" || response.status == "UNDER_REDIGERING"
-                            ? "EDITABLE"
-                            : "LOCKED",
+                    state: "EDITABLE",
                 };
             },
         });
@@ -157,6 +161,9 @@ export const RedigeringQueries = {
             mutationKey: DokumentQueryKeys.opphevFerdigstil(forsendelseId, dokumentId),
             mutationFn: () => {
                 return BIDRAG_FORSENDELSE_API.api.opphevFerdigstillDokument(forsendelseId, dokumentId);
+            },
+            onSuccess: () => {
+                window.location.reload();
             },
         });
     },
