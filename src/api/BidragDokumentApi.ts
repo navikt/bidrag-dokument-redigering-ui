@@ -28,9 +28,18 @@ export interface AvsenderMottakerDto {
     /** Person ident eller organisasjonsnummer */
     ident?: string;
     /** Identtype */
-    type: "FNR" | "SAMHANDLER" | "ORGNR" | "UTENLANDSK_ORGNR" | "UKJENT";
+    type: AvsenderMottakerDtoIdType;
     /** Adresse til mottaker hvis dokumentet skal sendes/er sendt gjennom sentral print */
     adresse?: MottakerAdresseTo;
+}
+
+/** Identtype */
+export enum AvsenderMottakerDtoIdType {
+    FNR = "FNR",
+    SAMHANDLER = "SAMHANDLER",
+    ORGNR = "ORGNR",
+    UTENLANDSK_ORGNR = "UTENLANDSK_ORGNR",
+    UKJENT = "UKJENT",
 }
 
 /** Adresse til mottaker hvis dokumentet skal sendes/er sendt gjennom sentral print */
@@ -171,6 +180,15 @@ export interface DistribuerTilAdresse {
     poststed?: string;
 }
 
+/** Arkivsystem hvor dokumentet er produsert og lagret */
+export enum DokumentArkivSystemDto {
+    JOARK = "JOARK",
+    MIDLERTIDLIG_BREVLAGER = "MIDLERTIDLIG_BREVLAGER",
+    UKJENT = "UKJENT",
+    BIDRAG = "BIDRAG",
+    FORSENDELSE = "FORSENDELSE",
+}
+
 /** Metadata for et dokument */
 export interface DokumentDto {
     /** Referansen til dokumentet i arkivsystemet */
@@ -194,11 +212,21 @@ export interface DokumentDto {
     /** Typen dokument. Dokumentmal sier noe om dokumentets innhold og oppbygning. */
     dokumentmalId?: string;
     /** Dokumentets status. Benyttes hvis journalposten er av typen forsendelse */
-    status?: "IKKE_BESTILT" | "BESTILLING_FEILET" | "UNDER_PRODUKSJON" | "UNDER_REDIGERING" | "FERDIGSTILT" | "AVBRUTT";
+    status?: DokumentStatusDto;
     /** Arkivsystem hvor dokumentet er produsert og lagret */
-    arkivSystem?: "JOARK" | "MIDLERTIDLIG_BREVLAGER" | "UKJENT" | "BIDRAG";
+    arkivSystem?: DokumentArkivSystemDto;
     /** Metadata om dokumentet */
     metadata: Record<string, string>;
+}
+
+/** Dokumentets status. Benyttes hvis journalposten er av typen forsendelse */
+export enum DokumentStatusDto {
+    IKKE_BESTILT = "IKKE_BESTILT",
+    BESTILLING_FEILET = "BESTILLING_FEILET",
+    UNDER_PRODUKSJON = "UNDER_PRODUKSJON",
+    UNDER_REDIGERING = "UNDER_REDIGERING",
+    FERDIGSTILT = "FERDIGSTILT",
+    AVBRUTT = "AVBRUTT",
 }
 
 /** Responsen til en avvikshendelse */
@@ -316,12 +344,13 @@ export interface DokumentMetadata {
     /** Journalpostid med arkiv prefiks som skal benyttes når dokumentet hentes */
     journalpostId?: string;
     dokumentreferanse?: string;
+    tittel?: string;
     /** Hvilken format dokument er på. Dette forteller hvordan dokumentet må åpnes. */
     format: "PDF" | "MBDOK" | "HTML";
     /** Status på dokumentet */
     status: "IKKE_BESTILT" | "BESTILLING_FEILET" | "UNDER_PRODUKSJON" | "UNDER_REDIGERING" | "FERDIGSTILT" | "AVBRUTT";
     /** Hvilken arkivsystem dokumentet er lagret på */
-    arkivsystem: "JOARK" | "MIDLERTIDLIG_BREVLAGER" | "UKJENT" | "BIDRAG";
+    arkivsystem: "JOARK" | "MIDLERTIDLIG_BREVLAGER" | "UKJENT" | "BIDRAG" | "FORSENDELSE";
 }
 
 /** Metadata for en url til et fysisk dokument */
@@ -381,29 +410,10 @@ export interface JournalpostDto {
     journalfortDato?: string;
     /** Identifikator av journalpost i midlertidig brevlager eller fra joark på formatet [BID|JOARK]-<journalpostId> */
     journalpostId?: string;
-    /**
-     * Journalposten ble mottatt/sendt ut i kanal
-     * @deprecated
-     */
-    kilde?:
-        | "NAV_NO_BID"
-        | "SKAN_BID"
-        | "NAV_NO"
-        | "SKAN_NETS"
-        | "LOKAL_UTSKRIFT"
-        | "SENTRAL_UTSKRIFT"
-        | "SDP"
-        | "INGEN_DISTRIBUSJON";
     /** Journalposten ble mottatt/sendt ut i kanal */
-    kanal?:
-        | "NAV_NO_BID"
-        | "SKAN_BID"
-        | "NAV_NO"
-        | "SKAN_NETS"
-        | "LOKAL_UTSKRIFT"
-        | "SENTRAL_UTSKRIFT"
-        | "SDP"
-        | "INGEN_DISTRIBUSJON";
+    kilde?: Kanal;
+    /** Journalposten ble mottatt/sendt ut i kanal */
+    kanal?: Kanal;
     /**
      * Dato for når dokument er mottat, dvs. dato for journalføring eller skanning
      * @format date
@@ -411,8 +421,13 @@ export interface JournalpostDto {
     mottattDato?: string;
     /** Inngående (I), utgående (U) journalpost; (X) internt notat */
     dokumentType?: string;
-    /** Journalpostens status, (A, D, J, M, O, R, S, T, U, KP, EJ, E) */
+    /**
+     * Journalpostens status, (A, D, J, M, O, R, S, T, U, KP, EJ, E)
+     * @deprecated
+     */
     journalstatus?: string;
+    /** Journalpostens status */
+    status?: JournalpostStatus;
     /** Om journalposten er feilført på bidragssak */
     feilfort?: boolean;
     /** Metadata for kode vs dekode i et kodeobjekt */
@@ -431,6 +446,40 @@ export interface JournalpostDto {
     opprettetAvIdent?: string;
     /** Referanse til originale kilden til journalposten. Kan være referanse til forsendelse eller bidrag journalpost med prefiks. Feks BID_12323 eller BIF_123213 */
     eksternReferanseId?: string;
+}
+
+/** Journalpostens status */
+export enum JournalpostStatus {
+    MOTTATT = "MOTTATT",
+    JOURNALFORT = "JOURNALFØRT",
+    EKSPEDERT = "EKSPEDERT",
+    DISTRIBUERT = "DISTRIBUERT",
+    AVBRUTT = "AVBRUTT",
+    KLAR_FOR_DISTRIBUSJON = "KLAR_FOR_DISTRIBUSJON",
+    RETUR = "RETUR",
+    FERDIGSTILT = "FERDIGSTILT",
+    FEILREGISTRERT = "FEILREGISTRERT",
+    RESERVERT = "RESERVERT",
+    UTGAR = "UTGÅR",
+    UNDER_OPPRETTELSE = "UNDER_OPPRETTELSE",
+    UNDER_PRODUKSJON = "UNDER_PRODUKSJON",
+    UKJENT = "UKJENT",
+}
+
+/** Journalposten ble mottatt/sendt ut i kanal */
+export enum Kanal {
+    NAV_NO = "NAV_NO",
+    NAV_NO_BID = "NAV_NO_BID",
+    SKAN_BID = "SKAN_BID",
+    SKAN_IM = "SKAN_IM",
+    SKAN_NETS = "SKAN_NETS",
+    LOKAL_UTSKRIFT = "LOKAL_UTSKRIFT",
+    SENTRAL_UTSKRIFT = "SENTRAL_UTSKRIFT",
+    SDP = "SDP",
+    INGEN_DISTRIBUSJON = "INGEN_DISTRIBUSJON",
+    INNSENDT_NAV_ANSATT = "INNSENDT_NAV_ANSATT",
+    NAV_NO_UINNLOGGET = "NAV_NO_UINNLOGGET",
+    NAV_NO_CHAT = "NAV_NO_CHAT",
 }
 
 /** Metadata for kode vs dekode i et kodeobjekt */
@@ -480,6 +529,37 @@ export interface JournalpostResponse {
     sakstilknytninger: string[];
 }
 
+export interface DistribusjonInfoDto {
+    journalstatus:
+        | "MOTTATT"
+        | "JOURNALFØRT"
+        | "EKSPEDERT"
+        | "DISTRIBUERT"
+        | "AVBRUTT"
+        | "KLAR_FOR_DISTRIBUSJON"
+        | "RETUR"
+        | "FERDIGSTILT"
+        | "FEILREGISTRERT"
+        | "RESERVERT"
+        | "UTGÅR"
+        | "UNDER_OPPRETTELSE"
+        | "UNDER_PRODUKSJON"
+        | "UKJENT";
+    kanal: string;
+    utsendingsinfo?: UtsendingsInfoDto;
+    /** @format date-time */
+    distribuertDato?: string;
+    distribuertAvIdent?: string;
+    bestillingId?: string;
+}
+
+export interface UtsendingsInfoDto {
+    varseltype?: "EPOST" | "SMS" | "DIGIPOST" | "FYSISK_POST";
+    adresse?: string;
+    tittel?: string;
+    varslingstekst?: string;
+}
+
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, HeadersDefaults, ResponseType } from "axios";
 
 export type QueryParamsType = Record<string | number, any>;
@@ -526,7 +606,7 @@ export class HttpClient<SecurityDataType = unknown> {
     constructor({ securityWorker, secure, format, ...axiosConfig }: ApiConfig<SecurityDataType> = {}) {
         this.instance = axios.create({
             ...axiosConfig,
-            baseURL: axiosConfig.baseURL || "https://bidrag-dokument-feature.dev.intern.nav.no/bidrag-dokument",
+            baseURL: axiosConfig.baseURL || "http://localhost:8099/bidrag-dokument",
         });
         this.secure = secure;
         this.format = format;
@@ -616,7 +696,7 @@ export class HttpClient<SecurityDataType = unknown> {
 /**
  * @title bidrag-dokument
  * @version v1
- * @baseUrl https://bidrag-dokument-feature.dev.intern.nav.no/bidrag-dokument
+ * @baseUrl http://localhost:8099/bidrag-dokument
  */
 export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDataType> {
     journalpost = {
@@ -677,6 +757,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
                     | "REGISTRER_RETUR"
                     | "MANGLER_ADRESSE"
                     | "BESTILL_NY_DISTRIBUSJON"
+                    | "FARSKAP_UTELUKKET"
                 )[],
                 (
                     | "ARKIVERE_JOURNALPOST"
@@ -695,6 +776,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
                     | "REGISTRER_RETUR"
                     | "MANGLER_ADRESSE"
                     | "BESTILL_NY_DISTRIBUSJON"
+                    | "FARSKAP_UTELUKKET"
                 )[]
             >({
                 path: `/journal/${journalpostIdForKildesystem}/avvik`,
@@ -810,6 +892,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
                 secure: true,
                 ...params,
             }),
+
+        /**
+         * @description Hent informasjon om distribusjon av journalpost
+         *
+         * @tags journalpost-controller
+         * @name HentDistribusjonsInfo
+         * @request GET:/journal/distribuer/info/{journalpostId}
+         * @secure
+         */
+        hentDistribusjonsInfo: (journalpostId: string, params: RequestParams = {}) =>
+            this.request<DistribusjonInfoDto, any>({
+                path: `/journal/distribuer/info/${journalpostId}`,
+                method: "GET",
+                secure: true,
+                ...params,
+            }),
     };
     dokument = {
         /**
@@ -822,7 +920,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         hentDokument: (
             journalpostId: string,
-            dokumentreferanse: string,
             query?: {
                 resizeToA4?: boolean;
                 /** @default true */
@@ -846,7 +943,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * @request OPTIONS:/dokument/{journalpostId}
          * @secure
          */
-        hentDokumentMetadata: (journalpostId: string, dokumentreferanse: string, params: RequestParams = {}) =>
+        hentDokumentMetadata: (journalpostId: string, params: RequestParams = {}) =>
             this.request<DokumentMetadata[], any>({
                 path: `/dokument/${journalpostId}`,
                 method: "OPTIONS",
@@ -947,7 +1044,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * @request GET:/tilgang/dokumentreferanse/{dokumentreferanse}
          * @secure
          */
-        giTilgangTilDokument1: (journalpostId: string, dokumentreferanse: string, params: RequestParams = {}) =>
+        giTilgangTilDokument1: (dokumentreferanse: string, params: RequestParams = {}) =>
             this.request<DokumentTilgangResponse, any>({
                 path: `/tilgang/dokumentreferanse/${dokumentreferanse}`,
                 method: "GET",
@@ -969,6 +1066,8 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
             saksnummer: string,
             query?: {
                 fagomrade?: string[];
+                /** @default false */
+                bareFarskapUtelukket?: boolean;
             },
             params: RequestParams = {}
         ) =>
@@ -985,12 +1084,27 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * No description
          *
          * @tags dokument-controller
+         * @name ErFerdigstilt
+         * @request GET:/dokumentreferanse/{dokumentreferanse}/erFerdigstilt
+         * @secure
+         */
+        erFerdigstilt: (dokumentreferanse: string, params: RequestParams = {}) =>
+            this.request<boolean, any>({
+                path: `/dokumentreferanse/${dokumentreferanse}/erFerdigstilt`,
+                method: "GET",
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * No description
+         *
+         * @tags dokument-controller
          * @name HentDokument2
          * @request GET:/dokumentreferanse/{dokumentreferanse}
          * @secure
          */
         hentDokument2: (
-            journalpostId: string,
             dokumentreferanse: string,
             query?: {
                 resizeToA4?: boolean;
