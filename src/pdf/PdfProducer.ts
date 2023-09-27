@@ -1,4 +1,4 @@
-import { FileUtils } from "@navikt/bidrag-ui-common";
+import { FileUtils, LoggerService } from "@navikt/bidrag-ui-common";
 import { PDFDocument, PDFPage, PDFPageDrawRectangleOptions, rgb } from "pdf-lib";
 import { PDFFont } from "pdf-lib";
 import { RotationTypes } from "pdf-lib";
@@ -67,7 +67,7 @@ export class PdfProducer {
         }
     }
     async process(): Promise<PdfProducer> {
-        this.pdfDocument.getForm().flatten();
+        this.flattenForm();
         const itemsFiltered = this.config.items.filter((item) => !this.config.removedPages.includes(item.pageNumber));
         // @ts-ignore
         this.maskPages(itemsFiltered);
@@ -75,6 +75,31 @@ export class PdfProducer {
         await this.convertMaskedPagesToImage(itemsFiltered);
         this.removePages(this.config.removedPages);
         return this;
+    }
+
+    private flattenForm() {
+        const form = this.pdfDocument.getForm();
+        try {
+            form.flatten();
+        } catch (e) {
+            LoggerService.error(
+                "Det skjedde en feil ved 'flatning' av form felter i PDF. Prøver å sette felter read-only istedenfor",
+                e
+            );
+            this.makeFieldsReadOnly();
+        }
+    }
+
+    private makeFieldsReadOnly() {
+        const form = this.pdfDocument.getForm();
+        try {
+            form.getFields().forEach((field) => {
+                field.enableReadOnly();
+            });
+            form.flatten();
+        } catch (e) {
+            LoggerService.error("Det skjedde en feil ved markering av form felter som read-only PDF", e);
+        }
     }
 
     async convertMaskedPagesToImage(items: IMaskingItemProps[]) {

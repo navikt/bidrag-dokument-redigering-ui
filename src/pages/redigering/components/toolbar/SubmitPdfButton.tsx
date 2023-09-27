@@ -1,4 +1,5 @@
 import { FileCheckmarkIcon } from "@navikt/aksel-icons";
+import { LoggerService } from "@navikt/bidrag-ui-common";
 import { Alert, BodyShort, Button, Heading, Modal } from "@navikt/ds-react";
 import { useEffect, useState } from "react";
 import React from "react";
@@ -7,7 +8,7 @@ import { usePdfEditorContext } from "../PdfEditorContext";
 import ProduceDocumentStateIndicator from "./ProduceDocumentStateIndicator";
 
 export default function SubmitPdfButton() {
-    const { finishPdf } = usePdfEditorContext();
+    const { finishPdf, dokumentreferanse, forsendelseId } = usePdfEditorContext();
     const [producingDocument, setProducingDocument] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const [isConfirmedFinishedEditing, setConfirmedFinishedEditing] = useState(false);
@@ -26,6 +27,10 @@ export default function SubmitPdfButton() {
             })
             .then(closeModal)
             .catch((error) => {
+                LoggerService.error(
+                    `Det skjedde en feil ved produsering av dokument ${dokumentreferanse} i forsendelse ${forsendelseId}`,
+                    error
+                );
                 if (typeof error == "string") {
                     setSubmitError(error ?? "ukjent feil");
                 } else {
