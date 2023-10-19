@@ -5,7 +5,7 @@ import { BrowserRouter, Route, Routes, useParams, useSearchParams } from "react-
 
 import DokumentMaskeringPage from "./pages/dokumentmaskering/DokumentMaskeringPage";
 import DokumentRedigeringPage from "./pages/dokumentredigering/DokumentRedigeringPage";
-import SkjemaUtfyllingPage from "./pages/skjemutfylling/SkjemaUtfyllingPage";
+const SkjemaUtfyllingPage = React.lazy(() => import("./pages/skjemutfylling/SkjemaUtfyllingPage"));
 
 // This file is only used for development. The entrypoint is under pages folder
 
