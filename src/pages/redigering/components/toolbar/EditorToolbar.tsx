@@ -20,28 +20,26 @@ export default function EditorToolbar() {
 
     return (
         <Toolbar>
-            <div className={"toolbar_content"}>
-                <div className={"buttons_left"}>
-                    <Button onClick={onToggleSidebar} size={"small"} variant={"tertiary"}>
-                        <Hamburger />
-                    </Button>
-                    {dokumentMetadata?.title && (
-                        <Detail className={"pl-2 document-title text-white m-auto"}>{dokumentMetadata.title}</Detail>
-                    )}
-                </div>
-                {isEditable ? (
-                    <div className={"buttons_right"}>
-                        <DocumentStateIndicator />
-                        <PreviewDocumentButton />
-                        <SavePdfButton />
-                        {isEditMode && <SubmitPdfButton />}
-                    </div>
-                ) : (
-                    <div className={"buttons_right"}>
-                        <UnlockPdfButton />
-                    </div>
+            <div className={"buttons_left"}>
+                <Button onClick={onToggleSidebar} size={"small"} variant={"tertiary"}>
+                    <Hamburger />
+                </Button>
+                {dokumentMetadata?.title && (
+                    <Detail className={"pl-2 document-title text-white m-auto"}>{dokumentMetadata.title}</Detail>
                 )}
             </div>
+            {isEditable ? (
+                <div className={"buttons_right"}>
+                    <DocumentStateIndicator />
+                    <PreviewDocumentButton />
+                    <SavePdfButton />
+                    {isEditMode && <SubmitPdfButton />}
+                </div>
+            ) : (
+                <div className={"buttons_right"}>
+                    <UnlockPdfButton />
+                </div>
+            )}
         </Toolbar>
     );
 }

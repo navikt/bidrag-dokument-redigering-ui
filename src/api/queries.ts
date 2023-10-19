@@ -138,7 +138,6 @@ export const RedigeringQueries = {
         return useMutation({
             mutationKey: DokumentQueryKeys.lagreDokumentMetadata(forsendelseId, dokumentId),
             mutationFn: (config: T) => {
-                console.log(config);
                 return BIDRAG_FORSENDELSE_API.api.oppdaterDokumentRedigeringmetadata(
                     forsendelseId,
                     dokumentId,

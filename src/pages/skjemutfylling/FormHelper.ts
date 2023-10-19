@@ -12,7 +12,6 @@ export async function getFormValues(formDocument: PDFDocumentProxy): Promise<Pag
         const result = await getFormValuesForPage(page, annotations);
         formValuesMap.set(pageIndex + 1, result);
     }
-    console.log(formValuesMap);
     return formValuesMap;
 }
 async function getFormValuesForPage(domPage: PDFPageProxy, annotations: any[]) {
@@ -45,8 +44,6 @@ function getAnnotationValue(annotation: any): SingleFormProps | null {
 }
 
 export function setAnnotationValue(annotation: SingleFormProps): SingleFormProps | null {
-    console.log(annotation);
-    // console.log(name, annotation)
     const element = document.querySelector(`[data-element-id="${annotation.id}"]`) as HTMLInputElement;
     if (!element) return;
     switch (annotation.type) {

@@ -26,8 +26,12 @@ module.exports = {
         rules: [
             {
                 test: /\.css$/,
-                exclude: /node_modules/,
+                exclude: /\.lazy\.css$/i,
                 use: [MiniCssExtractPlugin.loader, "css-loader", "postcss-loader"],
+            },
+            {
+                test: /\.lazy\.css$/i,
+                use: [{ loader: "style-loader", options: { injectType: "lazyStyleTag" } }, "css-loader"],
             },
             {
                 test: /\.mdx?$/,

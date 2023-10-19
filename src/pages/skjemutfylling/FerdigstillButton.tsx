@@ -1,5 +1,5 @@
 import { FileCheckmarkIcon } from "@navikt/aksel-icons";
-import { Alert, Button, Heading, Modal } from "@navikt/ds-react";
+import { Alert, BodyShort, Button, Heading, Modal } from "@navikt/ds-react";
 import { useMutation } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
@@ -51,9 +51,13 @@ export default function FerdigstillButton() {
             {modalOpen && (
                 <Modal open onClose={closeModal} closeButton shouldCloseOnEsc shouldCloseOnOverlayClick>
                     <Modal.Content className="max-w-[800px]">
-                        <Heading spacing size={"large"}>
+                        <Heading spacing size={"medium"}>
                             Er du ferdig med å fylle ut skjemaet?
                         </Heading>
+                        <BodyShort>
+                            Etter skjemaet er ferdigstilt vil den bli låst for endringer og være klar for distribusjon.
+                            Du kan senere låse opp skjemaet og endre innholdet før forsendelsen er distribuert.
+                        </BodyShort>
                         {ferdigstillFn.isError && (
                             <Alert
                                 variant="error"

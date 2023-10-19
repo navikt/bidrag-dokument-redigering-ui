@@ -1,6 +1,4 @@
 import { RenderTask } from "pdfjs-dist";
-import * as pdfjsLib from "pdfjs-dist";
-import { RenderParameters } from "pdfjs-dist/types/src/display/api";
 import { PDFPageProxy } from "pdfjs-dist/types/web/pdf_viewer";
 import React, { CSSProperties, MutableRefObject, PropsWithChildren, useEffect, useRef, useState } from "react";
 
@@ -153,36 +151,16 @@ function PDFCanvas({ pdfPage, scale, pageNumber, children }: PropsWithChildren<P
         canvas.height = viewport.height;
         canvas.width = viewport.width;
 
-        const renderContext: RenderParameters = {
+        const renderContext = {
             canvasContext: context,
             viewport: viewport,
         };
-        console.log(renderContext);
         pageRenderTask.current = pdfPage.render(renderContext);
         return pageRenderTask.current.promise
-            .then(async () => {
+            .then(() => {
                 if (!canvasRef.current) return;
                 canvasRef.current.querySelector("canvas").replaceWith(canvas);
                 fitCanvasToPage(scale);
-
-                return pdfPage.getAnnotations();
-            })
-            .then((annotations) => {
-                console.log("PAGE", pageNumber, annotations);
-                const annotationLayer = new pdfjsLib.AnnotationLayer({
-                    viewport: viewport.clone({ dontFlip: true }),
-                    div: canvasRef.current.querySelector(".annotation-layer"),
-                    page: pdfPage,
-                });
-                return annotationLayer.render({
-                    viewport: viewport.clone({ dontFlip: true }),
-                    div: canvasRef.current.querySelector(".annotation-layer"),
-                    annotations: annotations,
-                    page: pdfPage,
-                    renderForms: true,
-                    enableScripting: true,
-                    hasJSActions: true,
-                });
             })
             .catch((e) => {
                 console.debug("RENDERING CANCELLED", pageNumber, e);
@@ -198,8 +176,6 @@ function PDFCanvas({ pdfPage, scale, pageNumber, children }: PropsWithChildren<P
     return (
         <div className="canvasWrapper" ref={canvasRef}>
             <canvas className="canvas" />
-            <div className="annotation-layer"></div>
-            <div className="xfa-layer"></div>
             {children}
         </div>
     );

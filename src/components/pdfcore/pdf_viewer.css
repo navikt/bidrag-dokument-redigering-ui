@@ -108,31 +108,3 @@ body {
 .pdfrenderer_container .pdfViewer .page .canvasWrapper {
   border: 1px var(--navds-semantic-color-border-inverted) solid;
 }
-
-.annotation-layer { 
-  position: absolute;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  opacity: 0.2;
-  line-height: 1.0;
-}
-
-.annotation-layer > section {
-  color: transparent;
-  position: absolute;
-  white-space: pre;
-  cursor: text;
-  transform-origin: 0% 0%;
-}
-
-.annotation-layer > .linkAnnotation > a {
-  position: absolute;
-  font-size: 1em;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-}

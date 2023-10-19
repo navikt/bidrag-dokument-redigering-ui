@@ -1851,10 +1851,7 @@
   }
   
   .pdfViewer {
-    /* Define this variable here and not in :root to avoid to reflow all the UI
-       when scaling (see #15929). */
     --scale-factor: 1;
-  
     padding-bottom: var(--pdfViewer-padding-bottom);
 
   }

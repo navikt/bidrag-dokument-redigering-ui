@@ -2,11 +2,11 @@ import { FileUtils, LoggerService, SecureLoggerService } from "@navikt/bidrag-ui
 import { PDFCheckBox, PDFDocument, PDFField, PDFName } from "pdf-lib";
 import { PDFFont } from "pdf-lib";
 import { StandardFonts } from "pdf-lib/es";
-import { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
+import { PDFDocumentProxy } from "pdfjs-dist";
 
 import { PdfDocumentType } from "../../components/utils/types";
 import { getFormValues } from "./FormHelper";
-import { SingleFormProps } from "./types";
+import { PageFormProps, SingleFormProps } from "./types";
 
 type ProgressState = "MASK_PAGE" | "CONVERT_PAGE_TO_IMAGE" | "REMOVE_PAGE" | "SAVE_PDF";
 export interface IProducerProgress {
@@ -49,16 +49,29 @@ export class FormPdfProducer {
 
     private async fillForm() {
         const formValues = await getFormValues(this.formDocument);
-        for (const pageIndex of formValues.keys()) {
-            const page = await this.formDocument.getPage(pageIndex);
-            const annotations = formValues.get(pageIndex);
-            await this.fillFormForPage(page, annotations);
+        for (const pageNumber of formValues.keys()) {
+            const annotations = formValues.get(pageNumber);
+            await this.fillFormForPage(pageNumber, annotations);
+        }
+
+        this.removeSubmitButton(formValues);
+    }
+
+    private removeSubmitButton(formValues: PageFormProps) {
+        const form = this.pdfDocument.getForm();
+        for (const [_, annotations] of formValues.entries()) {
+            annotations.forEach((props) => {
+                if (props.type == "Btn" && props.name == "nullstill") {
+                    const field = form.getFieldMaybe(props.name);
+                    form.removeField(field);
+                }
+            });
         }
     }
-    private async fillFormForPage(domPage: PDFPageProxy, formProps: SingleFormProps[]) {
+    private async fillFormForPage(pageNumber: number, formProps: SingleFormProps[]) {
         for (const formProp of formProps) {
             console.debug(
-                `Processing annotation in page ${domPage.pageNumber} with name ${formProp.name} and type ${formProp.type} and value ${formProp?.value}`
+                `Processing annotation in page ${pageNumber} with name ${formProp.name} and type ${formProp.type} and value ${formProp?.value}`
             );
             this.fillFormField(formProp);
         }

@@ -1,7 +1,7 @@
-import "./pdfviewer.css";
-
+import styles from "./pdfviewer.lazy.css";
+styles.use();
 import { EyeIcon } from "@navikt/aksel-icons";
-import { queryParams } from "@navikt/bidrag-ui-common";
+import { LoggerService, queryParams } from "@navikt/bidrag-ui-common";
 import { BroadcastMessage } from "@navikt/bidrag-ui-common";
 import { Broadcast } from "@navikt/bidrag-ui-common";
 import { FileUtils } from "@navikt/bidrag-ui-common";
@@ -14,6 +14,7 @@ import { EventBus, PDFPageView } from "pdfjs-dist/web/pdf_viewer";
 import React, { PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 
 import { lastDokumenter, RedigeringQueries } from "../../api/queries";
+import { useDebounce } from "../../components/hooks/useDebounce";
 import Toolbar from "../../components/toolbar/Toolbar";
 import { createArrayWithLength } from "../../components/utils/ObjectUtils";
 import { PdfDocumentType } from "../../components/utils/types";
@@ -22,6 +23,7 @@ import PageWrapper from "../PageWrapper";
 import FerdigstillButton from "./FerdigstillButton";
 import { getFormValues, setAnnotationValue } from "./FormHelper";
 import { FormPdfProducer } from "./FormPdfProducer";
+import SaveStateIndicator from "./SaveStateIndicator";
 import { SkjemautfyllingMetadata } from "./types";
 import UnlockSkjemaButton from "./UnlockSkjemaButton";
 
@@ -89,10 +91,28 @@ interface DocumentViewProps extends PropsWithChildren<unknown> {
 function DocumentView({ file, dokumentreferanse, forsendelseId, dokumentMetadata }: DocumentViewProps) {
     const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy>();
     const [pagesLoaded, setPagesLoaded] = useState([]);
+    const [scale, setScale] = useState(1);
     const pdfDocumentRef = useRef<PDFDocumentProxy>();
+    const pdfViewerDivRef = useRef<HTMLDivElement>();
     const isRendering = useRef<boolean>(false);
     const producerRef = useRef(new FormPdfProducer(file));
     const lagreEndringerFn = RedigeringQueries.lagreEndringer(forsendelseId, dokumentreferanse);
+
+    const onSaveDebounced = useDebounce(saveChanges);
+    function broadcast() {
+        const params = queryParams();
+        const message: BroadcastMessage<unknown> = Broadcast.convertToBroadcastMessage(params.id, {});
+        Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
+    }
+
+    function onWindowClose(e) {
+        return broadcast();
+    }
+
+    useEffect(() => {
+        window.addEventListener("beforeunload", onWindowClose);
+        return () => window.removeEventListener("beforeunload", onWindowClose);
+    }, []);
 
     useEffect(() => {
         if (isRendering.current) return;
@@ -101,16 +121,27 @@ function DocumentView({ file, dokumentreferanse, forsendelseId, dokumentMetadata
     }, []);
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            pdfDocument &&
-                getFormValues(pdfDocument).then((formValues) => {
-                    lagreEndringerFn.mutate({
-                        formValues: Array.from(formValues.entries()),
-                    } as SkjemautfyllingMetadata);
-                });
-        }, 5000);
-        return () => clearInterval(interval);
-    });
+        return subscribeToChanges();
+    }, [pdfViewerDivRef.current]);
+
+    function saveChanges() {
+        if (!pdfDocument) return;
+        getFormValues(pdfDocument).then((formValues) => {
+            lagreEndringerFn.mutate({
+                formValues: Array.from(formValues.entries()),
+            } as SkjemautfyllingMetadata);
+        });
+    }
+    function subscribeToChanges() {
+        if (!pdfViewerDivRef.current) return () => null;
+        pdfViewerDivRef.current.addEventListener("keyup", onSaveDebounced);
+        pdfViewerDivRef.current.addEventListener("mouseup", onSaveDebounced);
+
+        return () => {
+            pdfViewerDivRef.current.removeEventListener("keyup", onSaveDebounced);
+            pdfViewerDivRef.current.removeEventListener("mouseup", onSaveDebounced);
+        };
+    }
 
     useEffect(loadInitialData, [pagesLoaded]);
 
@@ -138,7 +169,10 @@ function DocumentView({ file, dokumentreferanse, forsendelseId, dokumentMetadata
                 setPdfDocument(pdfDoc);
             })
             .catch(function (reason) {
-                console.log(reason);
+                LoggerService.error(
+                    `Det skjedde en feil ved lasting av dokument ${forsendelseId} - ${dokumentreferanse}`,
+                    reason
+                );
             });
     }
 
@@ -149,11 +183,6 @@ function DocumentView({ file, dokumentreferanse, forsendelseId, dokumentMetadata
             .then((a) => a.saveChanges())
             .then((a) => a.getProcessedDocument());
     }
-    function broadcast() {
-        const params = queryParams();
-        const message: BroadcastMessage<unknown> = Broadcast.convertToBroadcastMessage(params.id, {});
-        Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
-    }
 
     if (!pdfDocument) {
         return null;
@@ -163,10 +192,11 @@ function DocumentView({ file, dokumentreferanse, forsendelseId, dokumentMetadata
             value={{ pdfDocument, getPdfWithFilledForm, forsendelseId, dokumentreferanse, broadcast, dokumentMetadata }}
         >
             <EditorToolbar />
-            <div className="pdfViewer overflow-auto h-[calc(100%_-_100px)]">
+            <div className="pdfViewer overflow-auto h-[calc(100%_-_100px)]" ref={pdfViewerDivRef}>
                 {createArrayWithLength(pdfDocument.numPages).map((pageNumber) => (
                     <DocumentPage
                         pageNumber={pageNumber + 1}
+                        scale={scale}
                         onPageLoaded={() => setPagesLoaded((prev) => [...prev, pageNumber + 1])}
                     />
                 ))}
@@ -188,6 +218,7 @@ function EditorToolbar() {
         }
         return (
             <>
+                <SaveStateIndicator />
                 <Button
                     onClick={() => previewDocumentFn.mutate()}
                     size={"small"}
@@ -211,9 +242,10 @@ function EditorToolbar() {
 
 interface DocumentPageProps {
     pageNumber: number;
+    scale: number;
     onPageLoaded?: () => void;
 }
-function DocumentPage({ pageNumber, onPageLoaded }: DocumentPageProps) {
+function DocumentPage({ pageNumber, onPageLoaded, scale }: DocumentPageProps) {
     const { pdfDocument } = useSkjemaUtfyllingContext();
     const divRef = useRef<HTMLDivElement>();
     const isDrawn = useRef(false);
@@ -225,6 +257,9 @@ function DocumentPage({ pageNumber, onPageLoaded }: DocumentPageProps) {
         drawPage();
     }, []);
 
+    useEffect(() => {
+        pdfPageViewRef.current?.draw().then(onPageLoaded);
+    }, [scale]);
     async function drawPage() {
         const container = divRef.current;
         const pdfPage = await pdfDocument.getPage(pageNumber);
@@ -234,8 +269,8 @@ function DocumentPage({ pageNumber, onPageLoaded }: DocumentPageProps) {
         pdfPageViewRef.current = new PDFPageView({
             container,
             id: pageNumber,
-            scale: 1,
-            defaultViewport: pdfPage.getViewport({ scale: 1 }),
+            scale,
+            defaultViewport: pdfPage.getViewport({ scale }),
             eventBus: eventBus,
             annotationMode: AnnotationMode.ENABLE_FORMS,
         });
