@@ -4,6 +4,7 @@ import { Hamburger } from "@navikt/ds-icons";
 import { Button, Detail } from "@navikt/ds-react";
 import React from "react";
 
+import Toolbar from "../../../../components/toolbar/Toolbar";
 import { usePdfEditorContext } from "../PdfEditorContext";
 import DocumentStateIndicator from "./DocumentStateIndicator";
 import PreviewDocumentButton from "./PreviewDocumentButton";
@@ -18,12 +19,7 @@ export default function EditorToolbar() {
     const isEditMode = mode == "edit";
 
     return (
-        <div
-            className={"editor_toolbar"}
-            onClick={(e) => {
-                e.stopPropagation();
-            }}
-        >
+        <Toolbar>
             <div className={"toolbar_content"}>
                 <div className={"buttons_left"}>
                     <Button onClick={onToggleSidebar} size={"small"} variant={"tertiary"}>
@@ -46,6 +42,6 @@ export default function EditorToolbar() {
                     </div>
                 )}
             </div>
-        </div>
+        </Toolbar>
     );
 }

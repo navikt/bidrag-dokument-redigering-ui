@@ -1,8 +1,8 @@
 import { DokumentDetaljer } from "../api/BidragDokumentForsendelseApi";
 import { IMaskingItemProps } from "../components/masking/MaskingItem";
 
-export interface IDocumentMetadata {
-    editorMetadata?: EditDocumentMetadata;
+export interface IDocumentMetadata<T> {
+    editorMetadata?: T;
     state: "EDITABLE" | "LOCKED";
     forsendelseState: "EDITABLE" | "LOCKED";
     title: string;

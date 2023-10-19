@@ -2,9 +2,9 @@ import "../index.css";
 
 import { MDXProvider } from "@mdx-js/react";
 import { BodyShort, Heading, Skeleton } from "@navikt/ds-react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import React, { PropsWithChildren } from "react";
-import { QueryClientProvider } from "react-query";
-import { QueryClient } from "react-query";
 
 import { initMock } from "../mock";
 
@@ -17,7 +17,7 @@ const initReactQuery = () =>
                 suspense: true,
                 staleTime: Infinity,
                 retry: 0,
-                useErrorBoundary: true,
+                throwOnError: true,
                 retryDelay: 3000,
             },
         },

@@ -34,7 +34,10 @@ export default function DokumentMaskeringPage(props: DokumentMaskeringPageProps)
 
 function DokumentMaskeringContainer({ forsendelseId, dokumentreferanse }: DokumentMaskeringPageProps) {
     const { data: documentFile, isFetching } = lastDokumenter(forsendelseId, dokumentreferanse, null, true, false);
-    const { data: dokumentMetadata } = RedigeringQueries.hentRedigeringmetadata(forsendelseId, dokumentreferanse);
+    const { data: dokumentMetadata } = RedigeringQueries.hentRedigeringmetadata<EditDocumentMetadata>(
+        forsendelseId,
+        dokumentreferanse
+    );
     const lagreEndringerFn = RedigeringQueries.lagreEndringer(forsendelseId, dokumentreferanse);
     const ferdigstillDokumentFn = RedigeringQueries.ferdigstillDokument(forsendelseId, dokumentreferanse);
     function onWindowClose(e) {
