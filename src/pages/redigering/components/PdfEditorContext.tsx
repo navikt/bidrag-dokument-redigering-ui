@@ -35,7 +35,7 @@ interface PdfEditorContextProps {
     sidebarHidden: boolean;
     isSavingEditDocumentConfig: boolean;
     dokumentreferanse: string;
-    dokumentMetadata?: IDocumentMetadata;
+    dokumentMetadata?: IDocumentMetadata<EditDocumentMetadata>;
 }
 
 export const usePdfEditorContext = () => useContext(PdfEditorContext);
@@ -46,7 +46,7 @@ interface IPdfEditorContextProviderProps {
     submitOnSave?: boolean;
     journalpostId: string;
     dokumentreferanse: string;
-    dokumentMetadata?: IDocumentMetadata;
+    dokumentMetadata?: IDocumentMetadata<EditDocumentMetadata>;
     documentFile: PdfDocumentType;
     onSave?: (config: EditDocumentMetadata) => Promise<ClosingWindow>;
     onSaveAndClose?: (config: EditDocumentMetadata) => Promise<ClosingWindow>;

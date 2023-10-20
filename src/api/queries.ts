@@ -1,9 +1,9 @@
 import { LoggerService } from "@navikt/bidrag-ui-common";
-import { useQuery, UseQueryResult } from "react-query";
-import { useMutation } from "react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useQuery, UseQueryResult } from "@tanstack/react-query";
 
 import { PdfDocumentType } from "../components/utils/types";
-import { EditDocumentMetadata, IDocumentMetadata } from "../types/EditorTypes";
+import { IDocumentMetadata } from "../types/EditorTypes";
 import { BIDRAG_DOKUMENT_API } from "./api";
 import { BIDRAG_FORSENDELSE_API } from "./api";
 import { DokumentStatusTo, FerdigstillDokumentRequest } from "./BidragDokumentForsendelseApi";
@@ -50,71 +50,73 @@ export const lastDokumenter = (
     return useQuery({
         queryKey: DokumentQueryKeys.hentDokument(dokumentId, dokumenter),
         queryFn: () => {
-            if (dokumenter && dokumenter.length > 0) {
-                return BIDRAG_DOKUMENT_API.dokument.hentDokumenter(
-                    {
-                        dokument: dokumenter,
-                        resizeToA4,
-                        optimizeForPrint,
-                    },
-                    {
-                        format: "blob",
-                        paramsSerializer: {
-                            indexes: null,
+            try {
+                if (dokumenter && dokumenter.length > 0) {
+                    return BIDRAG_DOKUMENT_API.dokument.hentDokumenter(
+                        {
+                            dokument: dokumenter,
+                            resizeToA4,
+                            optimizeForPrint,
                         },
-                    }
-                );
-            }
-            if (dokumentId) {
-                return BIDRAG_DOKUMENT_API.dokument.hentDokument1(
-                    journalpostId,
-                    dokumentId,
-                    {
-                        resizeToA4,
-                        optimizeForPrint,
-                    },
-                    {
-                        format: "blob",
-                        paramsSerializer: {
-                            indexes: null,
-                        },
-                    }
-                );
-            }
-            return BIDRAG_DOKUMENT_API.dokument.hentDokument(
-                journalpostId,
-                {
-                    resizeToA4,
-                    optimizeForPrint,
-                },
-                {
-                    format: "blob",
-                    paramsSerializer: {
-                        indexes: null,
-                    },
+                        {
+                            format: "blob",
+                            paramsSerializer: {
+                                indexes: null,
+                            },
+                        }
+                    );
                 }
-            );
+                if (dokumentId) {
+                    return BIDRAG_DOKUMENT_API.dokument.hentDokument1(
+                        journalpostId,
+                        dokumentId,
+                        {
+                            resizeToA4,
+                            optimizeForPrint,
+                        },
+                        {
+                            format: "blob",
+                            paramsSerializer: {
+                                indexes: null,
+                            },
+                        }
+                    );
+                }
+                return BIDRAG_DOKUMENT_API.dokument.hentDokument(
+                    journalpostId,
+                    {
+                        resizeToA4,
+                        optimizeForPrint,
+                    },
+                    {
+                        format: "blob",
+                        paramsSerializer: {
+                            indexes: null,
+                        },
+                    }
+                );
+            } catch (e) {
+                LoggerService.warn(
+                    `Fant ikke dokument ${dokumentId} eller dokumenter ${dokumenter} for forsendelse/journalpost ${journalpostId}`
+                );
+                throw e;
+            }
         },
-        select: (response) => response.data,
-        onSuccess: (data) => {
+        select: (response) => {
             LoggerService.info(`Hentet dokumenter ${dokumenter} og resizeToA4=${resizeToA4}.`);
-        },
-        onError: (data) => {
-            LoggerService.warn(
-                `Fant ikke dokument ${dokumentId} eller dokumenter ${dokumenter} for forsendelse/journalpost ${journalpostId}`
-            );
+            return response.data;
         },
     });
 };
 
 export const RedigeringQueries = {
-    hentRedigeringmetadata: (forsendelseId: string, dokumentId: string) => {
+    hentRedigeringmetadata: <T>(forsendelseId: string, dokumentId: string) => {
         return useQuery({
             queryKey: DokumentQueryKeys.hentDokumentMetadata(forsendelseId, dokumentId),
             queryFn: () => {
                 return BIDRAG_FORSENDELSE_API.api.hentDokumentRedigeringMetadata(forsendelseId, dokumentId);
             },
-            select: (data): IDocumentMetadata => {
+            select: (data): IDocumentMetadata<T> => {
                 const response = data.data;
                 if (![DokumentStatusTo.MAKONTROLLERES, DokumentStatusTo.UNDER_REDIGERING].includes(response.status)) {
                     return {
@@ -125,9 +127,7 @@ export const RedigeringQueries = {
                     };
                 }
                 return {
-                    editorMetadata: response.redigeringMetadata
-                        ? (JSON.parse(response.redigeringMetadata) as EditDocumentMetadata)
-                        : null,
+                    editorMetadata: response.redigeringMetadata ? (JSON.parse(response.redigeringMetadata) as T) : null,
                     documentDetails: response.dokumenter,
                     title: response.tittel,
                     forsendelseState: response.forsendelseStatus == "UNDER_PRODUKSJON" ? "EDITABLE" : "LOCKED",
@@ -136,10 +136,10 @@ export const RedigeringQueries = {
             },
         });
     },
-    lagreEndringer: (forsendelseId: string, dokumentId: string) => {
+    lagreEndringer: <T>(forsendelseId: string, dokumentId: string) => {
         return useMutation({
             mutationKey: DokumentQueryKeys.lagreDokumentMetadata(forsendelseId, dokumentId),
-            mutationFn: (config: EditDocumentMetadata) => {
+            mutationFn: (config: T) => {
                 return BIDRAG_FORSENDELSE_API.api.oppdaterDokumentRedigeringmetadata(
                     forsendelseId,
                     dokumentId,

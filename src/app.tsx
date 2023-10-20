@@ -5,6 +5,7 @@ import { BrowserRouter, Route, Routes, useParams, useSearchParams } from "react-
 
 import DokumentMaskeringPage from "./pages/dokumentmaskering/DokumentMaskeringPage";
 import DokumentRedigeringPage from "./pages/dokumentredigering/DokumentRedigeringPage";
+const SkjemaUtfyllingPage = React.lazy(() => import("./pages/skjemutfylling/SkjemaUtfyllingPage"));
 
 // This file is only used for development. The entrypoint is under pages folder
 
@@ -23,7 +24,10 @@ export default function App() {
                         path="/rediger/masker/:forsendelseId/:dokumentreferanse"
                         element={<DokumentMaskeringPageWrapper />}
                     />
-                    <Route path="/" element={<div>Hello world</div>} />
+                    <Route
+                        path="/rediger/skjemautfylling/:forsendelseId/:dokumentreferanse"
+                        element={<SkjemaUtfyllingPageWrapper />}
+                    />
                 </Routes>
             </BrowserRouter>
         </React.StrictMode>
@@ -45,4 +49,9 @@ function DokumentRedigeringPageWrapper() {
 function DokumentMaskeringPageWrapper() {
     const { forsendelseId, dokumentreferanse } = useParams();
     return <DokumentMaskeringPage forsendelseId={forsendelseId} dokumentreferanse={dokumentreferanse} />;
+}
+
+function SkjemaUtfyllingPageWrapper() {
+    const { forsendelseId, dokumentreferanse } = useParams();
+    return <SkjemaUtfyllingPage forsendelseId={forsendelseId} dokumentreferanse={dokumentreferanse} />;
 }

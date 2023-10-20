@@ -4,15 +4,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import React from "react";
 
-import { DokumentQueryKeys, RedigeringQueries } from "../../../../api/queries";
-import { usePdfEditorContext } from "../PdfEditorContext";
+import { DokumentQueryKeys, RedigeringQueries } from "../../api/queries";
+import { useSkjemaUtfyllingContext } from "./SkjemaUtfyllingPage";
 
-export default function UnlockPdfButton() {
-    const { forsendelseId, dokumentreferanse, dokumentMetadata } = usePdfEditorContext();
+export default function UnlockSkjemaButton() {
+    const { forsendelseId, dokumentreferanse, dokumentMetadata } = useSkjemaUtfyllingContext();
     const opphevFerdigstillFn = RedigeringQueries.opphevFerdigstillDokument(forsendelseId, dokumentreferanse);
     const [modalOpen, setModalOpen] = useState(false);
-    const queryClient = useQueryClient();
 
+    const queryClient = useQueryClient();
     const openModal = () => setModalOpen(true);
     const closeModal = () => {
         setModalOpen(false);
