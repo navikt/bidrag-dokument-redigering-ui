@@ -50,59 +50,61 @@ export const lastDokumenter = (
     return useQuery({
         queryKey: DokumentQueryKeys.hentDokument(dokumentId, dokumenter),
         queryFn: () => {
-            if (dokumenter && dokumenter.length > 0) {
-                return BIDRAG_DOKUMENT_API.dokument.hentDokumenter(
-                    {
-                        dokument: dokumenter,
-                        resizeToA4,
-                        optimizeForPrint,
-                    },
-                    {
-                        format: "blob",
-                        paramsSerializer: {
-                            indexes: null,
+            try {
+                if (dokumenter && dokumenter.length > 0) {
+                    return BIDRAG_DOKUMENT_API.dokument.hentDokumenter(
+                        {
+                            dokument: dokumenter,
+                            resizeToA4,
+                            optimizeForPrint,
                         },
-                    }
-                );
-            }
-            if (dokumentId) {
-                return BIDRAG_DOKUMENT_API.dokument.hentDokument1(
-                    journalpostId,
-                    dokumentId,
-                    {
-                        resizeToA4,
-                        optimizeForPrint,
-                    },
-                    {
-                        format: "blob",
-                        paramsSerializer: {
-                            indexes: null,
-                        },
-                    }
-                );
-            }
-            return BIDRAG_DOKUMENT_API.dokument.hentDokument(
-                journalpostId,
-                {
-                    resizeToA4,
-                    optimizeForPrint,
-                },
-                {
-                    format: "blob",
-                    paramsSerializer: {
-                        indexes: null,
-                    },
+                        {
+                            format: "blob",
+                            paramsSerializer: {
+                                indexes: null,
+                            },
+                        }
+                    );
                 }
-            );
+                if (dokumentId) {
+                    return BIDRAG_DOKUMENT_API.dokument.hentDokument1(
+                        journalpostId,
+                        dokumentId,
+                        {
+                            resizeToA4,
+                            optimizeForPrint,
+                        },
+                        {
+                            format: "blob",
+                            paramsSerializer: {
+                                indexes: null,
+                            },
+                        }
+                    );
+                }
+                return BIDRAG_DOKUMENT_API.dokument.hentDokument(
+                    journalpostId,
+                    {
+                        resizeToA4,
+                        optimizeForPrint,
+                    },
+                    {
+                        format: "blob",
+                        paramsSerializer: {
+                            indexes: null,
+                        },
+                    }
+                );
+            } catch (e) {
+                LoggerService.warn(
+                    `Fant ikke dokument ${dokumentId} eller dokumenter ${dokumenter} for forsendelse/journalpost ${journalpostId}`
+                );
+                throw e;
+            }
         },
-        select: (response) => response.data,
-        onSuccess: (data) => {
+        select: (response) => {
             LoggerService.info(`Hentet dokumenter ${dokumenter} og resizeToA4=${resizeToA4}.`);
-        },
-        onError: (data) => {
-            LoggerService.warn(
-                `Fant ikke dokument ${dokumentId} eller dokumenter ${dokumenter} for forsendelse/journalpost ${journalpostId}`
-            );
+            return response.data;
         },
     });
 };

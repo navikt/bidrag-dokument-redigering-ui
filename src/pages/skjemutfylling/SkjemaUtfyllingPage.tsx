@@ -1,3 +1,4 @@
+//@ts-ignore
 import styles from "./pdfviewer.lazy.css";
 styles.use();
 import { EyeIcon } from "@navikt/aksel-icons";
@@ -91,7 +92,7 @@ interface DocumentViewProps extends PropsWithChildren<unknown> {
 function DocumentView({ file, dokumentreferanse, forsendelseId, dokumentMetadata }: DocumentViewProps) {
     const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy>();
     const [pagesLoaded, setPagesLoaded] = useState([]);
-    const [scale, setScale] = useState(1);
+    const [scale, setScale] = useState(1.3);
     const pdfDocumentRef = useRef<PDFDocumentProxy>();
     const pdfViewerDivRef = useRef<HTMLDivElement>();
     const isRendering = useRef<boolean>(false);

@@ -1,5 +1,3 @@
-import "./EditorToolbar.css";
-
 import { Hamburger } from "@navikt/ds-icons";
 import { Button, Detail } from "@navikt/ds-react";
 import React from "react";
