@@ -1,10 +1,13 @@
 import "../index.css";
 
-import { MDXProvider } from "@mdx-js/react";
+import { MDXProvider, useMDXComponents } from "@mdx-js/react";
+import { bidragMDXTheme } from "@navikt/bidrag-ui-common";
 import { BodyShort, Heading, Skeleton } from "@navikt/ds-react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { QueryClient } from "@tanstack/react-query";
+import { useThemedStylesWithMdx } from "@theme-ui/mdx";
 import React, { PropsWithChildren } from "react";
+import { ThemeUIProvider } from "theme-ui";
 
 import { initMock } from "../mock";
 
@@ -28,14 +31,17 @@ interface PageWrapperProps {
     name: string;
 }
 export default function PageWrapper({ children, name }: PropsWithChildren<PageWrapperProps>) {
+    const componentsWithStyles = useThemedStylesWithMdx(useMDXComponents());
     return (
-        <MDXProvider components={mdxComponents}>
-            <QueryClientProvider client={queryClient}>
-                <React.Suspense fallback={<LoadingIndicatorSkeleton />}>
-                    <div className={name}>{children}</div>
-                </React.Suspense>
-            </QueryClientProvider>
-        </MDXProvider>
+        <ThemeUIProvider theme={bidragMDXTheme}>
+            <MDXProvider components={{ ...mdxComponents, ...componentsWithStyles }}>
+                <QueryClientProvider client={queryClient}>
+                    <React.Suspense fallback={<LoadingIndicatorSkeleton />}>
+                        <div className={name}>{children}</div>
+                    </React.Suspense>
+                </QueryClientProvider>
+            </MDXProvider>
+        </ThemeUIProvider>
     );
 }
 

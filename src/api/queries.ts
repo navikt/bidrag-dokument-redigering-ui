@@ -134,6 +134,7 @@ export const RedigeringQueries = {
                     state: "EDITABLE",
                 };
             },
+            enabled: forsendelseId != undefined && dokumentId != undefined,
         });
     },
     lagreEndringer: <T>(forsendelseId: string, dokumentId: string) => {

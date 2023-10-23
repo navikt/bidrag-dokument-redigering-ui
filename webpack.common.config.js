@@ -34,6 +34,10 @@ module.exports = {
                 use: [{ loader: "style-loader", options: { injectType: "lazyStyleTag" } }, "css-loader"],
             },
             {
+                test: /\.(png|jpg|gif|mov|icc)$/i,
+                type: "asset/inline",
+            },
+            {
                 test: /\.mdx?$/,
                 use: [
                     {

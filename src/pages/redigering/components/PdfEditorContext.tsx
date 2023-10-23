@@ -1,7 +1,8 @@
-import { EditorConfigStorage, FileUtils, objectsDeepEqual, queryParams } from "@navikt/bidrag-ui-common";
+import { EditorConfigStorage, objectsDeepEqual, queryParams } from "@navikt/bidrag-ui-common";
 import { PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 import React from "react";
 
+import { BIDRAG_FORSENDELSE_API } from "../../../api/api";
 import StateHistory from "../../../components/history/StateHistory";
 import { MaskingContainer, useMaskingContainer } from "../../../components/masking/MaskingContainer";
 import { TimerUtils } from "../../../components/utils/TimerUtils";
@@ -187,7 +188,7 @@ function PdfEditorContextProviderWithMasking({
 
         const config = getEditDocumentMetadata();
         return await new PdfProducer(existingPdfBytes)
-            .init(config, onProducePdfProgressUpdated)
+            .init(config, dokumentMetadata.title, onProducePdfProgressUpdated)
             .then((p) => p.process())
             .then((p) => p.saveChanges())
             .then((p) => ({
@@ -199,8 +200,16 @@ function PdfEditorContextProviderWithMasking({
     async function previewPdf(): Promise<void> {
         updateSaveState("PRODUCING", 0);
         const { documentFile } = await getProcessedPdf();
+        console.log(documentFile);
+        const pdfAResult = await BIDRAG_FORSENDELSE_API.api.validerPdf(
+            new File([documentFile], "", {
+                type: "application/pdf",
+            }),
+            { headers: { "Content-Type": "application/pdf" } }
+        );
+        console.log(pdfAResult.data);
         updateSaveState("IDLE");
-        FileUtils.openFile(documentFile);
+        // FileUtils.openFile(documentFile);
     }
 
     async function onSavePdf(closeAfterSave?: boolean): Promise<ClosingWindow> {
