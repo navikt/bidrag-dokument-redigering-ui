@@ -71,6 +71,7 @@ export class PdfProducer {
         }
     }
     async process(): Promise<PdfProducer> {
+        this.removeSubmitButton();
         this.flattenForm();
         const itemsFiltered = this.config.items.filter((item) => !this.config.removedPages.includes(item.pageNumber));
         // @ts-ignore
@@ -263,6 +264,15 @@ export class PdfProducer {
             return 14;
         }
         return 16;
+    }
+
+    private removeSubmitButton() {
+        const form = this.pdfDocument.getForm();
+        for (const field of form.getFields()) {
+            if (field.getName() == "nullstill") {
+                form.removeField(field);
+            }
+        }
     }
 
     removePages(removePages: number[]): PdfProducer {

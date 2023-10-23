@@ -1,17 +1,9 @@
-import {
-    Broadcast,
-    BroadcastMessage,
-    BroadcastNames,
-    EditDocumentBroadcastMessage,
-    FileUtils,
-    queryParams,
-} from "@navikt/bidrag-ui-common";
+import { Broadcast, BroadcastMessage, BroadcastNames, queryParams } from "@navikt/bidrag-ui-common";
 import { Alert, Heading } from "@navikt/ds-react";
 import { AxiosError } from "axios";
 import { useEffect } from "react";
 
 import { RedigeringQueries } from "../../api/queries";
-import { uint8ToBase64 } from "../../components/utils/DocumentUtils";
 import { PdfDocumentType } from "../../components/utils/types";
 import environment from "../../environment";
 import { EditDocumentMetadata } from "../../types/EditorTypes";
@@ -56,18 +48,14 @@ export default function DokumentMaskering({
             </Alert>
         );
     }
-    function broadcast(config?: EditDocumentMetadata, documentFile?: Uint8Array) {
+    function broadcast() {
         const params = queryParams();
-        const documentFileAsBase64 = documentFile ? FileUtils._arrayBufferToBase64(documentFile) : null;
-        const message: BroadcastMessage<EditDocumentBroadcastMessage> = Broadcast.convertToBroadcastMessage(params.id, {
-            documentFile: documentFileAsBase64,
-            document: documentFileAsBase64,
-            config: config ? JSON.stringify(config) : undefined,
-        });
+        //@ts-ignore
+        const message: BroadcastMessage<void> = Broadcast.convertToBroadcastMessage(params.id);
         Broadcast.sendBroadcast(BroadcastNames.EDIT_DOCUMENT_RESULT, message);
     }
-    function broadcastAndCloseWindow(config: EditDocumentMetadata, documentFile?: Uint8Array) {
-        broadcast(config, documentFile);
+    function broadcastAndCloseWindow() {
+        broadcast();
         environment.system.isProduction && window.close();
     }
 
@@ -83,7 +71,7 @@ export default function DokumentMaskering({
     }
     function saveDocumentAndClose(config: EditDocumentMetadata) {
         return saveDocument(config).then(() => {
-            broadcastAndCloseWindow(config);
+            broadcastAndCloseWindow();
             return true;
         });
     }
@@ -92,13 +80,14 @@ export default function DokumentMaskering({
         return new Promise<boolean>((resolve, reject) => {
             ferdigstillDokumentFn.mutate(
                 {
-                    fysiskDokument: uint8ToBase64(fysiskDokument),
+                    //@ts-ignore
+                    fysiskDokument,
                     redigeringMetadata: JSON.stringify(config),
                 },
                 {
                     onSuccess: () => {
                         resolve(true);
-                        broadcastAndCloseWindow(config, fysiskDokument);
+                        broadcastAndCloseWindow();
                     },
                     onError: (error: AxiosError) => {
                         reject(parseErrorMessageFromAxiosError(error));

@@ -5,6 +5,7 @@ import { StandardFonts } from "pdf-lib/es";
 import { PDFDocumentProxy } from "pdfjs-dist";
 
 import { PdfDocumentType } from "../../components/utils/types";
+import { PdfAConverter } from "../../pdf/PdfAConverter";
 import { getFormValues } from "./FormHelper";
 import { PageFormProps, SingleFormProps } from "./types";
 
@@ -15,6 +16,7 @@ export interface IProducerProgress {
 }
 
 export class FormPdfProducer {
+    private title: string;
     private pdfDocument: PDFDocument;
     private formDocument: PDFDocumentProxy;
     private pdfBlob: PdfDocumentType;
@@ -25,7 +27,7 @@ export class FormPdfProducer {
         this.pdfBlob = pdfBlob;
     }
 
-    async init(formDocument: PDFDocumentProxy): Promise<FormPdfProducer> {
+    async init(formDocument: PDFDocumentProxy, title: string): Promise<FormPdfProducer> {
         let pdfBytes = this.pdfBlob;
         if (this.pdfBlob instanceof Blob) {
             pdfBytes = await this.pdfBlob.arrayBuffer();
@@ -33,6 +35,7 @@ export class FormPdfProducer {
         this.pdfDocument = await PDFDocument.load(pdfBytes);
         this.font = await this.pdfDocument.embedFont(StandardFonts.TimesRoman);
         this.formDocument = formDocument;
+        this.title = title;
         return this;
     }
 
@@ -143,7 +146,7 @@ export class FormPdfProducer {
     }
 
     async saveChanges(): Promise<FormPdfProducer> {
-        this.processedDocument = await this.pdfDocument.save();
+        this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title);
         return this;
     }
 

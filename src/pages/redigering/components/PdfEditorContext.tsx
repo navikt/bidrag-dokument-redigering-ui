@@ -1,4 +1,4 @@
-import { EditorConfigStorage, objectsDeepEqual, queryParams } from "@navikt/bidrag-ui-common";
+import { EditorConfigStorage, FileUtils, objectsDeepEqual, queryParams } from "@navikt/bidrag-ui-common";
 import { PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 import React from "react";
 
@@ -209,7 +209,7 @@ function PdfEditorContextProviderWithMasking({
         );
         console.log(pdfAResult.data);
         updateSaveState("IDLE");
-        // FileUtils.openFile(documentFile);
+        FileUtils.openFile(documentFile);
     }
 
     async function onSavePdf(closeAfterSave?: boolean): Promise<ClosingWindow> {

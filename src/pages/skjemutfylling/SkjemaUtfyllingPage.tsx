@@ -14,6 +14,7 @@ import { AnnotationMode, PDFDocumentProxy } from "pdfjs-dist";
 import { EventBus, PDFPageView } from "pdfjs-dist/web/pdf_viewer";
 import React, { PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 
+import { BIDRAG_FORSENDELSE_API } from "../../api/api";
 import { lastDokumenter, RedigeringQueries } from "../../api/queries";
 import { useDebounce } from "../../components/hooks/useDebounce";
 import Toolbar from "../../components/toolbar/Toolbar";
@@ -179,7 +180,7 @@ function DocumentView({ file, dokumentreferanse, forsendelseId, dokumentMetadata
 
     async function getPdfWithFilledForm(): Promise<Uint8Array> {
         return producerRef.current
-            .init(pdfDocument)
+            .init(pdfDocument, dokumentMetadata.title)
             .then((a) => a.process())
             .then((a) => a.saveChanges())
             .then((a) => a.getProcessedDocument());
@@ -210,7 +211,17 @@ function EditorToolbar() {
     const { getPdfWithFilledForm, dokumentMetadata } = useSkjemaUtfyllingContext();
     const previewDocumentFn = useMutation({
         mutationKey: ["previewDocumentFn"],
-        mutationFn: () => getPdfWithFilledForm().then((doc) => FileUtils.openFile(doc)),
+        mutationFn: () =>
+            getPdfWithFilledForm().then(async (doc) => {
+                const pdfAResult = await BIDRAG_FORSENDELSE_API.api.validerPdf(
+                    new File([doc], "", {
+                        type: "application/pdf",
+                    }),
+                    { headers: { "Content-Type": "application/pdf" } }
+                );
+                console.log(pdfAResult.data);
+                FileUtils.openFile(doc);
+            }),
     });
 
     function renderToolbarButtons() {
