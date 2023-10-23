@@ -15,7 +15,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
         if (files.length == 0) return;
         const file = ev.target.files[0];
         const fileBuffer = await file.arrayBuffer();
-        setPdfDoc(new Uint8Array(fileBuffer));
+        setPdfDoc(new Blob([fileBuffer]));
     }
     if (!pdfDoc) {
         return (
