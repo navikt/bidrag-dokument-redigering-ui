@@ -4,6 +4,7 @@ import { AxiosError } from "axios";
 import { useEffect } from "react";
 
 import { RedigeringQueries } from "../../api/queries";
+import { uint8ToBase64 } from "../../components/utils/DocumentUtils";
 import { PdfDocumentType } from "../../components/utils/types";
 import environment from "../../environment";
 import { EditDocumentMetadata } from "../../types/EditorTypes";
@@ -80,8 +81,7 @@ export default function DokumentMaskering({
         return new Promise<boolean>((resolve, reject) => {
             ferdigstillDokumentFn.mutate(
                 {
-                    //@ts-ignore
-                    fysiskDokument,
+                    fysiskDokument: uint8ToBase64(fysiskDokument),
                     redigeringMetadata: JSON.stringify(config),
                 },
                 {
