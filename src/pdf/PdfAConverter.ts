@@ -11,7 +11,6 @@ import {
     StandardFonts,
 } from "pdf-lib";
 
-import { bin2String } from "../components/utils/DocumentUtils";
 import colorProfile from "./files/sRGB2014.icc";
 export class PdfAConverter {
     private PRODUCER = "Bidrag redigeringsklient for skjerming av dokumenter";
@@ -33,7 +32,7 @@ export class PdfAConverter {
             useObjectStreams: false,
         });
 
-        console.log(bin2String(bytes));
+        // console.log(bin2String(bytes));
         return bytes;
     }
     setColorProfile(doc: PDFDocument) {
@@ -96,7 +95,7 @@ export class PdfAConverter {
 
     private deleteJavascript(pdfDoc: PDFDocument) {
         pdfDoc.context.enumerateIndirectObjects().forEach(([ref, obj]) => {
-            console.log("PDF Object", ref.toString(), obj.toString(), obj);
+            // console.log("PDF Object", ref.toString(), obj.toString(), obj);
             if (this.isPdfObjectJavascript(obj)) {
                 const isDeleted = pdfDoc.context.delete(ref);
                 console.log("Deleted JavaScript", obj.toString(), isDeleted);

@@ -200,14 +200,13 @@ function PdfEditorContextProviderWithMasking({
     async function previewPdf(): Promise<void> {
         updateSaveState("PRODUCING", 0);
         const { documentFile } = await getProcessedPdf();
-        console.log(documentFile);
         const pdfAResult = await BIDRAG_FORSENDELSE_API.api.validerPdf(
             new File([documentFile], "", {
                 type: "application/pdf",
             }),
             { headers: { "Content-Type": "application/pdf" } }
         );
-        console.log(pdfAResult.data);
+        console.log("Validering resultat", pdfAResult.data);
         updateSaveState("IDLE");
         FileUtils.openFile(documentFile);
     }
