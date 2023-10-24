@@ -19,25 +19,28 @@ export class PdfAConverter {
     private PRODUCER = "Bidrag redigeringsklient for skjerming av dokumenter";
     private CREATOR = "NAV - Arbeids- og velferdsetaten";
     async convertAndSaveAsBase64(origDoc: PDFDocument, title: string): Promise<string> {
+        console.log("convertAndSaveBase64");
         const pdfDoc = await PDFDocument.create();
         const copiedPages = await pdfDoc.copyPages(origDoc, origDoc.getPageIndices());
+        console.log("copy pages", copiedPages.length);
         copiedPages.forEach((page) => pdfDoc.addPage(page));
+        console.log("copied pages", copiedPages.length);
         pdfDoc.registerFontkit(fontkit);
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
-        this.addDocumentId(pdfDoc, documentId);
-        this.removeAnnots(pdfDoc);
-        await this.addFont(pdfDoc);
-        this.setColorProfile(pdfDoc);
-        this.deleteJavascript(pdfDoc);
         this.flattenForm(pdfDoc);
         this.addMetadata(origDoc, pdfDoc, documentDate, documentId, title);
+        this.addDocumentId(pdfDoc, documentId);
+        this.removeXFA(pdfDoc);
+        await this.addFont(pdfDoc);
+        this.addColorProfile(pdfDoc);
+        this.deleteJavascript(pdfDoc);
 
         return await pdfDoc.saveAsBase64({
             useObjectStreams: false,
         });
     }
-    setColorProfile(doc: PDFDocument) {
+    addColorProfile(doc: PDFDocument) {
         const profile = colorProfile;
         const profileStream = doc.context.stream(profile, {
             Length: profile.length,
@@ -57,13 +60,14 @@ export class PdfAConverter {
         doc.catalog.set(PDFName.of("OutputIntents"), doc.context.obj([outputIntentRef]));
     }
     private async addFont(pdfDoc: PDFDocument) {
-        await pdfDoc.embedStandardFont(StandardFonts.Courier);
+        await pdfDoc.embedFont(StandardFonts.TimesRoman);
+        await pdfDoc.embedStandardFont(StandardFonts.TimesRoman);
     }
     private addDocumentId(pdfDoc: PDFDocument, documentId: string) {
         const id = PDFHexString.of(documentId);
         pdfDoc.context.trailerInfo.ID = pdfDoc.context.obj([id, id]);
     }
-    private async removeAnnots(pdfDoc: PDFDocument) {
+    private async removeXFA(pdfDoc: PDFDocument) {
         const form = pdfDoc.getForm();
 
         form.deleteXFA();
