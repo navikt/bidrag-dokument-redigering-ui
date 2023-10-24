@@ -3,6 +3,7 @@ import "./index.css";
 import React from "react";
 import { BrowserRouter, Route, Routes, useParams, useSearchParams } from "react-router-dom";
 
+import environment from "./environment";
 import DebugPage from "./pages/debug/DebugPage";
 import DokumentMaskeringPage from "./pages/dokumentmaskering/DokumentMaskeringPage";
 import DokumentRedigeringPage from "./pages/dokumentredigering/DokumentRedigeringPage";
@@ -29,7 +30,9 @@ export default function App() {
                         path="/rediger/skjemautfylling/:forsendelseId/:dokumentreferanse"
                         element={<SkjemaUtfyllingPageWrapper />}
                     />
-                    <Route path="/rediger/debug/:forsendelseId/:dokumentreferanse" element={<DebugWrapper />} />
+                    {environment.feature.debugPage && (
+                        <Route path="/rediger/debug/:forsendelseId/:dokumentreferanse" element={<DebugWrapper />} />
+                    )}
                 </Routes>
             </BrowserRouter>
         </React.StrictMode>

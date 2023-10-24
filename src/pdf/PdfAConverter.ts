@@ -1,4 +1,4 @@
-import { LoggerService, SecuritySessionUtils } from "@navikt/bidrag-ui-common";
+import { LoggerService } from "@navikt/bidrag-ui-common";
 import fontkit from "@pdf-lib/fontkit";
 import {
     PDFDict,
@@ -11,13 +11,13 @@ import {
     StandardFonts,
 } from "pdf-lib";
 
+import { BIDRAG_FORSENDELSE_API } from "../api/api";
 import colorProfile from "./files/sRGB2014.icc";
 export class PdfAConverter {
     private PRODUCER = "Bidrag redigeringsklient for skjerming av dokumenter";
     private CREATOR = "NAV - Arbeids- og velferdsetaten";
     async convertAndSave(pdfDoc: PDFDocument, title: string) {
         pdfDoc.registerFontkit(fontkit);
-        const author = await SecuritySessionUtils.hentSaksbehandlerNavn();
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
         this.addDocumentId(pdfDoc, documentId);
@@ -27,13 +27,10 @@ export class PdfAConverter {
         this.deleteJavascript(pdfDoc);
         this.flattenForm(pdfDoc);
 
-        this._addMetadata(pdfDoc, documentDate, title, author);
-        const bytes = await pdfDoc.save({
+        this._addMetadata(pdfDoc, documentDate, title, this.CREATOR);
+        return await pdfDoc.save({
             useObjectStreams: false,
         });
-
-        // console.log(bin2String(bytes));
-        return bytes;
     }
     setColorProfile(doc: PDFDocument) {
         const profile = colorProfile;
@@ -51,7 +48,6 @@ export class PdfAConverter {
             OutputConditionIdentifier: PDFString.of("sRGB IEC61966-2.1"),
             DestOutputProfile: profileStreamRef,
         });
-        console.log("profileStreamRef", profileStreamRef);
         const outputIntentRef = doc.context.register(outputIntent);
         doc.catalog.set(PDFName.of("OutputIntents"), doc.context.obj([outputIntentRef]));
     }
@@ -201,3 +197,17 @@ export class PdfAConverter {
         return false;
     }
 }
+
+export const validatePDFBytes = async (documentFile: Uint8Array): Promise<void> => {
+    try {
+        const pdfAResult = await BIDRAG_FORSENDELSE_API.api.validerPdf(
+            new File([documentFile], "", {
+                type: "application/pdf",
+            }),
+            { headers: { "Content-Type": "application/pdf" } }
+        );
+        console.log("Validering resultat", pdfAResult.data);
+    } catch (e) {
+        console.error("Det skjedde en feil ved validering", e);
+    }
+};

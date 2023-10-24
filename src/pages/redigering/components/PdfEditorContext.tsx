@@ -2,11 +2,12 @@ import { EditorConfigStorage, FileUtils, objectsDeepEqual, queryParams } from "@
 import { PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 import React from "react";
 
-import { BIDRAG_FORSENDELSE_API } from "../../../api/api";
 import StateHistory from "../../../components/history/StateHistory";
 import { MaskingContainer, useMaskingContainer } from "../../../components/masking/MaskingContainer";
 import { TimerUtils } from "../../../components/utils/TimerUtils";
 import { PdfDocumentType } from "../../../components/utils/types";
+import environment from "../../../environment";
+import { validatePDFBytes } from "../../../pdf/PdfAConverter";
 import { IProducerProgress, PdfProducer } from "../../../pdf/PdfProducer";
 import { ClosingWindow, EditDocumentMetadata, IDocumentMetadata } from "../../../types/EditorTypes";
 
@@ -200,13 +201,7 @@ function PdfEditorContextProviderWithMasking({
     async function previewPdf(): Promise<void> {
         updateSaveState("PRODUCING", 0);
         const { documentFile } = await getProcessedPdf();
-        const pdfAResult = await BIDRAG_FORSENDELSE_API.api.validerPdf(
-            new File([documentFile], "", {
-                type: "application/pdf",
-            }),
-            { headers: { "Content-Type": "application/pdf" } }
-        );
-        console.log("Validering resultat", pdfAResult.data);
+        environment.feature.validatePDF && validatePDFBytes(documentFile);
         updateSaveState("IDLE");
         FileUtils.openFile(documentFile);
     }

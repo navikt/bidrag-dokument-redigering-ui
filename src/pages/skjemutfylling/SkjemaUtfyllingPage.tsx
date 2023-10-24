@@ -14,12 +14,13 @@ import { AnnotationMode, PDFDocumentProxy } from "pdfjs-dist";
 import { EventBus, PDFPageView } from "pdfjs-dist/web/pdf_viewer";
 import React, { PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 
-import { BIDRAG_FORSENDELSE_API } from "../../api/api";
 import { lastDokumenter, RedigeringQueries } from "../../api/queries";
 import { useDebounce } from "../../components/hooks/useDebounce";
 import Toolbar from "../../components/toolbar/Toolbar";
 import { createArrayWithLength } from "../../components/utils/ObjectUtils";
 import { PdfDocumentType } from "../../components/utils/types";
+import environment from "../../environment";
+import { validatePDFBytes } from "../../pdf/PdfAConverter";
 import { IDocumentMetadata } from "../../types/EditorTypes";
 import PageWrapper from "../PageWrapper";
 import FerdigstillButton from "./FerdigstillButton";
@@ -213,13 +214,7 @@ function EditorToolbar() {
         mutationKey: ["previewDocumentFn"],
         mutationFn: () =>
             getPdfWithFilledForm().then(async (doc) => {
-                const pdfAResult = await BIDRAG_FORSENDELSE_API.api.validerPdf(
-                    new File([doc], "", {
-                        type: "application/pdf",
-                    }),
-                    { headers: { "Content-Type": "application/pdf" } }
-                );
-                console.log(pdfAResult.data);
+                environment.feature.validatePDF && validatePDFBytes(doc);
                 FileUtils.openFile(doc);
             }),
     });
