@@ -19,7 +19,7 @@ export class PdfProducer {
     private pdfDocument: PDFDocument;
     private title: string;
     private pdfBlob: PdfDocumentType;
-    private processedDocument: Uint8Array;
+    private processedDocumentBase64: string;
     private config: EditDocumentMetadata;
     private onProgressUpdate: (process: IProducerProgress) => void;
 
@@ -289,19 +289,19 @@ export class PdfProducer {
     }
 
     async saveChanges(): Promise<PdfProducer> {
-        this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title);
+        this.processedDocumentBase64 = await new PdfAConverter().convertAndSaveAsBase64(this.pdfDocument, this.title);
 
         this.onProgressUpdated("SAVE_PDF", 0, 1);
         return this;
     }
 
-    getProcessedDocument(): Uint8Array {
-        return this.processedDocument;
+    getProcessedDocument(): string {
+        return this.processedDocumentBase64;
     }
 
     async openInNewTab() {
         await this.saveChanges();
-        FileUtils.openFile(this.processedDocument, true);
+        FileUtils.openFile(this.processedDocumentBase64, true);
         return this;
     }
 }

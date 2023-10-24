@@ -5,7 +5,6 @@ import { AxiosError } from "axios";
 import { useEffect, useState } from "react";
 
 import { BIDRAG_FORSENDELSE_API } from "../../api/api";
-import { uint8ToBase64 } from "../../components/utils/DocumentUtils";
 import { parseErrorMessageFromAxiosError } from "../../types/ErrorUtils";
 import { useSkjemaUtfyllingContext } from "./SkjemaUtfyllingPage";
 
@@ -19,10 +18,8 @@ export default function FerdigstillButton() {
     }
     const ferdigstillFn = useMutation<unknown, AxiosError>({
         mutationFn: () =>
-            getPdfWithFilledForm().then(async (doc) =>
-                BIDRAG_FORSENDELSE_API.api.ferdigstillDokument(forsendelseId, dokumentreferanse, {
-                    fysiskDokument: uint8ToBase64(doc),
-                })
+            getPdfWithFilledForm().then(async (fysiskDokument) =>
+                BIDRAG_FORSENDELSE_API.api.ferdigstillDokument(forsendelseId, dokumentreferanse, { fysiskDokument })
             ),
         onSuccess: () => {
             broadcastAndCloseWindow();
