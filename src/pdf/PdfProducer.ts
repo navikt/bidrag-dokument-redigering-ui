@@ -8,6 +8,7 @@ import { ICoordinates, IMaskingItemProps } from "../components/masking/MaskingIt
 import { PdfDocumentType } from "../components/utils/types";
 import { EditDocumentMetadata } from "../types/EditorTypes";
 import pdf2Image from "./Pdf2Image";
+import { PdfAConverter } from "./PdfAConverter";
 
 type ProgressState = "MASK_PAGE" | "CONVERT_PAGE_TO_IMAGE" | "REMOVE_PAGE" | "SAVE_PDF";
 export interface IProducerProgress {
@@ -16,6 +17,7 @@ export interface IProducerProgress {
 }
 export class PdfProducer {
     private pdfDocument: PDFDocument;
+    private title: string;
     private pdfBlob: PdfDocumentType;
     private processedDocument: Uint8Array;
     private config: EditDocumentMetadata;
@@ -28,8 +30,10 @@ export class PdfProducer {
 
     async init(
         config: EditDocumentMetadata,
+        title: string,
         onProgressUpdate?: (process: IProducerProgress) => void
     ): Promise<PdfProducer> {
+        this.title = title;
         this.config = config;
         this.onProgressUpdate = onProgressUpdate;
         this.pdfDocument = await PDFDocument.load(this.pdfBlob);
@@ -67,6 +71,7 @@ export class PdfProducer {
         }
     }
     async process(): Promise<PdfProducer> {
+        this.removeSubmitButton();
         this.flattenForm();
         const itemsFiltered = this.config.items.filter((item) => !this.config.removedPages.includes(item.pageNumber));
         // @ts-ignore
@@ -261,6 +266,15 @@ export class PdfProducer {
         return 16;
     }
 
+    private removeSubmitButton() {
+        const form = this.pdfDocument.getForm();
+        for (const field of form.getFields()) {
+            if (field.getName() == "nullstill") {
+                form.removeField(field);
+            }
+        }
+    }
+
     removePages(removePages: number[]): PdfProducer {
         let numberOfRemovedPages = 0;
         const numberOfPagesToRemove = removePages.length;
@@ -275,7 +289,8 @@ export class PdfProducer {
     }
 
     async saveChanges(): Promise<PdfProducer> {
-        this.processedDocument = await this.pdfDocument.save();
+        this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title);
+
         this.onProgressUpdated("SAVE_PDF", 0, 1);
         return this;
     }

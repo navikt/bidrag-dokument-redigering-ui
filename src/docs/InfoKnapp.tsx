@@ -1,6 +1,6 @@
 import "./InfoKnapp.css";
 
-import { QuestionmarkDiamondIcon } from "@navikt/aksel-icons";
+import { QuestionmarkIcon } from "@navikt/aksel-icons";
 import { Button, Modal } from "@navikt/ds-react";
 import { PropsWithChildren, useState } from "react";
 type InfoKnappProps = {
@@ -29,9 +29,9 @@ export default function InfoKnapp({
             <Button
                 title={title}
                 variant="tertiary"
-                className={`${buttonClassName} ${onlyIcon ? "p-0" : ""}`}
+                className={`${buttonClassName} ${onlyIcon ? "p-0" : ""} infoknapp`}
                 size="xsmall"
-                icon={<QuestionmarkDiamondIcon />}
+                icon={<QuestionmarkIcon />}
                 onClick={openModal}
             >
                 {buttonText}

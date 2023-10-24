@@ -6,6 +6,8 @@ import StateHistory from "../../../components/history/StateHistory";
 import { MaskingContainer, useMaskingContainer } from "../../../components/masking/MaskingContainer";
 import { TimerUtils } from "../../../components/utils/TimerUtils";
 import { PdfDocumentType } from "../../../components/utils/types";
+import environment from "../../../environment";
+import { validatePDFBytes } from "../../../pdf/PdfAConverter";
 import { IProducerProgress, PdfProducer } from "../../../pdf/PdfProducer";
 import { ClosingWindow, EditDocumentMetadata, IDocumentMetadata } from "../../../types/EditorTypes";
 
@@ -187,7 +189,7 @@ function PdfEditorContextProviderWithMasking({
 
         const config = getEditDocumentMetadata();
         return await new PdfProducer(existingPdfBytes)
-            .init(config, onProducePdfProgressUpdated)
+            .init(config, dokumentMetadata.title, onProducePdfProgressUpdated)
             .then((p) => p.process())
             .then((p) => p.saveChanges())
             .then((p) => ({
@@ -199,6 +201,7 @@ function PdfEditorContextProviderWithMasking({
     async function previewPdf(): Promise<void> {
         updateSaveState("PRODUCING", 0);
         const { documentFile } = await getProcessedPdf();
+        environment.feature.validatePDF && validatePDFBytes(documentFile);
         updateSaveState("IDLE");
         FileUtils.openFile(documentFile);
     }

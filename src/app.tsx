@@ -3,6 +3,8 @@ import "./index.css";
 import React from "react";
 import { BrowserRouter, Route, Routes, useParams, useSearchParams } from "react-router-dom";
 
+import environment from "./environment";
+import DebugPage from "./pages/debug/DebugPage";
 import DokumentMaskeringPage from "./pages/dokumentmaskering/DokumentMaskeringPage";
 import DokumentRedigeringPage from "./pages/dokumentredigering/DokumentRedigeringPage";
 const SkjemaUtfyllingPage = React.lazy(() => import("./pages/skjemutfylling/SkjemaUtfyllingPage"));
@@ -28,6 +30,9 @@ export default function App() {
                         path="/rediger/skjemautfylling/:forsendelseId/:dokumentreferanse"
                         element={<SkjemaUtfyllingPageWrapper />}
                     />
+                    {environment.feature.debugPage && (
+                        <Route path="/rediger/debug/:forsendelseId/:dokumentreferanse" element={<DebugWrapper />} />
+                    )}
                 </Routes>
             </BrowserRouter>
         </React.StrictMode>
@@ -54,4 +59,10 @@ function DokumentMaskeringPageWrapper() {
 function SkjemaUtfyllingPageWrapper() {
     const { forsendelseId, dokumentreferanse } = useParams();
     return <SkjemaUtfyllingPage forsendelseId={forsendelseId} dokumentreferanse={dokumentreferanse} />;
+}
+
+function DebugWrapper() {
+    const { forsendelseId, dokumentreferanse } = useParams();
+
+    return <DebugPage forsendelseId={forsendelseId} dokumentreferanse={dokumentreferanse} />;
 }

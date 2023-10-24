@@ -19,6 +19,8 @@ import { useDebounce } from "../../components/hooks/useDebounce";
 import Toolbar from "../../components/toolbar/Toolbar";
 import { createArrayWithLength } from "../../components/utils/ObjectUtils";
 import { PdfDocumentType } from "../../components/utils/types";
+import environment from "../../environment";
+import { validatePDFBytes } from "../../pdf/PdfAConverter";
 import { IDocumentMetadata } from "../../types/EditorTypes";
 import PageWrapper from "../PageWrapper";
 import FerdigstillButton from "./FerdigstillButton";
@@ -179,7 +181,7 @@ function DocumentView({ file, dokumentreferanse, forsendelseId, dokumentMetadata
 
     async function getPdfWithFilledForm(): Promise<Uint8Array> {
         return producerRef.current
-            .init(pdfDocument)
+            .init(pdfDocument, dokumentMetadata.title)
             .then((a) => a.process())
             .then((a) => a.saveChanges())
             .then((a) => a.getProcessedDocument());
@@ -210,7 +212,11 @@ function EditorToolbar() {
     const { getPdfWithFilledForm, dokumentMetadata } = useSkjemaUtfyllingContext();
     const previewDocumentFn = useMutation({
         mutationKey: ["previewDocumentFn"],
-        mutationFn: () => getPdfWithFilledForm().then((doc) => FileUtils.openFile(doc)),
+        mutationFn: () =>
+            getPdfWithFilledForm().then(async (doc) => {
+                environment.feature.validatePDF && validatePDFBytes(doc);
+                FileUtils.openFile(doc);
+            }),
     });
 
     function renderToolbarButtons() {
