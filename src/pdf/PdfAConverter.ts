@@ -20,11 +20,8 @@ export class PdfAConverter {
     private CREATOR = "NAV - Arbeids- og velferdsetaten";
     async convertAndSaveAsBase64(origDoc: PDFDocument, title: string): Promise<string> {
         console.log("convertAndSaveBase64");
-        const pdfDoc = await PDFDocument.create();
-        const copiedPages = await pdfDoc.copyPages(origDoc, origDoc.getPageIndices());
-        console.log("copy pages", copiedPages.length);
-        copiedPages.forEach((page) => pdfDoc.addPage(page));
-        console.log("copied pages", copiedPages.length);
+        const pdfDoc = await origDoc.copy();
+        console.log("copied pages", pdfDoc.getPageCount());
         pdfDoc.registerFontkit(fontkit);
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
