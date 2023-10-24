@@ -1,7 +1,17 @@
 import { LoggerService, SecuritySessionUtils } from "@navikt/bidrag-ui-common";
 import fontkit from "@pdf-lib/fontkit";
-import { PDFDocument, PDFHexString, PDFName, PDFString, StandardFonts } from "pdf-lib";
+import {
+    PDFDict,
+    PDFDocument,
+    PDFHexString,
+    PDFName,
+    PDFObject,
+    PDFRawStream,
+    PDFString,
+    StandardFonts,
+} from "pdf-lib";
 
+import { bin2String } from "../components/utils/DocumentUtils";
 import colorProfile from "./files/sRGB2014.icc";
 export class PdfAConverter {
     private PRODUCER = "Bidrag redigeringsklient for skjerming av dokumenter";
@@ -11,16 +21,20 @@ export class PdfAConverter {
         const author = await SecuritySessionUtils.hentSaksbehandlerNavn();
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
-        this._addMetadata(pdfDoc, documentDate, documentId, title, author, this.PRODUCER, this.CREATOR);
         this.addDocumentId(pdfDoc, documentId);
         this.removeAnnots(pdfDoc);
         await this.addFont(pdfDoc);
         this.setColorProfile(pdfDoc);
+        this.deleteJavascript(pdfDoc);
         this.flattenForm(pdfDoc);
 
-        return pdfDoc.save({
+        this._addMetadata(pdfDoc, documentDate, title, author);
+        const bytes = await pdfDoc.save({
             useObjectStreams: false,
         });
+
+        console.log(bin2String(bytes));
+        return bytes;
     }
     setColorProfile(doc: PDFDocument) {
         const profile = colorProfile;
@@ -38,6 +52,7 @@ export class PdfAConverter {
             OutputConditionIdentifier: PDFString.of("sRGB IEC61966-2.1"),
             DestOutputProfile: profileStreamRef,
         });
+        console.log("profileStreamRef", profileStreamRef);
         const outputIntentRef = doc.context.register(outputIntent);
         doc.catalog.set(PDFName.of("OutputIntents"), doc.context.obj([outputIntentRef]));
     }
@@ -79,8 +94,30 @@ export class PdfAConverter {
         }
     }
 
+    private deleteJavascript(pdfDoc: PDFDocument) {
+        pdfDoc.context.enumerateIndirectObjects().forEach(([ref, obj]) => {
+            console.log("PDF Object", ref.toString(), obj.toString(), obj);
+            if (this.isPdfObjectJavascript(obj)) {
+                const isDeleted = pdfDoc.context.delete(ref);
+                console.log("Deleted JavaScript", obj.toString(), isDeleted);
+            }
+        });
+    }
     // Copied from https://github.com/Hopding/pdf-lib/issues/1183#issuecomment-1685078941
-    private _addMetadata(
+    private _addMetadata(pdfDoc: PDFDocument, date: Date, title: string, author: string) {
+        pdfDoc.setTitle(title);
+        pdfDoc.setAuthor(pdfDoc.getAuthor() ?? author);
+        pdfDoc.setProducer(this.PRODUCER);
+        pdfDoc.setCreator(pdfDoc.getCreator() ?? this.CREATOR);
+        pdfDoc.setModificationDate(date);
+    }
+
+    // remove millisecond from date
+    private _formatDate(date) {
+        return date.toISOString().split(".")[0] + "Z";
+    }
+
+    private replaceMetadata(
         pdfDoc: PDFDocument,
         date: Date,
         documentId: string,
@@ -89,16 +126,21 @@ export class PdfAConverter {
         producer: string,
         creator: string
     ) {
+        const whitespacePadding = new Array(20).fill(" ".repeat(100)).join("\n");
+
+        const originalAuthor = pdfDoc.getAuthor();
+        const originalProducer = pdfDoc.getProducer();
+        const originalCreationDate = pdfDoc.getCreationDate();
         const metadataXML = `
         <?xpacket begin="" id="${documentId}"?>
-          <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.2-c001 63.139439, 2010/09/27-13:37:26        ">
+          <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.2-c001 63.139439, 2010/09/27-13:37:26">
             <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
     
               <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
                 <dc:format>application/pdf</dc:format>
                 <dc:creator>
                   <rdf:Seq>
-                    <rdf:li>${pdfDoc.getAuthor() ?? author}</rdf:li>
+                    <rdf:li>${originalAuthor ?? author}</rdf:li>
                   </rdf:Seq>
                 </dc:creator>
                 <dc:title>
@@ -109,8 +151,8 @@ export class PdfAConverter {
               </rdf:Description>
     
               <rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
-                <xmp:CreatorTool>${pdfDoc.getCreator() ?? creator}</xmp:CreatorTool>
-                <xmp:CreateDate>${this._formatDate(pdfDoc.getCreationDate() ?? date)}</xmp:CreateDate>
+                <xmp:CreatorTool>${originalProducer ?? creator}</xmp:CreatorTool>
+                <xmp:CreateDate>${this._formatDate(originalCreationDate ?? date)}</xmp:CreateDate>
                 <xmp:ModifyDate>${this._formatDate(date)}</xmp:ModifyDate>
                 <xmp:MetadataDate>${this._formatDate(date)}</xmp:MetadataDate>
               </rdf:Description>
@@ -127,22 +169,36 @@ export class PdfAConverter {
           </x:xmpmeta>
         <?xpacket end="w"?>
         `.trim();
-
         const metadataStream = pdfDoc.context.stream(metadataXML, {
             Type: "Metadata",
             Subtype: "XML",
             Length: metadataXML.length,
         });
-        const metadataStreamRef = pdfDoc.context.register(metadataStream);
-        pdfDoc.catalog.set(PDFName.of("Metadata"), metadataStreamRef);
 
-        pdfDoc.setTitle(title);
-        pdfDoc.setProducer(this.PRODUCER);
-        pdfDoc.setModificationDate(date);
+        const metadataStreamRef = pdfDoc.context.register(metadataStream);
+
+        pdfDoc.catalog.set(PDFName.of("Metadata"), metadataStreamRef);
     }
 
-    // remove millisecond from date
-    _formatDate(date) {
-        return date.toISOString().split(".")[0] + "Z";
+    private deleteExistingMetadata(pdfDoc: PDFDocument) {
+        pdfDoc.context.enumerateIndirectObjects().forEach(([ref, obj]) => {
+            if (this.isPdfObjectMetadata(obj)) {
+                const isDeleted = pdfDoc.context.delete(ref);
+                console.log("Deleted Metadata", obj.toString(), isDeleted);
+            }
+        });
+    }
+    private isPdfObjectMetadata(obj: PDFObject) {
+        if (obj instanceof PDFRawStream) {
+            return obj.dict.values().some((v) => v.toString() == "/Metadata");
+        }
+        return false;
+    }
+
+    private isPdfObjectJavascript(obj: PDFObject) {
+        if (obj instanceof PDFDict) {
+            return obj.has(PDFName.of("JS"));
+        }
+        return false;
     }
 }
