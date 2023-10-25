@@ -16,10 +16,10 @@ import { BIDRAG_FORSENDELSE_API } from "../api/api";
 //@ts-ignore
 import colorProfile from "./files/sRGB2014.icc";
 export class PdfAConverter {
-    private PRODUCER = "Bidrag redigeringsklient for skjerming av dokumenter";
+    private PRODUCER = "bidrag-dokument-redigering-ui";
     private CREATOR = "NAV - Arbeids- og velferdsetaten";
     async convertAndSave(origDoc: PDFDocument, title: string): Promise<Uint8Array> {
-        const pdfDoc = await origDoc.copy();
+        const pdfDoc = origDoc
         pdfDoc.registerFontkit(fontkit);
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
@@ -123,10 +123,10 @@ export class PdfAConverter {
         const originalAuthor = originalDoc.getAuthor();
         const originalProducer = originalDoc.getProducer();
         const originalCreationDate = originalDoc.getCreationDate();
-        const producer = originalProducer ?? this.PRODUCER;
+        const producer = this.PRODUCER;
         const creator = originalDoc.getCreator() ?? this.CREATOR;
         const author = originalAuthor ?? this.CREATOR;
-        pdfDoc.setTitle(title);
+        pdfDoc.setTitle(title, { showInWindowTitleBar: true });
         pdfDoc.setAuthor(author);
         pdfDoc.setProducer(producer);
         pdfDoc.setCreator(creator);
