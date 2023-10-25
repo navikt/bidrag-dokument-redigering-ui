@@ -208,6 +208,7 @@ export class PdfAConverter {
 
 export const validatePDFBytes = async (documentFileBase64: string): Promise<void> => {
     try {
+        console.log("Validerer PDF/A kompatibilitet");
         const documentUint8 = await base64ToUint8(documentFileBase64);
         const pdfAResult = await BIDRAG_FORSENDELSE_API.api.validerPdf(
             new File([documentUint8], "", {
