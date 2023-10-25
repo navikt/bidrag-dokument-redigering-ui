@@ -275,6 +275,19 @@ export class PdfProducer {
         }
     }
 
+    removePagesOld(removePages: number[]): PdfProducer {
+        let numberOfRemovedPages = 0;
+        const numberOfPagesToRemove = removePages.length;
+        removePages
+            .sort((a, b) => a - b)
+            .forEach((page) => {
+                this.pdfDocument.removePage(Math.abs(page - 1 - numberOfRemovedPages));
+                numberOfRemovedPages += 1;
+                this.onProgressUpdated("REMOVE_PAGE", 0, numberOfRemovedPages / numberOfPagesToRemove);
+            });
+        return this;
+    }
+
     async removePages(removePages: number[]): Promise<void> {
         const origDoc = this.pdfDocument;
         const pdfCopy = await PDFDocument.create();
@@ -282,7 +295,7 @@ export class PdfProducer {
         const contentPages = await pdfCopy.copyPages(origDoc, includePages);
 
         let numberOfRemovedPages = 0;
-        const numberOfPagesToRemove = removePages.length;
+        const numberOfPagesToRemove = origDoc.getPageCount();
         for (let idx = 0, len = contentPages.length; idx < len; idx++) {
             pdfCopy.addPage(contentPages[idx]);
             numberOfRemovedPages += 1;
