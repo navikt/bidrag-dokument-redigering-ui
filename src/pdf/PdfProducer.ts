@@ -290,7 +290,6 @@ export class PdfProducer {
 
     async saveChanges(): Promise<PdfProducer> {
         this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title);
-
         this.onProgressUpdated("SAVE_PDF", 0, 1);
         return this;
     }

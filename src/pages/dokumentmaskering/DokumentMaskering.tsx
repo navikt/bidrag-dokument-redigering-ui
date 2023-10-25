@@ -1,10 +1,9 @@
-import { Broadcast, BroadcastMessage, BroadcastNames, queryParams } from "@navikt/bidrag-ui-common";
+import { Broadcast, BroadcastMessage, BroadcastNames, FileUtils, queryParams } from "@navikt/bidrag-ui-common";
 import { Alert, Heading } from "@navikt/ds-react";
 import { AxiosError } from "axios";
 import { useEffect } from "react";
 
 import { RedigeringQueries } from "../../api/queries";
-import { uint8ToBase64 } from "../../components/utils/DocumentUtils";
 import { PdfDocumentType } from "../../components/utils/types";
 import environment from "../../environment";
 import { EditDocumentMetadata } from "../../types/EditorTypes";
@@ -81,7 +80,7 @@ export default function DokumentMaskering({
         return new Promise<boolean>((resolve, reject) => {
             ferdigstillDokumentFn.mutate(
                 {
-                    fysiskDokument: uint8ToBase64(fysiskDokument),
+                    fysiskDokument: FileUtils._arrayBufferToBase64(fysiskDokument),
                     redigeringMetadata: JSON.stringify(config),
                 },
                 {

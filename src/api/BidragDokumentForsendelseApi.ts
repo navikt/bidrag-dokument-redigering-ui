@@ -986,7 +986,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          *
          * @tags rediger-dokument-kontroller
          * @name ValiderPdf
-         * @summary Hent dokument redigering metadata
+         * @summary Valider om PDF er gyldig PDF/A dokument. Respons vil gi hva som ikke er gyldig hvis ikke gyldig PDF/A.
          * @request POST:/api/forsendelse/redigering/validerPDF
          * @secure
          */

@@ -6,33 +6,35 @@ import {
     PDFHexString,
     PDFName,
     PDFObject,
+    PDFPageLeaf,
     PDFRawStream,
     PDFString,
     StandardFonts,
 } from "pdf-lib";
 
 import { BIDRAG_FORSENDELSE_API } from "../api/api";
+//@ts-ignore
 import colorProfile from "./files/sRGB2014.icc";
 export class PdfAConverter {
     private PRODUCER = "Bidrag redigeringsklient for skjerming av dokumenter";
     private CREATOR = "NAV - Arbeids- og velferdsetaten";
-    async convertAndSave(pdfDoc: PDFDocument, title: string) {
+    async convertAndSave(origDoc: PDFDocument, title: string): Promise<Uint8Array> {
+        const pdfDoc = await origDoc.copy();
         pdfDoc.registerFontkit(fontkit);
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
-        this.addDocumentId(pdfDoc, documentId);
-        this.removeAnnots(pdfDoc);
-        await this.addFont(pdfDoc);
-        this.setColorProfile(pdfDoc);
-        this.deleteJavascript(pdfDoc);
         this.flattenForm(pdfDoc);
-
-        this._addMetadata(pdfDoc, documentDate, title, this.CREATOR);
+        this.addMetadata(origDoc, pdfDoc, documentDate, documentId, title);
+        this.addDocumentId(pdfDoc, documentId);
+        this.removeXFA(pdfDoc);
+        await this.addFont(pdfDoc);
+        this.addColorProfile(pdfDoc);
+        this.deleteJavascript(pdfDoc);
         return await pdfDoc.save({
             useObjectStreams: false,
         });
     }
-    setColorProfile(doc: PDFDocument) {
+    addColorProfile(doc: PDFDocument) {
         const profile = colorProfile;
         const profileStream = doc.context.stream(profile, {
             Length: profile.length,
@@ -52,13 +54,14 @@ export class PdfAConverter {
         doc.catalog.set(PDFName.of("OutputIntents"), doc.context.obj([outputIntentRef]));
     }
     private async addFont(pdfDoc: PDFDocument) {
-        await pdfDoc.embedStandardFont(StandardFonts.Courier);
+        await pdfDoc.embedFont(StandardFonts.TimesRoman);
+        await pdfDoc.embedStandardFont(StandardFonts.TimesRoman);
     }
     private addDocumentId(pdfDoc: PDFDocument, documentId: string) {
         const id = PDFHexString.of(documentId);
         pdfDoc.context.trailerInfo.ID = pdfDoc.context.obj([id, id]);
     }
-    private async removeAnnots(pdfDoc: PDFDocument) {
+    private async removeXFA(pdfDoc: PDFDocument) {
         const form = pdfDoc.getForm();
 
         form.deleteXFA();
@@ -91,10 +94,8 @@ export class PdfAConverter {
 
     private deleteJavascript(pdfDoc: PDFDocument) {
         pdfDoc.context.enumerateIndirectObjects().forEach(([ref, obj]) => {
-            // console.log("PDF Object", ref.toString(), obj.toString(), obj);
             if (this.isPdfObjectJavascript(obj)) {
-                const isDeleted = pdfDoc.context.delete(ref);
-                console.log("Deleted JavaScript", obj.toString(), isDeleted);
+                pdfDoc.context.delete(ref);
             }
         });
     }
@@ -112,20 +113,24 @@ export class PdfAConverter {
         return date.toISOString().split(".")[0] + "Z";
     }
 
-    private replaceMetadata(
-        pdfDoc: PDFDocument,
-        date: Date,
-        documentId: string,
-        title: string,
-        author: string,
-        producer: string,
-        creator: string
-    ) {
-        const whitespacePadding = new Array(20).fill(" ".repeat(100)).join("\n");
+    private removeColorspace(obj: PDFObject) {
+        if (obj instanceof PDFPageLeaf) {
+            obj.Resources().delete(PDFName.of("ColorSpace"));
+        }
+    }
 
-        const originalAuthor = pdfDoc.getAuthor();
-        const originalProducer = pdfDoc.getProducer();
-        const originalCreationDate = pdfDoc.getCreationDate();
+    private addMetadata(originalDoc: PDFDocument, pdfDoc: PDFDocument, date: Date, documentId: string, title: string) {
+        const originalAuthor = originalDoc.getAuthor();
+        const originalProducer = originalDoc.getProducer();
+        const originalCreationDate = originalDoc.getCreationDate();
+        const producer = originalProducer ?? this.PRODUCER;
+        const creator = originalDoc.getCreator() ?? this.CREATOR;
+        const author = originalAuthor ?? this.CREATOR;
+        pdfDoc.setTitle(title);
+        pdfDoc.setAuthor(author);
+        pdfDoc.setProducer(producer);
+        pdfDoc.setCreator(creator);
+        pdfDoc.setModificationDate(date);
         const metadataXML = `
         <?xpacket begin="" id="${documentId}"?>
           <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.2-c001 63.139439, 2010/09/27-13:37:26">
@@ -135,7 +140,7 @@ export class PdfAConverter {
                 <dc:format>application/pdf</dc:format>
                 <dc:creator>
                   <rdf:Seq>
-                    <rdf:li>${originalAuthor ?? author}</rdf:li>
+                    <rdf:li>${author}</rdf:li>
                   </rdf:Seq>
                 </dc:creator>
                 <dc:title>
@@ -146,7 +151,7 @@ export class PdfAConverter {
               </rdf:Description>
     
               <rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
-                <xmp:CreatorTool>${originalProducer ?? creator}</xmp:CreatorTool>
+                <xmp:CreatorTool>${creator}</xmp:CreatorTool>
                 <xmp:CreateDate>${this._formatDate(originalCreationDate ?? date)}</xmp:CreateDate>
                 <xmp:ModifyDate>${this._formatDate(date)}</xmp:ModifyDate>
                 <xmp:MetadataDate>${this._formatDate(date)}</xmp:MetadataDate>
@@ -200,6 +205,7 @@ export class PdfAConverter {
 
 export const validatePDFBytes = async (documentFile: Uint8Array): Promise<void> => {
     try {
+        console.log("Validerer PDF/A kompatibilitet");
         const pdfAResult = await BIDRAG_FORSENDELSE_API.api.validerPdf(
             new File([documentFile], "", {
                 type: "application/pdf",
