@@ -78,7 +78,7 @@ export class PdfProducer {
         this.maskPages(itemsFiltered);
         // @ts-ignore
         await this.convertMaskedPagesToImage(itemsFiltered);
-        this.removePages(this.config.removedPages);
+        await this.removePages(this.config.removedPages);
         return this;
     }
 
@@ -275,17 +275,44 @@ export class PdfProducer {
         }
     }
 
-    removePages(removePages: number[]): PdfProducer {
+    async removePages(removePages: number[]): Promise<void> {
+        const origDoc = this.pdfDocument;
+        const pdfCopy = await PDFDocument.create();
+        const includePages = origDoc.getPageIndices().filter((pn) => !removePages.includes(pn + 1));
+        const contentPages = await pdfCopy.copyPages(origDoc, includePages);
+
         let numberOfRemovedPages = 0;
         const numberOfPagesToRemove = removePages.length;
-        removePages
-            .sort((a, b) => a - b)
-            .forEach((page) => {
-                this.pdfDocument.removePage(Math.abs(page - 1 - numberOfRemovedPages));
-                numberOfRemovedPages += 1;
-                this.onProgressUpdated("REMOVE_PAGE", 0, numberOfRemovedPages / numberOfPagesToRemove);
-            });
-        return this;
+        for (let idx = 0, len = contentPages.length; idx < len; idx++) {
+            pdfCopy.addPage(contentPages[idx]);
+            numberOfRemovedPages += 1;
+            this.onProgressUpdated("REMOVE_PAGE", 0, numberOfRemovedPages / numberOfPagesToRemove);
+        }
+
+        if (origDoc.getAuthor() !== undefined) {
+            pdfCopy.setAuthor(origDoc.getAuthor()!);
+        }
+        if (origDoc.getCreationDate() !== undefined) {
+            pdfCopy.setCreationDate(origDoc.getCreationDate()!);
+        }
+        if (origDoc.getCreator() !== undefined) {
+            pdfCopy.setCreator(origDoc.getCreator()!);
+        }
+        if (origDoc.getModificationDate() !== undefined) {
+            pdfCopy.setModificationDate(origDoc.getModificationDate()!);
+        }
+        if (origDoc.getProducer() !== undefined) {
+            pdfCopy.setProducer(origDoc.getProducer()!);
+        }
+        if (origDoc.getSubject() !== undefined) {
+            pdfCopy.setSubject(origDoc.getSubject()!);
+        }
+        if (origDoc.getTitle() !== undefined) {
+            pdfCopy.setTitle(origDoc.getTitle()!);
+        }
+        pdfCopy.defaultWordBreaks = origDoc.defaultWordBreaks;
+
+        this.pdfDocument = pdfCopy;
     }
 
     async saveChanges(): Promise<PdfProducer> {

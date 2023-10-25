@@ -146,7 +146,7 @@ export class FormPdfProducer {
     }
 
     async saveChanges(): Promise<FormPdfProducer> {
-        this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title);
+        this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title, true);
         return this;
     }
 
