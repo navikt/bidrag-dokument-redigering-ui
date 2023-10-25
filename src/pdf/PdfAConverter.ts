@@ -20,7 +20,7 @@ export class PdfAConverter {
     private CREATOR = "NAV - Arbeids- og velferdsetaten";
     async convertAndSave(origDoc: PDFDocument, title: string): Promise<Uint8Array> {
         console.log("convertAndSaveAsBase64");
-        const pdfDoc = await origDoc.copy();
+        const pdfDoc = origDoc;
         pdfDoc.registerFontkit(fontkit);
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
