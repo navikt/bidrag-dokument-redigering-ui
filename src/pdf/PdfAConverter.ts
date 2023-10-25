@@ -18,8 +18,8 @@ import colorProfile from "./files/sRGB2014.icc";
 export class PdfAConverter {
     private PRODUCER = "bidrag-dokument-redigering-ui";
     private CREATOR = "NAV - Arbeids- og velferdsetaten";
-    async convertAndSave(origDoc: PDFDocument, title: string): Promise<Uint8Array> {
-        const pdfDoc = origDoc
+    async convertAndSave(origDoc: PDFDocument, title: string, copy = false): Promise<Uint8Array> {
+        const pdfDoc = copy ? await origDoc.copy() : origDoc;
         pdfDoc.registerFontkit(fontkit);
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
@@ -53,6 +53,7 @@ export class PdfAConverter {
         const outputIntentRef = doc.context.register(outputIntent);
         doc.catalog.set(PDFName.of("OutputIntents"), doc.context.obj([outputIntentRef]));
     }
+
     private async addFont(pdfDoc: PDFDocument) {
         await pdfDoc.embedFont(StandardFonts.TimesRoman);
         await pdfDoc.embedStandardFont(StandardFonts.TimesRoman);
