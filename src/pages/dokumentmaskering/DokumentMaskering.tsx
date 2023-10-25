@@ -1,4 +1,4 @@
-import { Broadcast, BroadcastMessage, BroadcastNames, queryParams } from "@navikt/bidrag-ui-common";
+import { Broadcast, BroadcastMessage, BroadcastNames, FileUtils, queryParams } from "@navikt/bidrag-ui-common";
 import { Alert, Heading } from "@navikt/ds-react";
 import { AxiosError } from "axios";
 import { useEffect } from "react";
@@ -76,11 +76,11 @@ export default function DokumentMaskering({
         });
     }
 
-    function saveAndFinishDocument(config: EditDocumentMetadata, fysiskDokument: string) {
+    function saveAndFinishDocument(config: EditDocumentMetadata, fysiskDokument: Uint8Array) {
         return new Promise<boolean>((resolve, reject) => {
             ferdigstillDokumentFn.mutate(
                 {
-                    fysiskDokument: fysiskDokument,
+                    fysiskDokument: FileUtils._arrayBufferToBase64(fysiskDokument),
                     redigeringMetadata: JSON.stringify(config),
                 },
                 {

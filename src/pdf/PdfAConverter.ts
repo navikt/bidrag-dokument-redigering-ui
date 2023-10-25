@@ -13,15 +13,14 @@ import {
 } from "pdf-lib";
 
 import { BIDRAG_FORSENDELSE_API } from "../api/api";
-import { base64ToUint8 } from "../components/utils/DocumentUtils";
+//@ts-ignore
 import colorProfile from "./files/sRGB2014.icc";
 export class PdfAConverter {
     private PRODUCER = "Bidrag redigeringsklient for skjerming av dokumenter";
     private CREATOR = "NAV - Arbeids- og velferdsetaten";
-    async convertAndSaveAsBase64(origDoc: PDFDocument, title: string): Promise<string> {
-        console.log("convertAndSaveBase64");
+    async convertAndSave(origDoc: PDFDocument, title: string): Promise<Uint8Array> {
+        console.log("convertAndSaveAsBase64");
         const pdfDoc = await origDoc.copy();
-        console.log("copied pages", pdfDoc.getPageCount());
         pdfDoc.registerFontkit(fontkit);
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
@@ -33,7 +32,8 @@ export class PdfAConverter {
         this.addColorProfile(pdfDoc);
         this.deleteJavascript(pdfDoc);
 
-        return await pdfDoc.saveAsBase64({
+        console.log("Lagre fil");
+        return await pdfDoc.save({
             useObjectStreams: false,
         });
     }
@@ -206,12 +206,11 @@ export class PdfAConverter {
     }
 }
 
-export const validatePDFBytes = async (documentFileBase64: string): Promise<void> => {
+export const validatePDFBytes = async (documentFile: Uint8Array): Promise<void> => {
     try {
         console.log("Validerer PDF/A kompatibilitet");
-        const documentUint8 = await base64ToUint8(documentFileBase64);
         const pdfAResult = await BIDRAG_FORSENDELSE_API.api.validerPdf(
-            new File([documentUint8], "", {
+            new File([documentFile], "", {
                 type: "application/pdf",
             }),
             { headers: { "Content-Type": "application/pdf" } }

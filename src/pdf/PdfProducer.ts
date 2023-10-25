@@ -20,6 +20,7 @@ export class PdfProducer {
     private title: string;
     private pdfBlob: PdfDocumentType;
     private processedDocumentBase64: string;
+    private processedDocument: Uint8Array;
     private config: EditDocumentMetadata;
     private onProgressUpdate: (process: IProducerProgress) => void;
 
@@ -289,14 +290,14 @@ export class PdfProducer {
     }
 
     async saveChanges(): Promise<PdfProducer> {
-        this.processedDocumentBase64 = await new PdfAConverter().convertAndSaveAsBase64(this.pdfDocument, this.title);
-
+        this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title);
+        console.log("Lagret endringer");
         this.onProgressUpdated("SAVE_PDF", 0, 1);
         return this;
     }
 
-    getProcessedDocument(): string {
-        return this.processedDocumentBase64;
+    getProcessedDocument(): Uint8Array {
+        return this.processedDocument;
     }
 
     async openInNewTab() {

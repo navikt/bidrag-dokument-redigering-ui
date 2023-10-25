@@ -20,7 +20,7 @@ export class FormPdfProducer {
     private pdfDocument: PDFDocument;
     private formDocument: PDFDocumentProxy;
     private pdfBlob: PdfDocumentType;
-    private processedDocument: string;
+    private processedDocument: Uint8Array;
 
     private font: PDFFont;
     constructor(pdfBlob: PdfDocumentType) {
@@ -146,11 +146,11 @@ export class FormPdfProducer {
     }
 
     async saveChanges(): Promise<FormPdfProducer> {
-        this.processedDocument = await new PdfAConverter().convertAndSaveAsBase64(this.pdfDocument, this.title);
+        this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title);
         return this;
     }
 
-    getProcessedDocument(): string {
+    getProcessedDocument(): Uint8Array {
         return this.processedDocument;
     }
 

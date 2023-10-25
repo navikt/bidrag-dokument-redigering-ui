@@ -52,7 +52,7 @@ interface IPdfEditorContextProviderProps {
     documentFile: PdfDocumentType;
     onSave?: (config: EditDocumentMetadata) => Promise<ClosingWindow>;
     onSaveAndClose?: (config: EditDocumentMetadata) => Promise<ClosingWindow>;
-    onSubmit?: (config: EditDocumentMetadata, document: string) => Promise<ClosingWindow>;
+    onSubmit?: (config: EditDocumentMetadata, document: Uint8Array) => Promise<ClosingWindow>;
 }
 
 export default function PdfEditorContextProvider(props: PropsWithChildren<IPdfEditorContextProviderProps>) {
@@ -177,7 +177,7 @@ function PdfEditorContextProviderWithMasking({
     function onProducePdfProgressUpdated(process: IProducerProgress) {
         updateSaveState("PRODUCING", process.progress);
     }
-    async function getProcessedPdf(): Promise<{ documentFile: string; config: EditDocumentMetadata }> {
+    async function getProcessedPdf(): Promise<{ documentFile: Uint8Array; config: EditDocumentMetadata }> {
         let existingPdfBytes = documentFile;
         if (typeof documentFile == "string") {
             existingPdfBytes = await fetch(documentFile).then((res) => res.arrayBuffer());

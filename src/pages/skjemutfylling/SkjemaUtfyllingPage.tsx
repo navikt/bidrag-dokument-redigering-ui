@@ -39,7 +39,7 @@ interface SkjemaUtfyllingPageProps {
 }
 interface SkjemaUtfyllingContextProps {
     pdfDocument: PDFDocumentProxy;
-    getPdfWithFilledForm: () => Promise<string>;
+    getPdfWithFilledForm: () => Promise<Uint8Array>;
     broadcast: () => void;
     forsendelseId: string;
     dokumentreferanse: string;
@@ -179,7 +179,7 @@ function DocumentView({ file, dokumentreferanse, forsendelseId, dokumentMetadata
             });
     }
 
-    async function getPdfWithFilledForm(): Promise<string> {
+    async function getPdfWithFilledForm(): Promise<Uint8Array> {
         return producerRef.current
             .init(pdfDocument, dokumentMetadata.title)
             .then((a) => a.process())

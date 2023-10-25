@@ -1,4 +1,5 @@
 import { FileCheckmarkIcon } from "@navikt/aksel-icons";
+import { FileUtils } from "@navikt/bidrag-ui-common";
 import { Alert, BodyShort, Button, Heading, Modal } from "@navikt/ds-react";
 import { useMutation } from "@tanstack/react-query";
 import { AxiosError } from "axios";
@@ -19,7 +20,9 @@ export default function FerdigstillButton() {
     const ferdigstillFn = useMutation<unknown, AxiosError>({
         mutationFn: () =>
             getPdfWithFilledForm().then(async (fysiskDokument) =>
-                BIDRAG_FORSENDELSE_API.api.ferdigstillDokument(forsendelseId, dokumentreferanse, { fysiskDokument })
+                BIDRAG_FORSENDELSE_API.api.ferdigstillDokument(forsendelseId, dokumentreferanse, {
+                    fysiskDokument: FileUtils._arrayBufferToBase64(fysiskDokument),
+                })
             ),
         onSuccess: () => {
             broadcastAndCloseWindow();
