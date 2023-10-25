@@ -19,8 +19,7 @@ export class PdfAConverter {
     private PRODUCER = "Bidrag redigeringsklient for skjerming av dokumenter";
     private CREATOR = "NAV - Arbeids- og velferdsetaten";
     async convertAndSave(origDoc: PDFDocument, title: string): Promise<Uint8Array> {
-        console.log("convertAndSaveAsBase64");
-        const pdfDoc = origDoc;
+        const pdfDoc = await origDoc.copy();
         pdfDoc.registerFontkit(fontkit);
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
@@ -31,8 +30,6 @@ export class PdfAConverter {
         await this.addFont(pdfDoc);
         this.addColorProfile(pdfDoc);
         this.deleteJavascript(pdfDoc);
-
-        console.log("Lagre fil");
         return await pdfDoc.save({
             useObjectStreams: false,
         });
