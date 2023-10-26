@@ -80,7 +80,6 @@ export class PdfProducer {
         // @ts-ignore
         await this.convertMaskedPagesToImage(itemsFiltered);
         await this.removePages(this.config.removedPages);
-        console.log("REMOVE PAGES", this.config.removedPages, this.pdfDocument.getPageIndices());
         return this;
     }
 
