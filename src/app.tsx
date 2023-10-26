@@ -1,5 +1,4 @@
 import "./index.css";
-
 import React from "react";
 import { BrowserRouter, Route, Routes, useParams, useSearchParams } from "react-router-dom";
 

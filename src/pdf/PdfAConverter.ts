@@ -15,11 +15,12 @@ import {
 import { BIDRAG_FORSENDELSE_API } from "../api/api";
 //@ts-ignore
 import colorProfile from "./files/sRGB2014.icc";
+import { getCreationDate } from "./PdfHelpers";
 export class PdfAConverter {
     private PRODUCER = "bidrag-dokument-redigering-ui";
     private CREATOR = "NAV - Arbeids- og velferdsetaten";
-    async convertAndSave(origDoc: PDFDocument, title: string, copy = false): Promise<Uint8Array> {
-        const pdfDoc = copy ? await origDoc.copy() : origDoc;
+    async convertAndSave(origDoc: PDFDocument, title: string, copyPDF = false): Promise<Uint8Array> {
+        const pdfDoc = await this.copyPdfDocument(origDoc, copyPDF)
         pdfDoc.registerFontkit(fontkit);
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
@@ -33,6 +34,12 @@ export class PdfAConverter {
         return await pdfDoc.save({
             useObjectStreams: false,
         });
+    }
+    private copyPdfDocument(originalDoc: PDFDocument, copyPDF = false): Promise<PDFDocument> {
+        if (copyPDF){
+            return originalDoc.copy()
+        }
+        return Promise.resolve(originalDoc)
     }
     addColorProfile(doc: PDFDocument) {
         const profile = colorProfile;
@@ -123,7 +130,7 @@ export class PdfAConverter {
     private addMetadata(originalDoc: PDFDocument, pdfDoc: PDFDocument, date: Date, documentId: string, title: string) {
         const originalAuthor = originalDoc.getAuthor();
         const originalProducer = originalDoc.getProducer();
-        const originalCreationDate = originalDoc.getCreationDate();
+        const originalCreationDate = getCreationDate(originalDoc);
         const producer = this.PRODUCER;
         const creator = originalDoc.getCreator() ?? this.CREATOR;
         const author = originalAuthor ?? this.CREATOR;

@@ -13,6 +13,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
     const [pdfDoc, setPdfDoc] = useState<PdfDocumentType>();
     async function openFile(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
+        //@ts-ignore
         setPdfDoc(new Blob([fileBuffer]));
     }
 
@@ -40,8 +41,9 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
         });
         console.log("PDF has", pdfdoc.getPageCount(), "pages");
         const array = await pdfdoc.save();
+        //@ts-ignore
         setPdfDoc(new Blob([array]));
-    }
+    } 
     if (!pdfDoc) {
         return (
             <>

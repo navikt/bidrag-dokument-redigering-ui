@@ -9,6 +9,7 @@ import { PdfDocumentType } from "../components/utils/types";
 import { EditDocumentMetadata } from "../types/EditorTypes";
 import pdf2Image from "./Pdf2Image";
 import { PdfAConverter } from "./PdfAConverter";
+import { getCreationDate, getModificationDate } from "./PdfHelpers";
 
 type ProgressState = "MASK_PAGE" | "CONVERT_PAGE_TO_IMAGE" | "REMOVE_PAGE" | "SAVE_PDF";
 export interface IProducerProgress {
@@ -305,14 +306,14 @@ export class PdfProducer {
         if (origDoc.getAuthor() !== undefined) {
             pdfCopy.setAuthor(origDoc.getAuthor()!);
         }
-        if (origDoc.getCreationDate() !== undefined) {
-            pdfCopy.setCreationDate(origDoc.getCreationDate()!);
+        if (getCreationDate(pdfCopy) !== undefined) {
+            pdfCopy.setCreationDate(getCreationDate(pdfCopy)!);
         }
         if (origDoc.getCreator() !== undefined) {
             pdfCopy.setCreator(origDoc.getCreator()!);
         }
-        if (origDoc.getModificationDate() !== undefined) {
-            pdfCopy.setModificationDate(origDoc.getModificationDate()!);
+        if (getModificationDate(pdfCopy) !== undefined) {
+            pdfCopy.setModificationDate(getModificationDate(pdfCopy)!);
         }
         if (origDoc.getProducer() !== undefined) {
             pdfCopy.setProducer(origDoc.getProducer()!);
@@ -329,7 +330,7 @@ export class PdfProducer {
     }
 
     async saveChanges(): Promise<PdfProducer> {
-        this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title);
+        this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title, false);
         this.onProgressUpdated("SAVE_PDF", 0, 1);
         return this;
     }
@@ -343,4 +344,8 @@ export class PdfProducer {
         FileUtils.openFile(this.processedDocument, true);
         return this;
     }
+
+   
 }
+
+
