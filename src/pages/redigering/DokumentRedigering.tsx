@@ -75,10 +75,6 @@ export default function DokumentRedigering({ documentFile }: DokumentRedigeringC
             maxScale={10}
             centerZoomedOut
             centerOnInit
-            // onInit={(ref) => {
-            //     const currentTransform = ref.state;
-            //     transformComponentRef.current.setTransform(currentTransform.positionX - 350, 0, 1.3);
-            // }}
             disablePadding
             limitToBounds
             ref={transformComponentRef}

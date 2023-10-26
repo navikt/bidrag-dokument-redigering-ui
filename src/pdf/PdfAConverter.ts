@@ -15,12 +15,10 @@ import {
 import { BIDRAG_FORSENDELSE_API } from "../api/api";
 //@ts-ignore
 import colorProfile from "./files/sRGB2014.icc";
-import { getCreationDate } from "./PdfHelpers";
+import { PDF_EDITOR_CREATOR, PDF_EDITOR_PRODUCER, PdfProducerHelpers } from "./PdfHelpers";
 export class PdfAConverter {
-    private PRODUCER = "bidrag-dokument-redigering-ui";
-    private CREATOR = "NAV - Arbeids- og velferdsetaten";
     async convertAndSave(origDoc: PDFDocument, title: string, copyPDF = false): Promise<Uint8Array> {
-        const pdfDoc = await this.copyPdfDocument(origDoc, copyPDF)
+        const pdfDoc = await this.copyPdfDocument(origDoc, copyPDF);
         pdfDoc.registerFontkit(fontkit);
         const documentDate = new Date();
         const documentId = crypto.randomUUID();
@@ -36,10 +34,10 @@ export class PdfAConverter {
         });
     }
     private copyPdfDocument(originalDoc: PDFDocument, copyPDF = false): Promise<PDFDocument> {
-        if (copyPDF){
-            return originalDoc.copy()
+        if (copyPDF) {
+            return originalDoc.copy();
         }
-        return Promise.resolve(originalDoc)
+        return Promise.resolve(originalDoc);
     }
     addColorProfile(doc: PDFDocument) {
         const profile = colorProfile;
@@ -111,8 +109,8 @@ export class PdfAConverter {
     private _addMetadata(pdfDoc: PDFDocument, date: Date, title: string, author: string) {
         pdfDoc.setTitle(title);
         pdfDoc.setAuthor(pdfDoc.getAuthor() ?? author);
-        pdfDoc.setProducer(this.PRODUCER);
-        pdfDoc.setCreator(pdfDoc.getCreator() ?? this.CREATOR);
+        pdfDoc.setProducer(PDF_EDITOR_PRODUCER);
+        pdfDoc.setCreator(pdfDoc.getCreator() ?? PDF_EDITOR_CREATOR);
         pdfDoc.setModificationDate(date);
     }
 
@@ -128,12 +126,11 @@ export class PdfAConverter {
     }
 
     private addMetadata(originalDoc: PDFDocument, pdfDoc: PDFDocument, date: Date, documentId: string, title: string) {
-        const originalAuthor = originalDoc.getAuthor();
-        const originalProducer = originalDoc.getProducer();
-        const originalCreationDate = getCreationDate(originalDoc);
-        const producer = this.PRODUCER;
-        const creator = originalDoc.getCreator() ?? this.CREATOR;
-        const author = originalAuthor ?? this.CREATOR;
+        const originalAuthor = PdfProducerHelpers.getAuthor(originalDoc);
+        const originalCreationDate = PdfProducerHelpers.getCreationDate(originalDoc);
+        const producer = PDF_EDITOR_PRODUCER;
+        const creator = originalDoc.getCreator() ?? PDF_EDITOR_CREATOR;
+        const author = originalAuthor ?? PDF_EDITOR_CREATOR;
         pdfDoc.setTitle(title, { showInWindowTitleBar: true });
         pdfDoc.setAuthor(author);
         pdfDoc.setProducer(producer);

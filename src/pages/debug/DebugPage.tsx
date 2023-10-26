@@ -43,7 +43,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
         const array = await pdfdoc.save();
         //@ts-ignore
         setPdfDoc(new Blob([array]));
-    } 
+    }
     if (!pdfDoc) {
         return (
             <>

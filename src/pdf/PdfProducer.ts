@@ -9,7 +9,7 @@ import { PdfDocumentType } from "../components/utils/types";
 import { EditDocumentMetadata } from "../types/EditorTypes";
 import pdf2Image from "./Pdf2Image";
 import { PdfAConverter } from "./PdfAConverter";
-import { getCreationDate, getModificationDate } from "./PdfHelpers";
+import { PdfProducerHelpers } from "./PdfHelpers";
 
 type ProgressState = "MASK_PAGE" | "CONVERT_PAGE_TO_IMAGE" | "REMOVE_PAGE" | "SAVE_PDF";
 export interface IProducerProgress {
@@ -303,26 +303,26 @@ export class PdfProducer {
             this.onProgressUpdated("REMOVE_PAGE", 0, numberOfRemovedPages / numberOfPagesToRemove);
         }
 
-        if (origDoc.getAuthor() !== undefined) {
-            pdfCopy.setAuthor(origDoc.getAuthor()!);
+        if (PdfProducerHelpers.getAuthor(origDoc) !== undefined) {
+            pdfCopy.setAuthor(PdfProducerHelpers.getAuthor(origDoc)!);
         }
-        if (getCreationDate(pdfCopy) !== undefined) {
-            pdfCopy.setCreationDate(getCreationDate(pdfCopy)!);
+        if (PdfProducerHelpers.getCreationDate(origDoc) !== undefined) {
+            pdfCopy.setCreationDate(PdfProducerHelpers.getCreationDate(origDoc)!);
         }
-        if (origDoc.getCreator() !== undefined) {
-            pdfCopy.setCreator(origDoc.getCreator()!);
+        if (PdfProducerHelpers.getCreator(origDoc) !== undefined) {
+            pdfCopy.setCreator(PdfProducerHelpers.getCreator(origDoc)!);
         }
-        if (getModificationDate(pdfCopy) !== undefined) {
-            pdfCopy.setModificationDate(getModificationDate(pdfCopy)!);
+        if (PdfProducerHelpers.getModificationDate(pdfCopy) !== undefined) {
+            pdfCopy.setModificationDate(PdfProducerHelpers.getModificationDate(pdfCopy)!);
         }
-        if (origDoc.getProducer() !== undefined) {
-            pdfCopy.setProducer(origDoc.getProducer()!);
+        if (PdfProducerHelpers.getProducer(origDoc) !== undefined) {
+            pdfCopy.setProducer(PdfProducerHelpers.getProducer(origDoc)!);
         }
-        if (origDoc.getSubject() !== undefined) {
-            pdfCopy.setSubject(origDoc.getSubject()!);
+        if (PdfProducerHelpers.getSubject(origDoc) !== undefined) {
+            pdfCopy.setSubject(PdfProducerHelpers.getSubject(origDoc)!);
         }
-        if (origDoc.getTitle() !== undefined) {
-            pdfCopy.setTitle(origDoc.getTitle()!);
+        if (PdfProducerHelpers.getTitle(origDoc) !== undefined) {
+            pdfCopy.setTitle(PdfProducerHelpers.getTitle(origDoc)!);
         }
         pdfCopy.defaultWordBreaks = origDoc.defaultWordBreaks;
 
@@ -344,8 +344,4 @@ export class PdfProducer {
         FileUtils.openFile(this.processedDocument, true);
         return this;
     }
-
-   
 }
-
-
