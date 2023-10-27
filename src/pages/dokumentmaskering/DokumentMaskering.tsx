@@ -16,12 +16,14 @@ type DokumentMaskeringProps = {
     forsendelseId: string;
     dokumentreferanse: string;
     isLoading: boolean;
+    mode?: PdfEditorMode;
 };
 export default function DokumentMaskering({
     documentFile,
     forsendelseId,
     dokumentreferanse,
     isLoading,
+    mode,
 }: DokumentMaskeringProps) {
     const { data: dokumentMetadata } = RedigeringQueries.hentRedigeringmetadata<EditDocumentMetadata>(
         forsendelseId,
@@ -99,7 +101,7 @@ export default function DokumentMaskering({
     const getPdfEditorMode = (): PdfEditorMode => {
         if (dokumentMetadata?.forsendelseState == "LOCKED") return "view_only_unlockable";
         if (dokumentMetadata?.state == "LOCKED") return "view_only_unlockable";
-        return "edit";
+        return mode ?? "edit";
     };
 
     return (
