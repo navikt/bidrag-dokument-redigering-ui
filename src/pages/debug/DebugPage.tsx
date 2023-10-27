@@ -12,7 +12,7 @@ type DebugPageProps = {
 };
 export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPageProps) {
     const [pdfdocument, setPdfdocument] = useState<PdfDocumentType>();
-    const [removeImages, setRemoveImages] = useState<boolean>(false);
+    const [removeImages, setRemoveImages] = useState<"all" | "masked" | "none">("none");
     async function openFile(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
         //@ts-ignore
@@ -40,10 +40,11 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
         console.log("PDF has", pdfRecovered.getPageIndices(), "page indices");
         console.log("PDF has", pdfRecovered.getPages(), "pages");
 
-        if (removeImages) {
+        if (removeImages == "all") {
             removeImagesFromPDF(pdfRecovered);
-
-            //removeImagesFromPDFV2(pdfRecovered);
+        }
+        if (removeImages == "masked") {
+            removeImagesFromPDFV2(pdfRecovered);
         }
         const savedUpdatedPdfUint8Array = await pdfRecovered.save();
 
@@ -60,7 +61,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
         if (pageLeafs.length != existingPages.length) {
             const blankPage = PDFPage.create(pdfdoc);
             pdfdoc.addPage(blankPage);
-            blankPage.drawText("Recovered pages", { size: 30, x: 100, y: 500 });
+            blankPage.drawText("Gjenopprettet sider", { size: 30, x: 100, y: 500 });
             pagenumber++;
         }
 
@@ -109,7 +110,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
             const xObject = resources.get(PDFName.of("XObject"));
             if (xObject instanceof PDFDict) {
                 const isImage = xObject.keys().some((value) => value.asString()?.includes("Image"));
-                console.log("Delete ", xObject.toString(), "from page ", i);
+                console.log("Delete ", xObject.toString(), "from page ", i + 1);
                 if (isImage) resources.delete(PDFName.of("XObject"));
             }
         });
@@ -128,7 +129,12 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
                             accept="application/pdf,application/vnd.ms-excel"
                             onChange={recoverAndReadFile}
                         />
-                        <Checkbox onChange={(value) => setRemoveImages(value.target.checked)}>Fjern bilder</Checkbox>
+                        <Checkbox onChange={(value) => setRemoveImages(value.target.checked ? "all" : "none")}>
+                            Fjern bilder
+                        </Checkbox>
+                        <Checkbox onChange={(value) => setRemoveImages(value.target.checked ? "masked" : "none")}>
+                            Fjern bilder bare fra maskerte sider
+                        </Checkbox>
                     </div>
                 </div>
                 <div className="flex flex-col gap-4">
