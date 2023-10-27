@@ -55,7 +55,7 @@ export class PdfProducer {
         const percentageRange = this.stateToProgressPercentageRate(state);
 
         const result = Math.round((percentageRange[1] - percentageRange[0]) * progress + percentageRange[0]);
-        console.log("Progress result", result, percentageRange, state, progress);
+        console.debug("Progress result", result, percentageRange, state, progress);
         return result;
     }
 
@@ -75,9 +75,7 @@ export class PdfProducer {
         this.removeSubmitButton();
         this.flattenForm();
         const itemsFiltered = this.config.items.filter((item) => !this.config.removedPages.includes(item.pageNumber));
-        // @ts-ignore
         this.maskPages(itemsFiltered);
-        // @ts-ignore
         await this.convertMaskedPagesToImage(itemsFiltered);
         await this.removePages(this.config.removedPages);
         return this;
@@ -125,6 +123,7 @@ export class PdfProducer {
             const width = rotation == 90 || rotation == 270 ? originalPage.getHeight() : originalPage.getWidth();
             this.pdfDocument.removePage(pageNumber);
             this.pdfDocument.insertPage(pageNumber);
+            console.debug("Masked and replaced page", pageNumber);
             const newPage = this.pdfDocument.getPage(pageNumber);
             newPage.setHeight(height);
             newPage.setWidth(width);
@@ -293,6 +292,13 @@ export class PdfProducer {
         const origDoc = this.pdfDocument;
         const pdfCopy = await PDFDocument.create();
         const includePages = origDoc.getPageIndices().filter((pn) => !removePages.includes(pn + 1));
+
+        console.debug("Original document has pages", origDoc.getPageIndices());
+        console.debug(
+            "Removing pages",
+            removePages?.map((rp) => rp + 1)
+        );
+        console.debug("Remaining pages", includePages);
         const contentPages = await pdfCopy.copyPages(origDoc, includePages);
 
         let numberOfRemovedPages = 0;
