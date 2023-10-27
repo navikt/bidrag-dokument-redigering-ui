@@ -62,15 +62,15 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
             const blankPage = PDFPage.create(pdfdoc);
             pdfdoc.addPage(blankPage);
             blankPage.drawText("Gjenopprettet sider", { size: 30, x: 100, y: 500 });
-            pagenumber++;
+            pagenumber += 1;
         }
 
         pageLeafs.forEach(([ref, obj], i) => {
             if (!existingPages.some((ep) => ep.ref == ref)) {
                 console.log("Recovered page", pagenumber);
                 pdfdoc.catalog.insertLeafNode(ref, pagenumber);
+                pagenumber += 1;
             }
-            pagenumber += 1;
         });
         const savedPdfUint8Array = await pdfdoc.save();
 
