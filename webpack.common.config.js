@@ -6,7 +6,7 @@ const CopyPlugin = require("copy-webpack-plugin");
 const { ModuleFederationPlugin } = require("webpack").container;
 const deps = require("./package.json").dependencies;
 const isDevelopment = process.env.NODE_ENV !== "production";
-
+const { EsbuildPlugin } = require('esbuild-loader')
 module.exports = {
     entry: "./src/index.tsx",
     output: {
@@ -21,6 +21,13 @@ module.exports = {
         fallback: {
             fs: false,
         },
+    },
+    optimization: {
+        minimizer: [
+            new EsbuildPlugin({
+                target: 'es2022'  // Syntax to transpile to (see options below for possible values)
+            })
+        ]
     },
     module: {
         rules: [
@@ -52,34 +59,10 @@ module.exports = {
             {
                 test: /\.([jt]sx?)?$/,
                 exclude: /node_modules/,
-                use: [
-                    {
-                        loader: "swc-loader",
-                        options: {
-                            env: { mode: "usage" },
-                            minify: !isDevelopment,
-                            keepClassNames: true,
-                            jsc: {
-                                minify: {
-                                    compress: !isDevelopment,
-                                    mangle: !isDevelopment,
-                                },
-                                parser: {
-                                    syntax: "typescript",
-                                    tsx: true,
-                                    topLevelAwait: true,
-                                    dynamicImport: true,
-                                },
-                                transform: {
-                                    react: {
-                                        runtime: "automatic",
-                                        refresh: isDevelopment,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                ],
+                loader: 'esbuild-loader',
+                options: {
+                    target: 'es2022'
+                },
             },
             {
                 test: /\.svg$/,
