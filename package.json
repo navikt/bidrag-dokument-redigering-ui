@@ -1,9 +1,10 @@
 {
   "name": "bidrag-redigering-ui",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "scripts": {
     "lint": "echo noop",
+    "lint2": "eslint ./src/**/*.{ts,tsx} package.json --quiet",
     "test": "echo noop",
     "start": "",
     "dev": "cross-env-shell NODE_ENV=development webpack serve --config webpack.dev.config.js",
@@ -93,12 +94,12 @@
     "webpack-manifest-plugin": "5.0.0",
     "webpack-merge": "^5.10.0"
   },
-  "msw": {
-    "workerDirectory": "public"
-  },
   "browser": {
     "fs": false,
     "path": false,
     "os": false
+  },
+  "msw": {
+    "workerDirectory": "public"
   }
 }

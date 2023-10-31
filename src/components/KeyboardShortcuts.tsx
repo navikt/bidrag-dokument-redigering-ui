@@ -11,7 +11,7 @@ export default function KeyboardShortcuts() {
     const { onUndo, onRedo } = usePdfEditorContext();
 
     useEffect(() => {
-        document.oncontextmenu = (e) => {
+        document.oncontextmenu = (e: MouseEvent) => {
             if (isAddNewElementMode) {
                 e.preventDefault();
             }
@@ -36,7 +36,7 @@ export default function KeyboardShortcuts() {
         false
     );
 
-    useWindowListener("keyup", (e: KeyboardEvent) => {
+    useWindowListener("keyup", () => {
         exitAddItemMode(false);
     });
 
