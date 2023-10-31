@@ -22,13 +22,7 @@ module.exports = {
             fs: false,
         },
     },
-    optimization: {
-        minimizer: [
-            new EsbuildPlugin({
-                target: 'es2022'  // Syntax to transpile to (see options below for possible values)
-            })
-        ]
-    },
+
     module: {
         rules: [
             {
