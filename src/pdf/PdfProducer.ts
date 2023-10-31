@@ -31,10 +31,10 @@ export class PdfProducer {
 
     async init(
         config: EditDocumentMetadata,
-        title: string,
+        title?: string,
         onProgressUpdate?: (process: IProducerProgress) => void
     ): Promise<PdfProducer> {
-        this.title = title;
+        this.title = title ?? "Dokument";
         this.config = config;
         this.onProgressUpdate = onProgressUpdate;
         this.pdfDocument = await PDFDocument.load(this.pdfBlob);

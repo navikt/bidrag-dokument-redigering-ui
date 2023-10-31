@@ -189,7 +189,7 @@ function PdfEditorContextProviderWithMasking({
 
         const config = getEditDocumentMetadata();
         return await new PdfProducer(existingPdfBytes)
-            .init(config, dokumentMetadata.title, onProducePdfProgressUpdated)
+            .init(config, dokumentMetadata?.title, onProducePdfProgressUpdated)
             .then((p) => p.process())
             .then((p) => p.saveChanges())
             .then((p) => ({
