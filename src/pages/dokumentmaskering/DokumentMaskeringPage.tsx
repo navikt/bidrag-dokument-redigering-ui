@@ -1,5 +1,3 @@
-import React from "react";
-
 import { lastDokumenter } from "../../api/queries";
 import PageWrapper from "../PageWrapper";
 import DokumentMaskering from "./DokumentMaskering";

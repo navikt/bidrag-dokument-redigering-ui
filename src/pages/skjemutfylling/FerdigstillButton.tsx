@@ -56,7 +56,7 @@ export default function FerdigstillButton() {
                         closeButton: true,
                     }}
                 >
-                    <Modal.Body className="max-w-[800px]">
+                    <Modal.Body>
                         <BodyShort>
                             Etter skjemaet er ferdigstilt vil den bli låst for endringer og være klar for distribusjon.
                             Du kan senere låse opp skjemaet og endre innholdet før forsendelsen er distribuert.

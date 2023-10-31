@@ -58,8 +58,8 @@ module.exports = {
                         options: {
                             env: { mode: "usage" },
                             minify: !isDevelopment,
+                            keepClassNames: true,
                             jsc: {
-                                target: "es2022",
                                 minify: {
                                     compress: !isDevelopment,
                                     mangle: !isDevelopment,

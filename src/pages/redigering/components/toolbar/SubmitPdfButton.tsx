@@ -1,7 +1,7 @@
 import { FileCheckmarkIcon } from "@navikt/aksel-icons";
 import { LoggerService } from "@navikt/bidrag-ui-common";
 import { Alert, BodyShort, Button, Modal } from "@navikt/ds-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import React from "react";
 
 import { usePdfEditorContext } from "../PdfEditorContext";
@@ -38,9 +38,7 @@ export default function SubmitPdfButton() {
                 }
             });
     }
-    useEffect(() => {
-        Modal.setAppElement("body");
-    }, []);
+
     const openModal = () => setModalOpen(true);
     const closeModal = () => {
         setModalOpen(false);
@@ -62,12 +60,14 @@ export default function SubmitPdfButton() {
                     open
                     onClose={closeModal}
                     closeOnBackdropClick
+                    width={820}
+                    portal
                     header={{
                         heading: "Er du ferdig med å kontrollere dokumentet?",
                         closeButton: true,
                     }}
                 >
-                    <Modal.Body className="max-w-[800px]">
+                    <Modal.Body>
                         <BodyShort spacing>
                             Velger du å ferdigstille dokumentet vil redigert dokument lagres og status på dokumentet bli
                             satt til "KONTROLLERT". Det er mulig å låse opp for redigering senere hvis du ombestemmer

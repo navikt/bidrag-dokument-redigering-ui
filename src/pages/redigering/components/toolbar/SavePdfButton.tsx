@@ -37,6 +37,7 @@ export default function SavePdfButton() {
                     open
                     onClose={closeModal}
                     closeOnBackdropClick
+                    portal
                     header={{
                         heading: "Lagre og lukk",
                         closeButton: true,
