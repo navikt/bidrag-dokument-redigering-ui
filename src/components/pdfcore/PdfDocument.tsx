@@ -325,39 +325,6 @@ function PdfDocumentZoom({
         }
     }
 
-    function onMouseWheelHandler2(e: React.MouseEvent) {
-        // if (!containerRef.current) return;
-        // if (e.ctrlKey || e.shiftKey || e.altKey) return;
-        // const transformContainer = transformerRef.current.contentComponent;
-        // const currentScrollHeight = containerRef.current.firstElementChild.scrollTop;
-        // const transformRect = transformContainer.getBoundingClientRect();
-        // if (transformerRef.current.transformState.scale == 1) {
-        //     delete transformContainer.style.translate;
-        // } else if (currentScrollHeight == 0 && transformRect.y != 0) {
-        //     if (transformContainer.style.translate) {
-        //         const translationY = parseInt(
-        //             transformContainer.style.translate?.split(" ")[1]?.replace("px", "") ?? "0"
-        //         );
-        //         //@ts-ignore
-        //         const delta = e.deltaY;
-        //         const newValue =
-        //             -1 *
-        //             Math.sign(positionY.current) *
-        //             Math.min(Math.abs(translationY + delta), Math.abs(positionY.current));
-        //         transformContainer.style.translate = `0 ${-newValue}px`;
-        //     } else {
-        //         transformContainer.style.translate = `0 ${transformRect.y + 10}px`;
-        //     }
-        // }
-    }
-
-    // useEffect(() => {
-    //     // console.log(getScrollElement());
-    //     const scrollElement = getScrollElement();
-    //     scrollElement?.addEventListener("wheel", (e) => onMouseWheelHandlerThrottler.current(e));
-    //     return () => scrollElement?.removeEventListener("wheel", (e) => onMouseWheelHandlerThrottler.current(e));
-    // }, []);
-
     return (
         <TransformComponent contentClass="pdfViewer-content" wrapperClass="pdfViewer-wrapper">
             {children}

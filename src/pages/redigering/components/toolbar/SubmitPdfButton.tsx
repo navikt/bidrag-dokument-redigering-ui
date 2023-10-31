@@ -1,6 +1,6 @@
 import { FileCheckmarkIcon } from "@navikt/aksel-icons";
 import { LoggerService } from "@navikt/bidrag-ui-common";
-import { Alert, BodyShort, Button, Heading, Modal } from "@navikt/ds-react";
+import { Alert, BodyShort, Button, Modal } from "@navikt/ds-react";
 import { useEffect, useState } from "react";
 import React from "react";
 
@@ -58,11 +58,16 @@ export default function SubmitPdfButton() {
                 Ferdigstill
             </Button>
             {modalOpen && (
-                <Modal open onClose={closeModal} closeButton shouldCloseOnEsc shouldCloseOnOverlayClick>
-                    <Modal.Content className="max-w-[800px]">
-                        <Heading spacing size={"large"}>
-                            Er du ferdig med å kontrollere dokumentet?
-                        </Heading>
+                <Modal
+                    open
+                    onClose={closeModal}
+                    closeOnBackdropClick
+                    header={{
+                        heading: "Er du ferdig med å kontrollere dokumentet?",
+                        closeButton: true,
+                    }}
+                >
+                    <Modal.Body className="max-w-[800px]">
                         <BodyShort spacing>
                             Velger du å ferdigstille dokumentet vil redigert dokument lagres og status på dokumentet bli
                             satt til "KONTROLLERT". Det er mulig å låse opp for redigering senere hvis du ombestemmer
@@ -89,15 +94,15 @@ export default function SubmitPdfButton() {
                                 className="mt-3 mb-3"
                             >{`Kunne ikke ferdigstille dokument: ${submitError}`}</Alert>
                         )}
-                        <div className={"flex flex-row gap-2 pt-2"}>
-                            <Button size="small" variant={"primary"} onClick={_producePdf} loading={producingDocument}>
-                                Ferdigstill og lukk
-                            </Button>
-                            <Button size="small" variant={"tertiary"} onClick={closeModal}>
-                                Avbryt
-                            </Button>
-                        </div>
-                    </Modal.Content>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button size="small" variant={"primary"} onClick={_producePdf} loading={producingDocument}>
+                            Ferdigstill og lukk
+                        </Button>
+                        <Button size="small" variant={"tertiary"} onClick={closeModal}>
+                            Avbryt
+                        </Button>
+                    </Modal.Footer>
                 </Modal>
             )}
         </>

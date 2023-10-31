@@ -40,13 +40,12 @@ export default function InfoKnapp({
             <Modal
                 open={modalOpen}
                 overlayClassName="test"
-                shouldCloseOnEsc
                 onClose={closeModal}
                 className={`max-w-[1000px] ${className}`}
             >
-                <Modal.Content>
+                <Modal.Body>
                     <div className="max-h-[800px] mdx-content">{children}</div>
-                </Modal.Content>
+                </Modal.Body>
             </Modal>
         </>
     );

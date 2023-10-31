@@ -1,3 +1,5 @@
 import documentMock from "./dokumentMock";
-export const handlers = [...documentMock()];
+import forsendelseMock from "./forsendelseMock";
+import logMock from "./logMock";
+export const handlers = [...documentMock(), ...forsendelseMock(), ...logMock()];
 // export const handlers = [...logMock(), ...documentMock(), ...tokenMock(), ...forsendelseMock()];
