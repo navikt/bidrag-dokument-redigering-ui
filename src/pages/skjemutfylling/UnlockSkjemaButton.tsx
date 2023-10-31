@@ -34,6 +34,7 @@ export default function UnlockSkjemaButton() {
             return (
                 <Modal
                     open
+                    portal
                     onClose={closeModal}
                     closeOnBackdropClick
                     header={{
@@ -70,6 +71,7 @@ export default function UnlockSkjemaButton() {
                 open
                 onClose={closeModal}
                 closeOnBackdropClick
+                portal
                 header={{
                     heading: "Dokumentet kan ikke redigeres",
                     closeButton: true,

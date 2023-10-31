@@ -36,13 +36,14 @@ export default function UnlockPdfButton() {
                     open
                     onClose={closeModal}
                     closeOnBackdropClick
+                    portal
                     header={{
                         heading: "Ønsker du å låse opp dokumentet for redigering?",
                         closeButton: true,
                     }}
                 >
                     <Modal.Body>
-                        <BodyShort>
+                        <BodyShort spacing>
                             Dokumentet er ferdigstilt og er låst for ytterlige endringer. <br /> Hvis du ønsker å gjøre
                             flere endringer må dokumentet låses opp igjen. <br />
                             Vær oppmerksom på at dokumentet igjen da må ferdigstilles etter redigering er ferdig.
@@ -70,13 +71,14 @@ export default function UnlockPdfButton() {
                 open
                 onClose={closeModal}
                 closeOnBackdropClick
+                portal
                 header={{
                     heading: "Dokumentet kan ikke redigeres",
                     closeButton: true,
                 }}
             >
                 <Modal.Body>
-                    <BodyShort>
+                    <BodyShort spacing>
                         Forsendelsen er ferdigstilt og er låst for ytterlige endringer. Det er ikke mulig å gjøre noe
                         endringer på dette dokumentet
                     </BodyShort>

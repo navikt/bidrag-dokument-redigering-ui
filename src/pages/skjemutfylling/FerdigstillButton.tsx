@@ -49,6 +49,7 @@ export default function FerdigstillButton() {
             {modalOpen && (
                 <Modal
                     open
+                    portal
                     onClose={closeModal}
                     closeOnBackdropClick
                     header={{
