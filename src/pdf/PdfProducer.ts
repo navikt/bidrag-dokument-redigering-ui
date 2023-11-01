@@ -294,10 +294,7 @@ export class PdfProducer {
         const includePages = origDoc.getPageIndices().filter((pn) => !removePages.includes(pn + 1));
 
         console.debug("Original document has pages", origDoc.getPageIndices());
-        console.debug(
-            "Removing pages",
-            removePages?.map((rp) => rp + 1)
-        );
+        console.debug("Removing pages", removePages?.map((rp) => rp + 1));
         console.debug("Remaining pages", includePages);
         const contentPages = await pdfCopy.copyPages(origDoc, includePages);
 

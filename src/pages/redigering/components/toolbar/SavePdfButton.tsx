@@ -1,5 +1,5 @@
 import { FloppydiskIcon } from "@navikt/aksel-icons";
-import { BodyShort, Button, Heading, Modal } from "@navikt/ds-react";
+import { BodyShort, Button, Modal } from "@navikt/ds-react";
 import { useState } from "react";
 import React from "react";
 
@@ -33,21 +33,27 @@ export default function SavePdfButton() {
                 Lagre og lukk
             </Button>
             {modalOpen && (
-                <Modal open onClose={closeModal} closeButton shouldCloseOnEsc shouldCloseOnOverlayClick>
-                    <Modal.Content>
-                        <Heading spacing size={"medium"}>
-                            Lagre og lukk
-                        </Heading>
+                <Modal
+                    open
+                    onClose={closeModal}
+                    closeOnBackdropClick
+                    portal
+                    header={{
+                        heading: "Lagre og lukk",
+                        closeButton: true,
+                    }}
+                >
+                    <Modal.Body>
                         <BodyShort>Er du sikker på at du vil avslutte redigering?</BodyShort>
-                        <div className={"flex flex-row gap-2 pt-2"}>
-                            <Button size="small" variant={"primary"} onClick={_savePdf} loading={savingDocument}>
-                                Lagre og lukk
-                            </Button>
-                            <Button size="small" variant={"tertiary"} onClick={closeModal}>
-                                Avbryt
-                            </Button>
-                        </div>
-                    </Modal.Content>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button size="small" variant={"primary"} onClick={_savePdf} loading={savingDocument}>
+                            Lagre og lukk
+                        </Button>
+                        <Button size="small" variant={"tertiary"} onClick={closeModal}>
+                            Avbryt
+                        </Button>
+                    </Modal.Footer>
                 </Modal>
             )}
         </>

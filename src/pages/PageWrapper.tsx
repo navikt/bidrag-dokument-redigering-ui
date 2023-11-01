@@ -37,7 +37,7 @@ export default function PageWrapper({ children, name }: PropsWithChildren<PageWr
             <MDXProvider components={{ ...mdxComponents, ...componentsWithStyles }}>
                 <QueryClientProvider client={queryClient}>
                     <React.Suspense fallback={<LoadingIndicatorSkeleton />}>
-                        <div className={name}>{children}</div>
+                        <div className={`${name} bidrag-dokument-redigering-ui`}>{children}</div>
                     </React.Suspense>
                 </QueryClientProvider>
             </MDXProvider>

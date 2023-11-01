@@ -37,16 +37,10 @@ export default function InfoKnapp({
                 {buttonText}
             </Button>
 
-            <Modal
-                open={modalOpen}
-                overlayClassName="test"
-                shouldCloseOnEsc
-                onClose={closeModal}
-                className={`max-w-[1000px] ${className}`}
-            >
-                <Modal.Content>
+            <Modal open={modalOpen} closeOnBackdropClick onClose={closeModal} className={`max-w-[1000px] ${className}`}>
+                <Modal.Body>
                     <div className="max-h-[800px] mdx-content">{children}</div>
-                </Modal.Content>
+                </Modal.Body>
             </Modal>
         </>
     );
