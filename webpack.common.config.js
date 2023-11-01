@@ -31,7 +31,7 @@ module.exports = {
                 minifyIdentifiers: false,
                 minifyWhitespace: true,
                 minifySyntax: true,
-                globalName: "bidrag_forsendelse_ui",
+                globalName: "bidrag_dokument_redigering_ui",
                 css: true,
                 keepNames: true,
             }),
