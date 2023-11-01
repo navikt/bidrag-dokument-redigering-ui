@@ -26,9 +26,12 @@ module.exports = {
             new EsbuildPlugin({
                 target: "es2022",
                 minify: false,
+                format: "esm",
+                sourcemap: true,
                 minifyIdentifiers: false,
                 minifyWhitespace: true,
-                minifySyntax: false,
+                minifySyntax: true,
+                globalName: "bidrag_forsendelse_ui",
                 css: true,
                 keepNames: true,
             }),
