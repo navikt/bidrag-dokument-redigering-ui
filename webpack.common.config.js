@@ -6,6 +6,7 @@ const CopyPlugin = require("copy-webpack-plugin");
 const { ModuleFederationPlugin } = require("webpack").container;
 const deps = require("./package.json").dependencies;
 const { EsbuildPlugin } = require("esbuild-loader");
+
 module.exports = {
     entry: "./src/index.tsx",
     output: {
@@ -21,22 +22,22 @@ module.exports = {
             fs: false,
         },
     },
-    optimization: {
-        minimizer: [
-            new EsbuildPlugin({
-                target: "es2022",
-                minify: false,
-                format: "esm",
-                sourcemap: true,
-                minifyIdentifiers: false,
-                minifyWhitespace: true,
-                minifySyntax: true,
-                globalName: "bidrag_dokument_redigering_ui",
-                css: true,
-                keepNames: true,
-            }),
-        ],
-    },
+    // optimization: {
+    //     minimizer: [
+    //         new EsbuildPlugin({
+    //             target: "es2022",
+    //             minify: false,
+    //             format: "esm",
+    //             minifyIdentifiers: false,
+    //             minifyWhitespace: true,
+    //             minifySyntax: false,
+    //             globalName: "bidrag_dokument_redigering_ui",
+    //             css: true,
+    //             exclude: [new RegExp("(.*)worker(.*)")],
+    //             keepNames: true,
+    //         }),
+    //     ],
+    // },
     module: {
         rules: [
             {
