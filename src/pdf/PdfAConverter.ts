@@ -34,6 +34,7 @@ export class PdfAConverter {
     }
     private copyPdfDocument(originalDoc: PDFDocument, copyPDF = false): Promise<PDFDocument> {
         if (copyPDF) {
+            console.debug("Copying PDF file");
             return originalDoc.copy();
         }
         return Promise.resolve(originalDoc);
