@@ -34,6 +34,7 @@ export class PdfAConverter {
     }
     private copyPdfDocument(originalDoc: PDFDocument, copyPDF = false): Promise<PDFDocument> {
         if (copyPDF) {
+            console.debug("Copying PDF file");
             return originalDoc.copy();
         }
         return Promise.resolve(originalDoc);
@@ -134,54 +135,55 @@ export class PdfAConverter {
         pdfDoc.setAuthor(author);
         pdfDoc.setProducer(producer);
         pdfDoc.setCreator(creator);
+        pdfDoc.setCreationDate(originalCreationDate ?? date);
         pdfDoc.setModificationDate(date);
-        const metadataXML = `
-        <?xpacket begin="" id="${documentId}"?>
-            <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.2-c001 63.139439, 2010/09/27-13:37:26">
-            <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-            
-                <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
-                <dc:format>application/pdf</dc:format>
-                <dc:creator>
-                    <rdf:Seq>
-                    <rdf:li>${author}</rdf:li>
-                    </rdf:Seq>
-                </dc:creator>
-                <dc:title>
-                    <rdf:Alt>
-                    <rdf:li xml:lang="x-default">${title}</rdf:li>
-                    </rdf:Alt>
-                </dc:title>
-                </rdf:Description>
-            
-                <rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
-                <xmp:CreatorTool>${creator}</xmp:CreatorTool>
-                <xmp:CreateDate>${this._formatDate(originalCreationDate ?? date)}</xmp:CreateDate>
-                <xmp:ModifyDate>${this._formatDate(date)}</xmp:ModifyDate>
-                <xmp:MetadataDate>${this._formatDate(date)}</xmp:MetadataDate>
-                </rdf:Description>
-            
-                <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
-                <pdf:Producer>${producer}</pdf:Producer>
-                </rdf:Description>
-            
-                <rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
-                <pdfaid:part>1</pdfaid:part>
-                <pdfaid:conformance>B</pdfaid:conformance>
-                </rdf:Description>
-            </rdf:RDF>
-            </x:xmpmeta>
-        <?xpacket end="w"?>
-        `.trim();
-        const metadataStream = pdfDoc.context.stream(metadataXML, {
-            Type: "Metadata",
-            Subtype: "XML",
-            Length: metadataXML.length,
-        });
+        // const metadataXML = `
+        // <?xpacket begin="" id="${documentId}"?>
+        //     <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.2-c001 63.139439, 2010/09/27-13:37:26">
+        //     <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
 
-        const metadataStreamRef = pdfDoc.context.register(metadataStream);
+        //         <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+        //         <dc:format>application/pdf</dc:format>
+        //         <dc:creator>
+        //             <rdf:Seq>
+        //             <rdf:li>${author}</rdf:li>
+        //             </rdf:Seq>
+        //         </dc:creator>
+        //         <dc:title>
+        //             <rdf:Alt>
+        //             <rdf:li xml:lang="x-default">${title}</rdf:li>
+        //             </rdf:Alt>
+        //         </dc:title>
+        //         </rdf:Description>
 
-        pdfDoc.catalog.set(PDFName.of("Metadata"), metadataStreamRef);
+        //         <rdf:Description rdf:about="" xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+        //         <xmp:CreatorTool>${creator}</xmp:CreatorTool>
+        //         <xmp:CreateDate>${this._formatDate(originalCreationDate ?? date)}</xmp:CreateDate>
+        //         <xmp:ModifyDate>${this._formatDate(date)}</xmp:ModifyDate>
+        //         <xmp:MetadataDate>${this._formatDate(date)}</xmp:MetadataDate>
+        //         </rdf:Description>
+
+        //         <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
+        //         <pdf:Producer>${producer}</pdf:Producer>
+        //         </rdf:Description>
+
+        //         <rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
+        //         <pdfaid:part>1</pdfaid:part>
+        //         <pdfaid:conformance>B</pdfaid:conformance>
+        //         </rdf:Description>
+        //     </rdf:RDF>
+        //     </x:xmpmeta>
+        // <?xpacket end="w"?>
+        // `.trim();
+        // const metadataStream = pdfDoc.context.stream(metadataXML, {
+        //     Type: "Metadata",
+        //     Subtype: "XML",
+        //     Length: metadataXML.length,
+        // });
+
+        // const metadataStreamRef = pdfDoc.context.register(metadataStream);
+
+        // pdfDoc.catalog.set(PDFName.of("Metadata"), metadataStreamRef);
     }
 
     private deleteExistingMetadata(pdfDoc: PDFDocument) {
