@@ -1,14 +1,19 @@
 import { CheckmarkCircleFillIcon } from "@navikt/aksel-icons";
 import { XMarkOctagonIcon } from "@navikt/aksel-icons";
+import { useRQMutationState } from "@navikt/bidrag-ui-common";
 import { Heading, Loader } from "@navikt/ds-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { CSSProperties } from "react";
 
 import { DokumentQueryKeys } from "../../api/queries";
-import useMutationState from "../../components/hooks/useMutationState";
 import { useSkjemaUtfyllingContext } from "./SkjemaUtfyllingPage";
 export default function SaveStateIndicator() {
     const { forsendelseId, dokumentreferanse } = useSkjemaUtfyllingContext();
-    const saveState = useMutationState(DokumentQueryKeys.lagreDokumentMetadata(forsendelseId, dokumentreferanse));
+    const queryClient = useQueryClient();
+    const saveState = useRQMutationState(
+        DokumentQueryKeys.lagreDokumentMetadata(forsendelseId, dokumentreferanse),
+        queryClient
+    );
 
     const getStyle = (): CSSProperties => ({
         display: "flex",

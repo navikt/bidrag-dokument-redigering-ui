@@ -14,17 +14,17 @@ export interface BehandlingInfoDto {
     vedtakId?: string;
     behandlingId?: string;
     soknadId?: string;
-    engangsBelopType?: EngangsbelopType;
-    stonadType?: StonadType;
+    engangsBelopType?: Engangsbeloptype;
+    stonadType?: Stonadstype;
     /** Brukes bare hvis stonadType og engangsbelopType er null */
     behandlingType?: string;
-    vedtakType?: VedtakType;
+    vedtakType?: Vedtakstype;
     /** Soknadtype er gamle kodeverdier som er erstattet av vedtaktype. */
     soknadType?: string;
     erFattetBeregnet?: boolean;
     /** Hvis resultatkoden fra BBM er IT så skal denne være sann */
     erVedtakIkkeTilbakekreving?: boolean;
-    soknadFra?: SoknadFra;
+    soknadFra?: SoktAvType;
     barnIBehandling: string[];
 }
 
@@ -37,7 +37,7 @@ export enum DokumentArkivSystemDto {
     FORSENDELSE = "FORSENDELSE",
 }
 
-export enum EngangsbelopType {
+export enum Engangsbeloptype {
     DIREKTE_OPPGJOR = "DIREKTE_OPPGJOR",
     ETTERGIVELSE = "ETTERGIVELSE",
     ETTERGIVELSE_TILBAKEKREVING = "ETTERGIVELSE_TILBAKEKREVING",
@@ -135,24 +135,7 @@ export interface OpprettForsendelseForesporsel {
     opprettTittel?: boolean;
 }
 
-export enum SoknadFra {
-    BM_I_ANNEN_SAK = "BM_I_ANNEN_SAK",
-    BARN18AAR = "BARN_18_AAR",
-    NAV_BIDRAG = "NAV_BIDRAG",
-    FYLKESNEMDA = "FYLKESNEMDA",
-    NAV_INTERNASJONALT = "NAV_INTERNASJONALT",
-    KOMMUNE = "KOMMUNE",
-    KONVERTERING = "KONVERTERING",
-    BIDRAGSMOTTAKER = "BIDRAGSMOTTAKER",
-    NORSKE_MYNDIGHET = "NORSKE_MYNDIGHET",
-    BIDRAGSPLIKTIG = "BIDRAGSPLIKTIG",
-    UTENLANDSKE_MYNDIGHET = "UTENLANDSKE_MYNDIGHET",
-    VERGE = "VERGE",
-    TRYGDEETATEN_INNKREVING = "TRYGDEETATEN_INNKREVING",
-    KLAGE_ANKE = "KLAGE_ANKE",
-}
-
-export enum StonadType {
+export enum Stonadstype {
     BIDRAG = "BIDRAG",
     FORSKUDD = "FORSKUDD",
     BIDRAG18AAR = "BIDRAG18AAR",
@@ -161,7 +144,24 @@ export enum StonadType {
     OPPFOSTRINGSBIDRAG = "OPPFOSTRINGSBIDRAG",
 }
 
-export enum VedtakType {
+export enum SoktAvType {
+    BIDRAGSMOTTAKER = "BIDRAGSMOTTAKER",
+    BIDRAGSPLIKTIG = "BIDRAGSPLIKTIG",
+    BARN18AAR = "BARN_18_AAR",
+    BM_I_ANNEN_SAK = "BM_I_ANNEN_SAK",
+    NAV_BIDRAG = "NAV_BIDRAG",
+    FYLKESNEMDA = "FYLKESNEMDA",
+    NAV_INTERNASJONALT = "NAV_INTERNASJONALT",
+    KOMMUNE = "KOMMUNE",
+    NORSKE_MYNDIGHET = "NORSKE_MYNDIGHET",
+    UTENLANDSKE_MYNDIGHET = "UTENLANDSKE_MYNDIGHET",
+    VERGE = "VERGE",
+    TRYGDEETATEN_INNKREVING = "TRYGDEETATEN_INNKREVING",
+    KLAGE_ANKE = "KLAGE_ANKE",
+    KONVERTERING = "KONVERTERING",
+}
+
+export enum Vedtakstype {
     INDEKSREGULERING = "INDEKSREGULERING",
     ALDERSJUSTERING = "ALDERSJUSTERING",
     OPPHOR = "OPPHØR",
@@ -313,16 +313,16 @@ export interface DistribuerJournalpostResponse {
 
 export interface HentDokumentValgRequest {
     soknadType?: string;
-    vedtakType?: VedtakType;
+    vedtakType?: Vedtakstype;
     behandlingType?: string;
-    soknadFra?: SoknadFra;
+    soknadFra?: SoktAvType;
     erFattetBeregnet?: boolean;
     erVedtakIkkeTilbakekreving?: boolean;
     vedtakId?: string;
     behandlingId?: string;
     enhet?: string;
-    stonadType?: StonadType;
-    engangsBelopType?: EngangsbelopType;
+    stonadType?: Stonadstype;
+    engangsBelopType?: Engangsbeloptype;
 }
 
 export interface DokumentMalDetaljer {
@@ -802,7 +802,42 @@ export interface ForsendelseIkkeDistribuertResponsTo {
     opprettetDato?: string;
 }
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, HeadersDefaults, ResponseType } from "axios";
+export interface ForsendelseMetadata {
+    /** @format int64 */
+    forsendelseId?: number;
+    joarkJournalpostId?: string;
+    saksnummer?: string;
+    enhet?: string;
+    gjelderIdent?: string;
+    mottakerId?: string;
+    saksbehandlerIdent?: string;
+    saksbehandlerNavn?: string;
+    /** @format date-time */
+    distribuertDato?: string;
+    kanal?:
+        | "NAV_NO"
+        | "NAV_NO_UINNLOGGET"
+        | "NAV_NO_CHAT"
+        | "INNSENDT_NAV_ANSATT"
+        | "LOKAL_UTSKRIFT"
+        | "SENTRAL_UTSKRIFT"
+        | "ALTINN"
+        | "EESSI"
+        | "EIA"
+        | "EKST_OPPS"
+        | "SDP"
+        | "TRYGDERETTEN"
+        | "HELSENETTET"
+        | "INGEN_DISTRIBUSJON"
+        | "UKJENT"
+        | "DPVT"
+        | "SKAN_NETS"
+        | "SKAN_PEN"
+        | "SKAN_IM";
+}
+
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, HeadersDefaults, ResponseType } from "axios";
+import axios from "axios";
 
 export type QueryParamsType = Record<string | number, any>;
 
@@ -993,6 +1028,24 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         validerPdf: (data: File, params: RequestParams = {}) =>
             this.request<string, any>({
                 path: `/api/forsendelse/redigering/validerPDF`,
+                method: "POST",
+                body: data,
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * No description
+         *
+         * @tags rediger-dokument-kontroller
+         * @name ConvertToPdfa2
+         * @summary Valider om PDF er gyldig PDF/A dokument. Respons vil gi hva som ikke er gyldig hvis ikke gyldig PDF/A.
+         * @request POST:/api/forsendelse/redigering/convertToPDFA
+         * @secure
+         */
+        convertToPdfa2: (data: File, params: RequestParams = {}) =>
+            this.request<string, any>({
+                path: `/api/forsendelse/redigering/convertToPDFA`,
                 method: "POST",
                 body: data,
                 secure: true,
@@ -1567,6 +1620,34 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
             this.request<string, string>({
                 path: `/api/forsendelse/journal/distribuer/${forsendelseIdMedPrefix}/enabled`,
                 method: "GET",
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * No description
+         *
+         * @tags admin-controller
+         * @name DistTilNavNoMenHarKanalSentralPrint
+         * @summary Resynk distribuert kanal
+         * @request GET:/api/forsendelse/internal/distribusjon/navno
+         * @secure
+         */
+        distTilNavNoMenHarKanalSentralPrint: (
+            query?: {
+                /** @default true */
+                simulering?: boolean;
+                /** @format date */
+                afterDate?: string;
+                /** @format date */
+                beforeDate?: string;
+            },
+            params: RequestParams = {}
+        ) =>
+            this.request<any, ForsendelseMetadata[]>({
+                path: `/api/forsendelse/internal/distribusjon/navno`,
+                method: "GET",
+                query: query,
                 secure: true,
                 ...params,
             }),

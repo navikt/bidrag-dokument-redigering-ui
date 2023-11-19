@@ -1,8 +1,9 @@
 import { Checkbox, Heading } from "@navikt/ds-react";
-import { PDFArray, PDFDict, PDFDocument, PDFName, PDFPage, PDFPageLeaf, PDFRawStream } from "pdf-lib";
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFPage, PDFPageLeaf, PDFRawStream, PDFStream } from "pdf-lib";
 import { ChangeEvent, useState } from "react";
 
 import { PdfDocumentType } from "../../components/utils/types";
+import { convertTOPDFA } from "../../pdf/PdfAConverter";
 import DokumentMaskering from "../dokumentmaskering/DokumentMaskering";
 import PageWrapper from "../PageWrapper";
 
@@ -25,6 +26,43 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
         const file = ev.target.files[0];
         const fileBuffer = await file.arrayBuffer();
         return fileBuffer;
+    }
+    async function repairPDF(ev: ChangeEvent<HTMLInputElement>) {
+        const fileBuffer = await readFile(ev);
+        const pdfdoc = await PDFDocument.load(fileBuffer);
+
+        pdfdoc.getPages().forEach((page, index) => {
+            console.log("Page number", index, page.node.toString(), page.node.Resources());
+            checkForInvalidXObjects(page, pdfdoc);
+        });
+
+        //console.log(pdfdoc.getForm().acroForm.getAllFields());
+        pdfdoc
+            .getForm()
+            .acroForm.getAllFields()
+            .forEach((field) => console.log(field[1].toString(), field));
+    }
+    async function convertPDF(ev: ChangeEvent<HTMLInputElement>) {
+        const fileBuffer = await readFile(ev);
+        const pdfdoc = await PDFDocument.load(fileBuffer);
+
+        const pdfa = convertTOPDFA(new Uint8Array(fileBuffer));
+        console.log(pdfa);
+    }
+    function checkForInvalidXObjects(page: PDFPage, pdfdoc: PDFDocument) {
+        const xObject = page.node.Resources().get(PDFName.of("XObject")) as PDFDict;
+        if (xObject) {
+            const xMap = xObject.asMap();
+            Array.from(xMap.keys()).forEach((key) => {
+                const stream = pdfdoc.context.lookupMaybe(xMap.get(key), PDFStream);
+
+                const type = stream.dict.get(PDFName.of("Type"));
+                if (type == undefined && key.toString().includes("FlatWidget")) {
+                    console.log("Is invalid", key, xObject.toString(), stream.dict.toString(), type);
+                }
+            });
+        }
+        return false;
     }
     async function recoverAndReadFile(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
@@ -135,6 +173,32 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
                         <Checkbox onChange={(value) => setRemoveImages(value.target.checked ? "masked" : "none")}>
                             Fjern bilder bare fra maskerte sider
                         </Checkbox>
+                    </div>
+                </div>
+                <div className="flex flex-col gap-4">
+                    <Heading className="text-white" size="medium">
+                        Reparer
+                    </Heading>
+                    <div>
+                        <input
+                            type="file"
+                            name="Reparer"
+                            accept="application/pdf,application/vnd.ms-excel"
+                            onChange={repairPDF}
+                        />
+                    </div>
+                </div>
+                <div className="flex flex-col gap-4">
+                    <Heading className="text-white" size="medium">
+                        Konverter og sjekk
+                    </Heading>
+                    <div>
+                        <input
+                            type="file"
+                            name="Reparer"
+                            accept="application/pdf,application/vnd.ms-excel"
+                            onChange={convertPDF}
+                        />
                     </div>
                 </div>
                 <div className="flex flex-col gap-4">

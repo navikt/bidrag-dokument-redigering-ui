@@ -6,8 +6,11 @@ import {
     PDFHexString,
     PDFName,
     PDFObject,
+    PDFPage,
     PDFPageLeaf,
     PDFRawStream,
+    PDFRef,
+    PDFStream,
     PDFString,
     StandardFonts,
 } from "pdf-lib";
@@ -17,22 +20,32 @@ import { BIDRAG_FORSENDELSE_API } from "../api/api";
 import colorProfile from "./files/sRGB2014.icc";
 import { PDF_EDITOR_CREATOR, PDF_EDITOR_PRODUCER, PdfProducerHelpers } from "./PdfHelpers";
 export class PdfAConverter {
+    private origDoc: PDFDocument;
+    private copyPDF: boolean = false;
+    private title: string;
+    private pdfDoc: PDFDocument;
     async convertAndSave(origDoc: PDFDocument, title: string, copyPDF = false): Promise<Uint8Array> {
-        const pdfDoc = await this.copyPdfDocument(origDoc, copyPDF);
-        pdfDoc.registerFontkit(fontkit);
+        this.origDoc = origDoc;
+        this.copyPDF = copyPDF;
+        this.title = title;
+        await this.loadPDF();
         const documentDate = new Date();
         const documentId = crypto.randomUUID().replaceAll("-", "");
-        console.log("document id", documentId);
-        this.flattenForm(pdfDoc);
-        this.addMetadata(origDoc, pdfDoc, documentDate, documentId, title);
-        this.removeXFA(pdfDoc);
-        this.addDocumentId(pdfDoc, documentId);
+        this.flattenForm(this.pdfDoc);
+        this.addMetadata(origDoc, this.pdfDoc, documentDate, documentId, this.title);
+        this.removeXFA(this.pdfDoc);
+        this.addDocumentId(this.pdfDoc, documentId);
         // await this.addFont(pdfDoc);
         // this.addColorProfile(pdfDoc);
-        this.deleteJavascript(pdfDoc);
-        return pdfDoc.save({
+        this.deleteJavascript(this.pdfDoc);
+        return this.pdfDoc.save({
             useObjectStreams: false,
         });
+    }
+
+    private async loadPDF() {
+        this.pdfDoc = await this.copyPdfDocument(this.origDoc, this.copyPDF);
+        this.pdfDoc.registerFontkit(fontkit);
     }
     private copyPdfDocument(originalDoc: PDFDocument, copyPDF = false): Promise<PDFDocument> {
         if (copyPDF) {
@@ -75,16 +88,20 @@ export class PdfAConverter {
         form.deleteXFA();
     }
 
-    private flattenForm(pdfDoc: PDFDocument) {
+    private async flattenForm(pdfDoc: PDFDocument) {
         const form = pdfDoc.getForm();
         try {
             form.flatten();
+            if (hasInvalidXObject(pdfDoc)) {
+                await this.loadPDF();
+            }
         } catch (e) {
             LoggerService.error(
-                "Det skjedde en feil ved 'flatning' av form felter i PDF. Prøver å sette felter read-only istedenfor",
+                "Det skjedde en feil ved 'flatning' av form felter i PDF. Laster PDF på nytt uten å flatne form for å unngå korrupt PDF",
                 e
             );
-            this.makeFieldsReadOnly(pdfDoc);
+            await this.loadPDF();
+            //this.makeFieldsReadOnly(pdfDoc);
         }
     }
 
@@ -107,6 +124,37 @@ export class PdfAConverter {
             }
         });
     }
+
+    private removeInvalidXobjects(pdfdoc: PDFDocument) {
+        pdfdoc.getPages().forEach((page, index) => {
+            console.log("Page number", index, page.node.toString(), page.node.Resources());
+            this.removeInvalidXobject(page, pdfdoc);
+        });
+    }
+
+    private removeInvalidXobject(page: PDFPage, pdfdoc: PDFDocument) {
+        // obj.Resources().delete(PDFName.of("XObject"));
+        const xObject = page.node.Resources().get(PDFName.of("XObject")) as PDFDict;
+        if (xObject) {
+            const xMap = xObject.asMap();
+            return Array.from(xMap.keys()).some((key) => {
+                const stream = pdfdoc.context.lookupMaybe(xMap.get(key), PDFStream);
+
+                const ref = xMap.get(key) as PDFRef;
+                const type = stream.dict.get(PDFName.of("Type"));
+                if (type == undefined && key.toString().includes("FlatWidget")) {
+                    LoggerService.warn("Fjerner ugyldig XObject fra PDF " + key + " - " + stream.dict.toString());
+                    console.log(stream, xMap.get(key), stream.getContentsString());
+                    console.log(pdfdoc.context.delete(ref));
+
+                    // console.log(obj.toString());
+                    return true;
+                }
+            });
+        }
+        return false;
+    }
+
     // Copied from https://github.com/Hopding/pdf-lib/issues/1183#issuecomment-1685078941
     private _addMetadata(pdfDoc: PDFDocument, date: Date, title: string, author: string) {
         pdfDoc.setTitle(title);
@@ -220,3 +268,40 @@ export const validatePDFBytes = async (documentFile: Uint8Array): Promise<void> 
         console.error("Det skjedde en feil ved validering", e);
     }
 };
+
+export const convertTOPDFA = async (documentFile: Uint8Array): Promise<string> => {
+    try {
+        console.log("Konverterer til PDF/A");
+        const pdfAResult = await BIDRAG_FORSENDELSE_API.api.convertToPdfa2(
+            new File([documentFile], "", {
+                type: "application/pdf",
+            }),
+            { headers: { "Content-Type": "application/pdf" } }
+        );
+        return pdfAResult.data;
+    } catch (e) {
+        console.error("Det skjedde en feil ved validering", e);
+    }
+};
+
+export function hasInvalidXObject(pdfdoc: PDFDocument) {
+    return pdfdoc.getPages().some((page) => {
+        return pageHasInvalidXObject(page, pdfdoc);
+    });
+}
+
+function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument) {
+    const xObject = page.node.Resources().get(PDFName.of("XObject")) as PDFDict;
+    if (xObject) {
+        const xMap = xObject.asMap();
+        return Array.from(xMap.keys()).some((key) => {
+            const stream = pdfdoc.context.lookupMaybe(xMap.get(key), PDFStream);
+            const type = stream.dict.get(PDFName.of("Type"));
+            if (type == undefined && key.toString().includes("FlatWidget")) {
+                LoggerService.warn("En side har ugyldig XObject fra PDF " + key + " - " + stream.dict.toString());
+                return true;
+            }
+        });
+    }
+    return false;
+}
