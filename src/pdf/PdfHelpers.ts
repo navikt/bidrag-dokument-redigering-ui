@@ -82,8 +82,8 @@ export function hasInvalidXObject(pdfdoc: PDFDocument) {
 }
 
 function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: number) {
-    const xObject = page.node.Resources().get(PDFName.of("XObject")) as PDFDict;
-    if (xObject) {
+    const xObject = page.node.Resources().get(PDFName.of("XObject"));
+    if (xObject && xObject instanceof PDFDict) {
         const xMap = xObject.asMap();
         return Array.from(xMap.keys()).some((key) => {
             const stream = pdfdoc.context.lookupMaybe(xMap.get(key), PDFStream);
@@ -98,6 +98,8 @@ function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: n
                 return true;
             }
         });
+    } else {
+        LoggerService.warn(`pageHasInvalidXObject: XObject is not PDFDict ${xObject.toString()}`);
     }
     return false;
 }
