@@ -105,7 +105,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
 
         pageLeafs.forEach(([ref, obj], i) => {
             if (!existingPages.some((ep) => ep.ref == ref)) {
-                console.log("Recovered page", pagenumber);
+                console.log("Recovered page", pagenumber, ref.toString(), obj, obj.toString());
                 pdfdoc.catalog.insertLeafNode(ref, pagenumber);
                 pagenumber += 1;
             }

@@ -1,5 +1,4 @@
 import { LoggerService } from "@navikt/bidrag-ui-common";
-import fontkit from "@pdf-lib/fontkit";
 import {
     PDFDict,
     PDFDocument,
@@ -28,10 +27,10 @@ export class PdfAConverter {
         this.origDoc = origDoc;
         this.copyPDF = copyPDF;
         this.title = title;
-        await this.loadPDF();
+        this.pdfDoc = await this.copyPdfDocument(this.origDoc, copyPDF);
         const documentDate = new Date();
         const documentId = crypto.randomUUID().replaceAll("-", "");
-        this.flattenForm(this.pdfDoc);
+        //await flattenForm(this.pdfDoc, () => this.loadPDF(true));
         this.addMetadata(origDoc, this.pdfDoc, documentDate, documentId, this.title);
         this.removeXFA(this.pdfDoc);
         this.addDocumentId(this.pdfDoc, documentId);
@@ -43,9 +42,9 @@ export class PdfAConverter {
         });
     }
 
-    private async loadPDF() {
-        this.pdfDoc = await this.copyPdfDocument(this.origDoc, this.copyPDF);
-        this.pdfDoc.registerFontkit(fontkit);
+    private async loadPDF(copyPDF: boolean) {
+        this.pdfDoc = await this.copyPdfDocument(this.origDoc, copyPDF);
+        //this.pdfDoc.registerFontkit(fontkit);
     }
     private copyPdfDocument(originalDoc: PDFDocument, copyPDF = false): Promise<PDFDocument> {
         if (copyPDF) {
@@ -86,35 +85,6 @@ export class PdfAConverter {
         const form = pdfDoc.getForm();
 
         form.deleteXFA();
-    }
-
-    private async flattenForm(pdfDoc: PDFDocument) {
-        const form = pdfDoc.getForm();
-        try {
-            form.flatten();
-            if (hasInvalidXObject(pdfDoc)) {
-                await this.loadPDF();
-            }
-        } catch (e) {
-            LoggerService.error(
-                "Det skjedde en feil ved 'flatning' av form felter i PDF. Laster PDF på nytt uten å flatne form for å unngå korrupt PDF",
-                e
-            );
-            await this.loadPDF();
-            //this.makeFieldsReadOnly(pdfDoc);
-        }
-    }
-
-    private makeFieldsReadOnly(pdfDoc: PDFDocument) {
-        const form = pdfDoc.getForm();
-        try {
-            form.getFields().forEach((field) => {
-                field.enableReadOnly();
-            });
-            form.flatten();
-        } catch (e) {
-            LoggerService.error("Det skjedde en feil ved markering av form felter som read-only PDF", e);
-        }
     }
 
     private deleteJavascript(pdfDoc: PDFDocument) {
@@ -283,25 +253,3 @@ export const convertTOPDFA = async (documentFile: Uint8Array): Promise<string> =
         console.error("Det skjedde en feil ved validering", e);
     }
 };
-
-export function hasInvalidXObject(pdfdoc: PDFDocument) {
-    return pdfdoc.getPages().some((page) => {
-        return pageHasInvalidXObject(page, pdfdoc);
-    });
-}
-
-function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument) {
-    const xObject = page.node.Resources().get(PDFName.of("XObject")) as PDFDict;
-    if (xObject) {
-        const xMap = xObject.asMap();
-        return Array.from(xMap.keys()).some((key) => {
-            const stream = pdfdoc.context.lookupMaybe(xMap.get(key), PDFStream);
-            const type = stream.dict.get(PDFName.of("Type"));
-            if (type == undefined && key.toString().includes("FlatWidget")) {
-                LoggerService.warn("En side har ugyldig XObject fra PDF " + key + " - " + stream.dict.toString());
-                return true;
-            }
-        });
-    }
-    return false;
-}

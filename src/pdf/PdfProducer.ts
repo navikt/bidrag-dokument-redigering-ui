@@ -8,8 +8,8 @@ import { ICoordinates, IMaskingItemProps } from "../components/masking/MaskingIt
 import { PdfDocumentType } from "../components/utils/types";
 import { EditDocumentMetadata } from "../types/EditorTypes";
 import pdf2Image from "./Pdf2Image";
-import { hasInvalidXObject, PdfAConverter } from "./PdfAConverter";
-import { PdfProducerHelpers } from "./PdfHelpers";
+import { PdfAConverter } from "./PdfAConverter";
+import { flattenForm, PdfProducerHelpers } from "./PdfHelpers";
 
 type ProgressState = "MASK_PAGE" | "CONVERT_PAGE_TO_IMAGE" | "REMOVE_PAGE" | "SAVE_PDF";
 export interface IProducerProgress {
@@ -76,41 +76,12 @@ export class PdfProducer {
     }
     async process(): Promise<PdfProducer> {
         this.removeSubmitButton();
-        await this.flattenForm();
+        await flattenForm(this.pdfDocument, this.loadPdf.bind(this));
         const itemsFiltered = this.config.items.filter((item) => !this.config.removedPages.includes(item.pageNumber));
         this.maskPages(itemsFiltered);
         await this.convertMaskedPagesToImage(itemsFiltered);
         await this.removePages(this.config.removedPages);
         return this;
-    }
-
-    private async flattenForm() {
-        const form = this.pdfDocument.getForm();
-        try {
-            form.flatten();
-            if (hasInvalidXObject(this.pdfDocument)) {
-                await this.loadPdf();
-            }
-        } catch (e) {
-            LoggerService.error(
-                "Det skjedde en feil ved 'flatning' av form felter i PDF. Laster PDF på nytt uten å flatne form for å unngå korrupt PDF",
-                e
-            );
-            await this.loadPdf();
-            this.makeFieldsReadOnly();
-        }
-    }
-
-    private makeFieldsReadOnly() {
-        const form = this.pdfDocument.getForm();
-        try {
-            form.getFields().forEach((field) => {
-                form.removeField(field);
-            });
-            form.flatten();
-        } catch (e) {
-            LoggerService.error("Det skjedde en feil ved markering av form felter som read-only PDF", e);
-        }
     }
 
     async convertMaskedPagesToImage(items: IMaskingItemProps[]) {

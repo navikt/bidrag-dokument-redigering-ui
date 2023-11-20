@@ -6,6 +6,7 @@ import { PDFDocumentProxy } from "pdfjs-dist";
 
 import { PdfDocumentType } from "../../components/utils/types";
 import { PdfAConverter } from "../../pdf/PdfAConverter";
+import { flattenForm } from "../../pdf/PdfHelpers";
 import { getFormValues } from "./FormHelper";
 import { PageFormProps, SingleFormProps } from "./types";
 
@@ -20,6 +21,7 @@ export class FormPdfProducer {
     private pdfDocument: PDFDocument;
     private formDocument: PDFDocumentProxy;
     private pdfBlob: PdfDocumentType;
+    private pdfBytes: PdfDocumentType;
     private processedDocument: Uint8Array;
 
     private font: PDFFont;
@@ -39,10 +41,15 @@ export class FormPdfProducer {
         return this;
     }
 
+    async loadPdf() {
+        this.pdfDocument = await PDFDocument.load(this.pdfBytes);
+        this.font = await this.pdfDocument.embedFont(StandardFonts.TimesRoman);
+    }
+
     async process(): Promise<FormPdfProducer> {
         try {
             await this.fillForm();
-            this.flattenForm();
+            await flattenForm(this.pdfDocument, this.loadPdf.bind(this));
         } catch (e) {
             console.error(e);
         }
@@ -118,31 +125,6 @@ export class FormPdfProducer {
             .find((w) => w.getOnValue()?.asString()?.substring(1)?.replaceAll("#20", " ") == fieldWidgetName);
         console.debug("WIDGET", fieldName, fieldWidgetName, widget, widget.getAppearances());
         return widget;
-    }
-
-    private flattenForm() {
-        const form = this.pdfDocument.getForm();
-        try {
-            form.flatten();
-        } catch (e) {
-            LoggerService.error(
-                "Det skjedde en feil ved 'flatning' av form felter i PDF. Prøver å sette felter read-only istedenfor",
-                e
-            );
-            this.makeFieldsReadOnly();
-        }
-    }
-
-    private makeFieldsReadOnly() {
-        const form = this.pdfDocument.getForm();
-        try {
-            form.getFields().forEach((field) => {
-                field.enableReadOnly();
-            });
-            form.flatten();
-        } catch (e) {
-            LoggerService.error("Det skjedde en feil ved markering av form felter som read-only PDF", e);
-        }
     }
 
     async saveChanges(): Promise<FormPdfProducer> {
