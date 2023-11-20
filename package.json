@@ -7,6 +7,7 @@
     "lint2": "eslint ./src/**/*.{ts,tsx} package.json --quiet",
     "test": "echo noop",
     "start": "",
+    "env:export:local": "export $(cat env/.env.local | xargs)",
     "dev": "cross-env-shell NODE_ENV=development webpack serve --config webpack.dev.config.js",
     "dev:mock": "cross-env ENABLE_MOCK=true NODE_ENV=development webpack serve --config webpack.dev.config.js",
     "build": "webpack --config webpack.prod.config.js",
