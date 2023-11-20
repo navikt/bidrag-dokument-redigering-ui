@@ -123,12 +123,11 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void) {
             e
         );
         await onError();
-        //this.makeFieldsReadOnly(pdfDoc);
     }
 }
 
-export function makeFieldsReadOnly() {
-    const form = this.pdfDocument.getForm();
+export function makeFieldsReadOnly(pdfDoc: PDFDocument) {
+    const form = pdfDoc.getForm();
     try {
         form.getFields().forEach((field) => {
             form.removeField(field);
