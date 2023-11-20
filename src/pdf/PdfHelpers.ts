@@ -109,20 +109,28 @@ function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: n
     return false;
 }
 
-export async function flattenForm(pdfDoc: PDFDocument, onError: () => void) {
+export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, ignoreError: boolean) {
     const form = pdfDoc.getForm();
     try {
         form.flatten();
-        if (hasInvalidXObject(pdfDoc)) {
+        if (hasInvalidXObject(pdfDoc) && !ignoreError) {
             LoggerService.warn(`Dokument er korrupt etter flatning av form felter. Ruller tilbake endringer`);
             await onError();
         }
     } catch (e) {
-        LoggerService.error(
-            "Det skjedde en feil ved 'flatning' av form felter i PDF. Laster PDF på nytt uten å flatne form for å unngå korrupt PDF",
-            e
-        );
-        await onError();
+        if (ignoreError) {
+            LoggerService.error(
+                "Det skjedde en feil ved 'flatning' av form felter i PDF. Gjør om feltene read-only fordi det er noen sider som er maskert",
+                e
+            );
+            makeFieldsReadOnly(pdfDoc);
+        } else {
+            LoggerService.error(
+                "Det skjedde en feil ved 'flatning' av form felter i PDF. Laster PDF på nytt uten å flatne form for å unngå korrupt PDF",
+                e
+            );
+            await onError();
+        }
     }
 }
 
