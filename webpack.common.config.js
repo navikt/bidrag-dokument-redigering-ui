@@ -38,6 +38,21 @@ module.exports = {
     //         }),
     //     ],
     // },
+    optimization: {
+        minimizer: [
+            (compiler) => {
+                const TerserPlugin = require("terser-webpack-plugin");
+                new TerserPlugin({
+                    terserOptions: {
+                        compress: {
+                            passes: 2,
+                        },
+                        mangle: false,
+                    },
+                }).apply(compiler);
+            },
+        ],
+    },
     module: {
         rules: [
             {
@@ -70,7 +85,7 @@ module.exports = {
                 exclude: /node_modules/,
                 loader: "esbuild-loader",
                 options: {
-                    target: "es2022",
+                    target: "ESNext",
                 },
             },
             {
