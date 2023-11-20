@@ -6,7 +6,6 @@ const CopyPlugin = require("copy-webpack-plugin");
 const { ModuleFederationPlugin } = require("webpack").container;
 const deps = require("./package.json").dependencies;
 const { EsbuildPlugin } = require("esbuild-loader");
-const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
     entry: "./src/index.tsx",
@@ -39,21 +38,6 @@ module.exports = {
     //         }),
     //     ],
     // },
-    optimization: {
-        minimizer: [
-            new TerserPlugin({
-                parallel: true,
-                terserOptions: {
-                    keep_classnames: true,
-                    keep_fnames: true,
-                    mangle: {
-                        keep_classnames: true,
-                        keep_fnames: true,
-                    },
-                },
-            }),
-        ],
-    },
     module: {
         rules: [
             {
@@ -86,7 +70,7 @@ module.exports = {
                 exclude: /node_modules/,
                 loader: "esbuild-loader",
                 options: {
-                    target: "es2022",
+                    target: "ESNext",
                 },
             },
             {
