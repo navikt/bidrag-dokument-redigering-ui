@@ -17,7 +17,6 @@ const initReactQuery = () =>
     new QueryClient({
         defaultOptions: {
             queries: {
-                suspense: true,
                 staleTime: Infinity,
                 retry: 0,
                 throwOnError: true,

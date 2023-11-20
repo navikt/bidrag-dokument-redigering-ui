@@ -9,7 +9,7 @@ import { PdfDocumentType } from "../components/utils/types";
 import { EditDocumentMetadata } from "../types/EditorTypes";
 import pdf2Image from "./Pdf2Image";
 import { PdfAConverter } from "./PdfAConverter";
-import { PdfProducerHelpers } from "./PdfHelpers";
+import { flattenForm, PdfProducerHelpers } from "./PdfHelpers";
 
 type ProgressState = "MASK_PAGE" | "CONVERT_PAGE_TO_IMAGE" | "REMOVE_PAGE" | "SAVE_PDF";
 export interface IProducerProgress {
@@ -37,11 +37,14 @@ export class PdfProducer {
         this.title = title ?? "Dokument";
         this.config = config;
         this.onProgressUpdate = onProgressUpdate;
-        this.pdfDocument = await PDFDocument.load(this.pdfBlob);
-        this.font = await this.pdfDocument.embedFont(StandardFonts.TimesRoman);
+        await this.loadPdf();
         return this;
     }
 
+    private async loadPdf() {
+        this.pdfDocument = await PDFDocument.load(this.pdfBlob);
+        this.font = await this.pdfDocument.embedFont(StandardFonts.TimesRoman);
+    }
     private onProgressUpdated(state: ProgressState, pageNumber: number, progress?: number) {
         this.onProgressUpdate?.({
             state,
@@ -73,37 +76,12 @@ export class PdfProducer {
     }
     async process(): Promise<PdfProducer> {
         this.removeSubmitButton();
-        this.flattenForm();
+        await flattenForm(this.pdfDocument, this.loadPdf.bind(this));
         const itemsFiltered = this.config.items.filter((item) => !this.config.removedPages.includes(item.pageNumber));
         this.maskPages(itemsFiltered);
         await this.convertMaskedPagesToImage(itemsFiltered);
         await this.removePages(this.config.removedPages);
         return this;
-    }
-
-    private flattenForm() {
-        const form = this.pdfDocument.getForm();
-        try {
-            form.flatten();
-        } catch (e) {
-            LoggerService.error(
-                "Det skjedde en feil ved 'flatning' av form felter i PDF. Prøver å sette felter read-only istedenfor",
-                e
-            );
-            this.makeFieldsReadOnly();
-        }
-    }
-
-    private makeFieldsReadOnly() {
-        const form = this.pdfDocument.getForm();
-        try {
-            form.getFields().forEach((field) => {
-                field.enableReadOnly();
-            });
-            form.flatten();
-        } catch (e) {
-            LoggerService.error("Det skjedde en feil ved markering av form felter som read-only PDF", e);
-        }
     }
 
     async convertMaskedPagesToImage(items: IMaskingItemProps[]) {
@@ -270,7 +248,11 @@ export class PdfProducer {
         const form = this.pdfDocument.getForm();
         for (const field of form.getFields()) {
             if (field.getName() == "nullstill") {
-                form.removeField(field);
+                try {
+                    form.removeField(field);
+                } catch (e) {
+                    LoggerService.error("Det skjedde en feil ved fjerning av nullstill knapp", e);
+                }
             }
         }
     }

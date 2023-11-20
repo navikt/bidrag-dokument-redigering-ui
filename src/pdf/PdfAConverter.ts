@@ -1,13 +1,15 @@
 import { LoggerService } from "@navikt/bidrag-ui-common";
-import fontkit from "@pdf-lib/fontkit";
 import {
     PDFDict,
     PDFDocument,
     PDFHexString,
     PDFName,
     PDFObject,
+    PDFPage,
     PDFPageLeaf,
     PDFRawStream,
+    PDFRef,
+    PDFStream,
     PDFString,
     StandardFonts,
 } from "pdf-lib";
@@ -17,20 +19,32 @@ import { BIDRAG_FORSENDELSE_API } from "../api/api";
 import colorProfile from "./files/sRGB2014.icc";
 import { PDF_EDITOR_CREATOR, PDF_EDITOR_PRODUCER, PdfProducerHelpers } from "./PdfHelpers";
 export class PdfAConverter {
+    private origDoc: PDFDocument;
+    private copyPDF: boolean = false;
+    private title: string;
+    private pdfDoc: PDFDocument;
     async convertAndSave(origDoc: PDFDocument, title: string, copyPDF = false): Promise<Uint8Array> {
-        const pdfDoc = await this.copyPdfDocument(origDoc, copyPDF);
-        pdfDoc.registerFontkit(fontkit);
+        this.origDoc = origDoc;
+        this.copyPDF = copyPDF;
+        this.title = title;
+        this.pdfDoc = await this.copyPdfDocument(this.origDoc, copyPDF);
         const documentDate = new Date();
-        const documentId = crypto.randomUUID();
-        this.flattenForm(pdfDoc);
-        this.addMetadata(origDoc, pdfDoc, documentDate, documentId, title);
-        this.removeXFA(pdfDoc);
+        const documentId = crypto.randomUUID().replaceAll("-", "");
+        //await flattenForm(this.pdfDoc, () => this.loadPDF(true));
+        this.addMetadata(origDoc, this.pdfDoc, documentDate, documentId, this.title);
+        this.removeXFA(this.pdfDoc);
+        this.addDocumentId(this.pdfDoc, documentId);
         // await this.addFont(pdfDoc);
         // this.addColorProfile(pdfDoc);
-        this.deleteJavascript(pdfDoc);
-        return pdfDoc.save({
+        this.deleteJavascript(this.pdfDoc);
+        return this.pdfDoc.save({
             useObjectStreams: false,
         });
+    }
+
+    private async loadPDF(copyPDF: boolean) {
+        this.pdfDoc = await this.copyPdfDocument(this.origDoc, copyPDF);
+        //this.pdfDoc.registerFontkit(fontkit);
     }
     private copyPdfDocument(originalDoc: PDFDocument, copyPDF = false): Promise<PDFDocument> {
         if (copyPDF) {
@@ -73,31 +87,6 @@ export class PdfAConverter {
         form.deleteXFA();
     }
 
-    private flattenForm(pdfDoc: PDFDocument) {
-        const form = pdfDoc.getForm();
-        try {
-            form.flatten();
-        } catch (e) {
-            LoggerService.error(
-                "Det skjedde en feil ved 'flatning' av form felter i PDF. Prøver å sette felter read-only istedenfor",
-                e
-            );
-            this.makeFieldsReadOnly(pdfDoc);
-        }
-    }
-
-    private makeFieldsReadOnly(pdfDoc: PDFDocument) {
-        const form = pdfDoc.getForm();
-        try {
-            form.getFields().forEach((field) => {
-                field.enableReadOnly();
-            });
-            form.flatten();
-        } catch (e) {
-            LoggerService.error("Det skjedde en feil ved markering av form felter som read-only PDF", e);
-        }
-    }
-
     private deleteJavascript(pdfDoc: PDFDocument) {
         pdfDoc.context.enumerateIndirectObjects().forEach(([ref, obj]) => {
             if (this.isPdfObjectJavascript(obj)) {
@@ -105,6 +94,37 @@ export class PdfAConverter {
             }
         });
     }
+
+    private removeInvalidXobjects(pdfdoc: PDFDocument) {
+        pdfdoc.getPages().forEach((page, index) => {
+            console.log("Page number", index, page.node.toString(), page.node.Resources());
+            this.removeInvalidXobject(page, pdfdoc);
+        });
+    }
+
+    private removeInvalidXobject(page: PDFPage, pdfdoc: PDFDocument) {
+        // obj.Resources().delete(PDFName.of("XObject"));
+        const xObject = page.node.Resources().get(PDFName.of("XObject")) as PDFDict;
+        if (xObject) {
+            const xMap = xObject.asMap();
+            return Array.from(xMap.keys()).some((key) => {
+                const stream = pdfdoc.context.lookupMaybe(xMap.get(key), PDFStream);
+
+                const ref = xMap.get(key) as PDFRef;
+                const type = stream.dict.get(PDFName.of("Type"));
+                if (type == undefined && key.toString().includes("FlatWidget")) {
+                    LoggerService.warn("Fjerner ugyldig XObject fra PDF " + key + " - " + stream.dict.toString());
+                    console.log(stream, xMap.get(key), stream.getContentsString());
+                    console.log(pdfdoc.context.delete(ref));
+
+                    // console.log(obj.toString());
+                    return true;
+                }
+            });
+        }
+        return false;
+    }
+
     // Copied from https://github.com/Hopding/pdf-lib/issues/1183#issuecomment-1685078941
     private _addMetadata(pdfDoc: PDFDocument, date: Date, title: string, author: string) {
         pdfDoc.setTitle(title);
@@ -166,11 +186,6 @@ export class PdfAConverter {
         //         <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
         //         <pdf:Producer>${producer}</pdf:Producer>
         //         </rdf:Description>
-
-        //         <rdf:Description rdf:about="" xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/">
-        //         <pdfaid:part>1</pdfaid:part>
-        //         <pdfaid:conformance>B</pdfaid:conformance>
-        //         </rdf:Description>
         //     </rdf:RDF>
         //     </x:xmpmeta>
         // <?xpacket end="w"?>
@@ -219,6 +234,21 @@ export const validatePDFBytes = async (documentFile: Uint8Array): Promise<void> 
             { headers: { "Content-Type": "application/pdf" } }
         );
         console.log("Validering resultat", pdfAResult.data);
+    } catch (e) {
+        console.error("Det skjedde en feil ved validering", e);
+    }
+};
+
+export const convertTOPDFA = async (documentFile: Uint8Array): Promise<string> => {
+    try {
+        console.log("Konverterer til PDF/A");
+        const pdfAResult = await BIDRAG_FORSENDELSE_API.api.convertToPdfa2(
+            new File([documentFile], "", {
+                type: "application/pdf",
+            }),
+            { headers: { "Content-Type": "application/pdf" } }
+        );
+        return pdfAResult.data;
     } catch (e) {
         console.error("Det skjedde en feil ved validering", e);
     }

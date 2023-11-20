@@ -1,6 +1,6 @@
 import { LoggerService } from "@navikt/bidrag-ui-common";
 import { useMutation } from "@tanstack/react-query";
-import { useQuery, UseQueryResult } from "@tanstack/react-query";
+import { useSuspenseQuery, UseSuspenseQueryResult } from "@tanstack/react-query";
 
 import { PdfDocumentType } from "../components/utils/types";
 import { IDocumentMetadata } from "../types/EditorTypes";
@@ -46,8 +46,8 @@ export const lastDokumenter = (
     dokumenter?: string[],
     resizeToA4?: boolean,
     optimizeForPrint = true
-): UseQueryResult<PdfDocumentType> => {
-    return useQuery({
+): UseSuspenseQueryResult<PdfDocumentType> => {
+    return useSuspenseQuery({
         queryKey: DokumentQueryKeys.hentDokument(dokumentId, dokumenter),
         queryFn: () => {
             try {
@@ -111,12 +111,14 @@ export const lastDokumenter = (
 
 export const RedigeringQueries = {
     hentRedigeringmetadata: <T>(forsendelseId: string, dokumentId: string) => {
-        return useQuery({
+        return useSuspenseQuery({
             queryKey: DokumentQueryKeys.hentDokumentMetadata(forsendelseId, dokumentId),
             queryFn: () => {
+                if (forsendelseId == undefined && dokumentId == undefined) return { data: null };
                 return BIDRAG_FORSENDELSE_API.api.hentDokumentRedigeringMetadata(forsendelseId, dokumentId);
             },
             select: (data): IDocumentMetadata<T> => {
+                if (!data?.data) return;
                 const response = data.data;
                 if (![DokumentStatusTo.MAKONTROLLERES, DokumentStatusTo.UNDER_REDIGERING].includes(response.status)) {
                     return {
@@ -134,7 +136,6 @@ export const RedigeringQueries = {
                     state: "EDITABLE",
                 };
             },
-            enabled: forsendelseId != undefined && dokumentId != undefined,
         });
     },
     lagreEndringer: <T>(forsendelseId: string, dokumentId: string) => {
