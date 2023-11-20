@@ -93,13 +93,13 @@ function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: n
                 LoggerService.warn(`Side ${pageNumber} har ugyldig XObject fra PDF ${key}`, {
                     name: "PDFError",
                     message: `Side ${pageNumber} har ugyldig XObject fra PDF ${key}`,
-                    stack: `Side ${pageNumber} har ugyldig XObject fra PDF ${key} - ${stream.getContentsString()} - ${stream.dict.toString()}`,
+                    stack: `Side ${pageNumber} har ugyldig XObject fra PDF ${key} - ${stream.getContentsString()} - ${stream.dict?.toString()}`,
                 });
                 return true;
             }
         });
     } else {
-        LoggerService.warn(`pageHasInvalidXObject: XObject is not PDFDict ${xObject.toString()}`);
+        LoggerService.warn(`pageHasInvalidXObject: XObject is not PDFDict ${xObject?.toString()}`);
     }
     return false;
 }
