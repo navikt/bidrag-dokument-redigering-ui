@@ -68,17 +68,22 @@ export class PdfProducerHelpers {
     }
 }
 export function hasInvalidXObject(pdfdoc: PDFDocument) {
-    return pdfdoc.getPages().some((page, index) => {
-        // page.node.context.enumerateIndirectObjects().forEach((indirectObject) => {
-        //     const ref = indirectObject[0];
-        //     const obj = indirectObject[1];
-        //     // console.log(ref.toString(), obj.toString());
-        //     if (obj instanceof PDFRawStream) {
-        //         console.log(obj.getContentsString());
-        //     }
-        // });
-        return pageHasInvalidXObject(page, pdfdoc, index + 1);
-    });
+    try {
+        return pdfdoc.getPages().some((page, index) => {
+            // page.node.context.enumerateIndirectObjects().forEach((indirectObject) => {
+            //     const ref = indirectObject[0];
+            //     const obj = indirectObject[1];
+            //     // console.log(ref.toString(), obj.toString());
+            //     if (obj instanceof PDFRawStream) {
+            //         console.log(obj.getContentsString());
+            //     }
+            // });
+            return pageHasInvalidXObject(page, pdfdoc, index + 1);
+        });
+    } catch (e) {
+        LoggerService.error("Det skjdde en feil ved sjekk for ugyldig xObject", e);
+        return false;
+    }
 }
 
 function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: number) {
