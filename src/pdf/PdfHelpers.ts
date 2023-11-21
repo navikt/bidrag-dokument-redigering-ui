@@ -103,7 +103,6 @@ export function hasInvalidXObject(pdfdoc: PDFDocument) {
 
 function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: number) {
     const xObject = page.node.Resources().get(PDFName.of("XObject"));
-
     if (xObject && xObject instanceof PDFDict) {
         const xMap = xObject.asMap();
         return Array.from(xMap.keys()).some((key) => {
@@ -123,7 +122,7 @@ function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: n
         LoggerService.warn(
             `pageHasInvalidXObject: XObject is not PDFDict --  type ${getObjectType(
                 xObject
-            )} -- ref -- ${xObject?.toString()} -- node -- ${page.node?.toString()}
+            )} -- ref -- ${xObject?.toString()} -- resources -- ${page.node?.Resources()?.toString()}
             `
         );
     }
