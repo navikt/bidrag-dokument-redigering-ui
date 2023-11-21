@@ -1,5 +1,20 @@
 import { LoggerService } from "@navikt/bidrag-ui-common";
-import { PDFDict, PDFDocument, PDFName, PDFPage, PDFStream } from "pdf-lib";
+import {
+    PDFArray,
+    PDFBool,
+    PDFDict,
+    PDFDocument,
+    PDFHexString,
+    PDFInvalidObject,
+    PDFName,
+    PDFNumber,
+    PDFObject,
+    PDFPage,
+    PDFRawStream,
+    PDFRef,
+    PDFStream,
+    PDFString,
+} from "pdf-lib";
 export const PDF_EDITOR_PRODUCER = "bidrag-dokument-redigering-ui";
 export const PDF_EDITOR_CREATOR = "NAV - Arbeids- og velferdsetaten";
 
@@ -88,6 +103,7 @@ export function hasInvalidXObject(pdfdoc: PDFDocument) {
 
 function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: number) {
     const xObject = page.node.Resources().get(PDFName.of("XObject"));
+
     if (xObject && xObject instanceof PDFDict) {
         const xMap = xObject.asMap();
         return Array.from(xMap.keys()).some((key) => {
@@ -104,9 +120,41 @@ function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: n
             }
         });
     } else {
-        LoggerService.warn(`pageHasInvalidXObject: XObject is not PDFDict ${xObject?.toString()}`);
+        LoggerService.warn(
+            `pageHasInvalidXObject: XObject is not PDFDict --  type ${getObjectType(
+                xObject
+            )} -- ref -- ${xObject?.toString()} -- node -- ${page.node?.toString()}
+            `
+        );
     }
     return false;
+}
+
+function getObjectType(pdfObject: PDFObject): string {
+    if (pdfObject instanceof PDFDict) {
+        return "PDFDict";
+    } else if (pdfObject instanceof PDFRawStream) {
+        return "PDFRawStream";
+    } else if (pdfObject instanceof PDFArray) {
+        return "PDFArray";
+    } else if (pdfObject instanceof PDFString) {
+        return "PDFString";
+    } else if (pdfObject instanceof PDFBool) {
+        return "PDFBool";
+    } else if (pdfObject instanceof PDFHexString) {
+        return "PDFHexString";
+    } else if (pdfObject instanceof PDFInvalidObject) {
+        return "PDFInvalidObject";
+    } else if (pdfObject instanceof PDFName) {
+        return "PDFName";
+    } else if (pdfObject instanceof PDFNumber) {
+        return "PDFNumber";
+    } else if (pdfObject instanceof PDFRef) {
+        return "PDFRef";
+    } else if (pdfObject instanceof PDFStream) {
+        return "PDFStream";
+    }
+    return "Ukjent";
 }
 
 export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, ignoreError: boolean) {
