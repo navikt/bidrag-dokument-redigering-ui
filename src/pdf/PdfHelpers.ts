@@ -101,6 +101,19 @@ export function hasInvalidXObject(pdfdoc: PDFDocument) {
     }
 }
 
+export function deleteGroupobjectWithSKey(pdfdoc: PDFDocument) {
+    pdfdoc.getPages().some((page, index) => {
+        const group = page.node.get(PDFName.of("Group"));
+        if (group != null && group instanceof PDFDict) {
+            const sObject = group.get(PDFName.of("S"));
+            if (sObject != null) {
+                LoggerService.info(`Delete Group S object from PDF for page ${index + 1} ${group.toString()}`);
+                page.node.delete(PDFName.of("Group"));
+            }
+        }
+    });
+}
+
 function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: number) {
     const xObject = page.node.Resources().get(PDFName.of("XObject"));
     if (xObject && xObject instanceof PDFDict) {

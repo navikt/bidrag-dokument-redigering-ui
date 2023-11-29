@@ -34,6 +34,11 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
         pdfdoc.getPages().forEach((page, index) => {
             console.log("Page number", index, page.node.toString(), page.node.Resources());
             checkForInvalidXObjects(page, pdfdoc);
+            const group = page.node.get(PDFName.of("Group"));
+            if (group != null && group instanceof PDFDict) {
+                const sObject = group.get(PDFName.of("S"));
+                console.log("Group S object", group.toString(), sObject, sObject.toString());
+            }
         });
 
         //console.log(pdfdoc.getForm().acroForm.getAllFields());
