@@ -43,7 +43,6 @@ export class FormPdfProducer {
 
     async loadPdf() {
         this.pdfDocument = await PDFDocument.load(this.pdfBytes);
-        this.font = await this.pdfDocument.embedFont(StandardFonts.TimesRoman);
     }
 
     async process(): Promise<FormPdfProducer> {
@@ -93,6 +92,12 @@ export class FormPdfProducer {
         try {
             if (typeof props.value == "string") {
                 const field = form.getTextField(props.name);
+                field.updateAppearances(this.font);
+                if (props.name == "saksnummer") {
+                    field.setFontSize(13);
+                } else {
+                    field.setFontSize(9);
+                }
                 field.setText(props.value);
             } else {
                 const field = form.getFieldMaybe(props.name);
