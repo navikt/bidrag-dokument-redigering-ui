@@ -19,3 +19,4 @@ Applikasjonen [bidrag-ui-static-files](https://github.com/navikt/bidrag-ui-stati
 ## Kjøre lokalt
 Du kan starte applikasjonen lokalt ved å kjøre `yarn install` og deretter `yarn dev`. Dette vil eksponere applikasjonen på url `http://localhost:5173`.
 
+d
