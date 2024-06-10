@@ -275,47 +275,54 @@ export class PdfProducer {
     }
 
     async removePages(removePages: number[]): Promise<void> {
-        const origDoc = this.pdfDocument;
-        const pdfCopy = await PDFDocument.create();
-        const includePages = origDoc.getPageIndices().filter((pn) => !removePages.includes(pn + 1));
+        try {
+            const origDoc = this.pdfDocument;
+            const pdfCopy = await PDFDocument.create();
+            const includePages = origDoc.getPageIndices().filter((pn) => !removePages.includes(pn + 1));
 
-        console.debug("Original document has pages", origDoc.getPageIndices());
-        console.debug("Removing pages", removePages?.map((rp) => rp + 1));
-        console.debug("Remaining pages", includePages);
-        const contentPages = await pdfCopy.copyPages(origDoc, includePages);
+            console.debug("Original document has pages", origDoc.getPageIndices());
+            console.debug("Removing pages", removePages?.map((rp) => rp + 1));
+            console.debug("Remaining pages", includePages);
+            const contentPages = await pdfCopy.copyPages(origDoc, includePages);
 
-        let numberOfRemovedPages = 0;
-        const numberOfPagesToRemove = origDoc.getPageCount();
-        for (let idx = 0, len = contentPages.length; idx < len; idx++) {
-            pdfCopy.addPage(contentPages[idx]);
-            numberOfRemovedPages += 1;
-            this.onProgressUpdated("REMOVE_PAGE", 0, numberOfRemovedPages / numberOfPagesToRemove);
-        }
+            let numberOfRemovedPages = 0;
+            const numberOfPagesToRemove = origDoc.getPageCount();
+            for (let idx = 0, len = contentPages.length; idx < len; idx++) {
+                pdfCopy.addPage(contentPages[idx]);
+                numberOfRemovedPages += 1;
+                this.onProgressUpdated("REMOVE_PAGE", 0, numberOfRemovedPages / numberOfPagesToRemove);
+            }
 
-        if (PdfProducerHelpers.getAuthor(origDoc) !== undefined) {
-            pdfCopy.setAuthor(PdfProducerHelpers.getAuthor(origDoc)!);
-        }
-        if (PdfProducerHelpers.getCreationDate(origDoc) !== undefined) {
-            pdfCopy.setCreationDate(PdfProducerHelpers.getCreationDate(origDoc)!);
-        }
-        if (PdfProducerHelpers.getCreator(origDoc) !== undefined) {
-            pdfCopy.setCreator(PdfProducerHelpers.getCreator(origDoc)!);
-        }
-        if (PdfProducerHelpers.getModificationDate(pdfCopy) !== undefined) {
-            pdfCopy.setModificationDate(PdfProducerHelpers.getModificationDate(pdfCopy)!);
-        }
-        if (PdfProducerHelpers.getProducer(origDoc) !== undefined) {
-            pdfCopy.setProducer(PdfProducerHelpers.getProducer(origDoc)!);
-        }
-        if (PdfProducerHelpers.getSubject(origDoc) !== undefined) {
-            pdfCopy.setSubject(PdfProducerHelpers.getSubject(origDoc)!);
-        }
-        if (PdfProducerHelpers.getTitle(origDoc) !== undefined) {
-            pdfCopy.setTitle(PdfProducerHelpers.getTitle(origDoc)!);
-        }
-        pdfCopy.defaultWordBreaks = origDoc.defaultWordBreaks;
+            if (PdfProducerHelpers.getAuthor(origDoc) !== undefined) {
+                pdfCopy.setAuthor(PdfProducerHelpers.getAuthor(origDoc)!);
+            }
+            if (PdfProducerHelpers.getCreationDate(origDoc) !== undefined) {
+                pdfCopy.setCreationDate(PdfProducerHelpers.getCreationDate(origDoc)!);
+            }
+            if (PdfProducerHelpers.getCreator(origDoc) !== undefined) {
+                pdfCopy.setCreator(PdfProducerHelpers.getCreator(origDoc)!);
+            }
+            if (PdfProducerHelpers.getModificationDate(pdfCopy) !== undefined) {
+                pdfCopy.setModificationDate(PdfProducerHelpers.getModificationDate(pdfCopy)!);
+            }
+            if (PdfProducerHelpers.getProducer(origDoc) !== undefined) {
+                pdfCopy.setProducer(PdfProducerHelpers.getProducer(origDoc)!);
+            }
+            if (PdfProducerHelpers.getSubject(origDoc) !== undefined) {
+                pdfCopy.setSubject(PdfProducerHelpers.getSubject(origDoc)!);
+            }
+            if (PdfProducerHelpers.getTitle(origDoc) !== undefined) {
+                pdfCopy.setTitle(PdfProducerHelpers.getTitle(origDoc)!);
+            }
+            pdfCopy.defaultWordBreaks = origDoc.defaultWordBreaks;
 
-        this.pdfDocument = pdfCopy;
+            this.pdfDocument = pdfCopy;
+        } catch (e) {
+            LoggerService.error("Det skjedde en feil ved fjerning av sider", e);
+            if (removePages.length > 0) {
+                throw e;
+            }
+        }
     }
 
     async saveChanges(): Promise<PdfProducer> {
