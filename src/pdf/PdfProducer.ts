@@ -245,15 +245,19 @@ export class PdfProducer {
     }
 
     private removeSubmitButton() {
-        const form = this.pdfDocument.getForm();
-        for (const field of form.getFields()) {
-            if (field.getName() == "nullstill") {
-                try {
-                    form.removeField(field);
-                } catch (e) {
-                    LoggerService.error("Det skjedde en feil ved fjerning av nullstill knapp", e);
+        try {
+            const form = this.pdfDocument.getForm();
+            for (const field of form.getFields()) {
+                if (field.getName() == "nullstill") {
+                    try {
+                        form.removeField(field);
+                    } catch (e) {
+                        LoggerService.error("Det skjedde en feil ved fjerning av en nullstill knapp", e);
+                    }
                 }
             }
+        } catch (e) {
+            LoggerService.error("Det skjedde en feil ved fjerning av nullstill knapper fra PDF", e);
         }
     }
 
