@@ -170,8 +170,8 @@ function getObjectType(pdfObject: PDFObject): string {
 }
 
 export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, ignoreError: boolean) {
-    const form = pdfDoc.getForm();
     try {
+        const form = pdfDoc.getForm();
         form.flatten();
         if (hasInvalidXObject(pdfDoc) && !ignoreError) {
             LoggerService.warn(`Dokument er korrupt etter flatning av form felter. Ruller tilbake endringer`);
