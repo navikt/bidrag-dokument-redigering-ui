@@ -82,9 +82,13 @@ export class PdfAConverter {
         pdfDoc.context.trailerInfo.ID = pdfDoc.context.obj([id, id]);
     }
     private async removeXFA(pdfDoc: PDFDocument) {
-        const form = pdfDoc.getForm();
+        try {
+            const form = pdfDoc.getForm();
 
-        form.deleteXFA();
+            form.deleteXFA();
+        } catch (e) {
+            LoggerService.error("Feil ved sletting av XFA", e);
+        }
     }
 
     private deleteJavascript(pdfDoc: PDFDocument) {
