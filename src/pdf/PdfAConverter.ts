@@ -151,12 +151,17 @@ export class PdfAConverter {
         const producer = PDF_EDITOR_PRODUCER;
         const creator = originalDoc.getCreator() ?? PDF_EDITOR_CREATOR;
         const author = originalAuthor ?? PDF_EDITOR_CREATOR;
-        pdfDoc.setTitle(title, { showInWindowTitleBar: true });
-        pdfDoc.setAuthor(author);
-        pdfDoc.setProducer(producer);
-        pdfDoc.setCreator(creator);
-        pdfDoc.setCreationDate(originalCreationDate ?? date);
-        pdfDoc.setModificationDate(date);
+        try {
+            pdfDoc.setTitle(title, { showInWindowTitleBar: true });
+            pdfDoc.setAuthor(author);
+            pdfDoc.setProducer(producer);
+            pdfDoc.setCreator(creator);
+            pdfDoc.setCreationDate(originalCreationDate ?? date);
+            pdfDoc.setModificationDate(date);
+        } catch (e) {
+            LoggerService.error("Feil ved setting av metadata", e);
+        }
+
         // const metadataXML = `
         // <?xpacket begin="" id="${documentId}"?>
         //     <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 5.2-c001 63.139439, 2010/09/27-13:37:26">
