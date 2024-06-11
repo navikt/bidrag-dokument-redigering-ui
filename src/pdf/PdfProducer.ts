@@ -326,7 +326,12 @@ export class PdfProducer {
     }
 
     async saveChanges(): Promise<PdfProducer> {
-        this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title, false);
+        try {
+            this.processedDocument = await new PdfAConverter().convertAndSave(this.pdfDocument, this.title, false);
+        } catch (e) {
+            LoggerService.error("Det skjedde en feil ved lagring av PDF", e);
+            this.processedDocument = this.pdfBlob as Uint8Array;
+        }
         this.onProgressUpdated("SAVE_PDF", 0, 1);
         return this;
     }
