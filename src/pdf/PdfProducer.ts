@@ -53,13 +53,18 @@ export class PdfProducer {
     }
 
     private getProgressByWeight(state: ProgressState, pageNumber: number, _progress?: number) {
-        const totalPages = this.pdfDocument.getPageCount();
-        const progress = _progress ?? pageNumber / totalPages;
-        const percentageRange = this.stateToProgressPercentageRate(state);
+        try {
+            const totalPages = this.pdfDocument.getPageCount();
+            const progress = _progress ?? pageNumber / totalPages;
+            const percentageRange = this.stateToProgressPercentageRate(state);
 
-        const result = Math.round((percentageRange[1] - percentageRange[0]) * progress + percentageRange[0]);
-        console.debug("Progress result", result, percentageRange, state, progress);
-        return result;
+            const result = Math.round((percentageRange[1] - percentageRange[0]) * progress + percentageRange[0]);
+            console.debug("Progress result", result, percentageRange, state, progress);
+            return result;
+        } catch (e) {
+            console.error("Error in getProgressByWeight", e);
+            return 1;
+        }
     }
 
     private stateToProgressPercentageRate(state: ProgressState): number[] {
