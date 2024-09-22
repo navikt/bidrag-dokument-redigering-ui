@@ -1,8 +1,8 @@
+import { PDFDocument, PDFPage, PDFPageDrawRectangleOptions, rgb } from "@cantoo/pdf-lib";
+import { PDFFont } from "@cantoo/pdf-lib";
+import { RotationTypes } from "@cantoo/pdf-lib";
+import { StandardFonts } from "@cantoo/pdf-lib";
 import { FileUtils, LoggerService } from "@navikt/bidrag-ui-common";
-import { PDFDocument, PDFPage, PDFPageDrawRectangleOptions, rgb } from "pdf-lib";
-import { PDFFont } from "pdf-lib";
-import { RotationTypes } from "pdf-lib";
-import { StandardFonts } from "pdf-lib/es";
 
 import { ICoordinates, IMaskingItemProps } from "../components/masking/MaskingItem";
 import { PdfDocumentType } from "../components/utils/types";

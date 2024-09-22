@@ -19,7 +19,7 @@ import { getVisibleElements } from "./pdfjslib/ui_utils";
 import PdfUtils, { ScrollDirection } from "./PdfUtils";
 
 // pdfjsLib.GlobalWorkerOptions.workerSrc = `${environment.url.static_url}/pdf.worker.js`;
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.js", import.meta.url).toString();
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
 
 export interface PdfDocumentRef {
     documentElement: HTMLDivElement;
@@ -68,8 +68,8 @@ export default function PdfDocument({
     const lastKnownScrollPosition = useRef(0);
     const currentPageNumberRef = useRef(1);
     const onScrollThrottler = useRef(
-        TimerUtils.throttleByAnimation((pageNumber: number, scrollDirection: ScrollDirection) =>
-            onScroll?.(pageNumber, scrollDirection)
+        TimerUtils.throttleByAnimation(
+            (pageNumber: number, scrollDirection: ScrollDirection) => onScroll?.(pageNumber, scrollDirection)
         )
     );
 

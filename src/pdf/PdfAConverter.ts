@@ -1,4 +1,3 @@
-import { LoggerService } from "@navikt/bidrag-ui-common";
 import {
     PDFDict,
     PDFDocument,
@@ -12,7 +11,8 @@ import {
     PDFStream,
     PDFString,
     StandardFonts,
-} from "pdf-lib";
+} from "@cantoo/pdf-lib";
+import { LoggerService } from "@navikt/bidrag-ui-common";
 
 import { BIDRAG_FORSENDELSE_API } from "../api/api";
 //@ts-ignore

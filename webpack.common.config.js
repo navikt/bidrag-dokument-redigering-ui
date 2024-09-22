@@ -17,7 +17,7 @@ module.exports = {
         topLevelAwait: true,
     },
     resolve: {
-        extensions: [".tsx", ".ts", ".js", "jsx"],
+        extensions: [".tsx", ".ts", ".js", ".jsx", ".mjs"],
         fallback: {
             fs: false,
         },
@@ -69,6 +69,12 @@ module.exports = {
                 type: "asset/inline",
             },
             {
+                test: /\.m?js$/,
+                resolve: {
+                    fullySpecified: false,
+                },
+            },
+            {
                 test: /\.mdx?$/,
                 use: [
                     {
@@ -93,7 +99,7 @@ module.exports = {
                 loader: "svg-inline-loader",
             },
             {
-                test: /\.pdf.worker.js/,
+                test: /\.pdf.worker.mjs/,
                 type: "asset/resource",
             },
         ],
@@ -120,7 +126,7 @@ module.exports = {
             },
         }),
         new CopyPlugin({
-            patterns: [{ from: "node_modules/pdfjs-dist/build/pdf.worker.js", to: "" }],
+            patterns: [{ from: "node_modules/pdfjs-dist/build/pdf.worker.mjs", to: "" }],
         }),
     ],
 };

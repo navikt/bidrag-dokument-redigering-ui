@@ -1,4 +1,3 @@
-import { LoggerService } from "@navikt/bidrag-ui-common";
 import {
     PDFArray,
     PDFBool,
@@ -14,7 +13,8 @@ import {
     PDFRef,
     PDFStream,
     PDFString,
-} from "pdf-lib";
+} from "@cantoo/pdf-lib";
+import { LoggerService } from "@navikt/bidrag-ui-common";
 export const PDF_EDITOR_PRODUCER = "bidrag-dokument-redigering-ui";
 export const PDF_EDITOR_CREATOR = "NAV - Arbeids- og velferdsetaten";
 

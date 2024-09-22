@@ -1,5 +1,14 @@
+import {
+    PDFArray,
+    PDFDict,
+    PDFDocument,
+    PDFName,
+    PDFPage,
+    PDFPageLeaf,
+    PDFRawStream,
+    PDFStream,
+} from "@cantoo/pdf-lib";
 import { Checkbox, Heading } from "@navikt/ds-react";
-import { PDFArray, PDFDict, PDFDocument, PDFName, PDFPage, PDFPageLeaf, PDFRawStream, PDFStream } from "pdf-lib";
 import { ChangeEvent, useState } from "react";
 
 import { PdfDocumentType } from "../../components/utils/types";
