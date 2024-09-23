@@ -1,7 +1,7 @@
+import { PDFCheckBox, PDFDocument, PDFField, PDFName } from "@cantoo/pdf-lib";
+import { PDFFont } from "@cantoo/pdf-lib";
+import { StandardFonts } from "@cantoo/pdf-lib";
 import { FileUtils, LoggerService, SecureLoggerService } from "@navikt/bidrag-ui-common";
-import { PDFCheckBox, PDFDocument, PDFField, PDFName } from "pdf-lib";
-import { PDFFont } from "pdf-lib";
-import { StandardFonts } from "pdf-lib/es";
 import { PDFDocumentProxy } from "pdfjs-dist";
 
 import { PdfDocumentType } from "../../components/utils/types";

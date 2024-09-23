@@ -30,7 +30,7 @@ import SaveStateIndicator from "./SaveStateIndicator";
 import { SkjemautfyllingMetadata } from "./types";
 import UnlockSkjemaButton from "./UnlockSkjemaButton";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.js", import.meta.url).toString();
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).toString();
 
 interface SkjemaUtfyllingPageProps {
     forsendelseId: string;

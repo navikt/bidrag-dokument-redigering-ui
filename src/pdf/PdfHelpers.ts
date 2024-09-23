@@ -1,4 +1,3 @@
-import { LoggerService } from "@navikt/bidrag-ui-common";
 import {
     PDFArray,
     PDFBool,
@@ -14,7 +13,8 @@ import {
     PDFRef,
     PDFStream,
     PDFString,
-} from "pdf-lib";
+} from "@cantoo/pdf-lib";
+import { LoggerService } from "@navikt/bidrag-ui-common";
 export const PDF_EDITOR_PRODUCER = "bidrag-dokument-redigering-ui";
 export const PDF_EDITOR_CREATOR = "NAV - Arbeids- og velferdsetaten";
 
@@ -173,6 +173,7 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
     try {
         const form = pdfDoc.getForm();
         form.flatten();
+
         if (hasInvalidXObject(pdfDoc) && !ignoreError) {
             LoggerService.warn(`Dokument er korrupt etter flatning av form felter. Ruller tilbake endringer`);
             await onError();
@@ -183,14 +184,49 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
                 "Det skjedde en feil ved 'flatning' av form felter i PDF. Gjør om feltene read-only fordi det er noen sider som er maskert",
                 e
             );
+            flattenFormV2(pdfDoc);
             makeFieldsReadOnly(pdfDoc);
         } else {
-            LoggerService.error(
-                "Det skjedde en feil ved 'flatning' av form felter i PDF. Laster PDF på nytt uten å flatne form for å unngå korrupt PDF",
-                e
-            );
-            await onError();
+            try {
+                flattenFormV2(pdfDoc);
+            } catch (error) {
+                LoggerService.error(
+                    "Det skjedde en feil ved 'flatning' av form felter i PDF. Laster PDF på nytt uten å flatne form for å unngå korrupt PDF",
+                    e
+                );
+                await onError();
+            }
         }
+    }
+}
+
+export function flattenFormV2(pdfDoc: PDFDocument) {
+    const form = pdfDoc.getForm();
+    const formFields = form.getFields();
+
+    for (const field of formFields) {
+        try {
+            while (field.acroField.getWidgets().length) {
+                try {
+                    field.acroField.removeWidget(0);
+                } catch (e) {
+                    console.warn("Kunne ikke fjerne widget", e);
+                }
+            }
+            form.removeField(field);
+        } catch (e) {
+            // Ignorer feil
+            console.warn("Kunne ikke fjerne alle felter", e);
+        }
+    }
+    try {
+        form.flatten();
+    } catch (e) {
+        if (e.message.includes("Tried to remove inexistent field")) {
+            LoggerService.error("Ignorer feil ved fjerning av form felter som ikke eksisterer i PDF.", e);
+            return;
+        }
+        throw e;
     }
 }
 
