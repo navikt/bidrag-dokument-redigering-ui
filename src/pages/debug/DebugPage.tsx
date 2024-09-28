@@ -56,6 +56,55 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
             .acroForm.getAllFields()
             .forEach((field) => console.log(field[1].toString(), field));
     }
+    async function removeUnlinkedAnnots(pdfdoc: PDFDocument) {
+        for (const page of pdfdoc.getPages()) {
+            console.debug("Starting to remove unlinked annots from page", page);
+            try {
+                const annots = page.node.get(PDFName.of("Annots")) as PDFArray;
+                if (annots == undefined) return;
+                for (const annot of annots.asArray()) {
+                    try {
+                        const annotDict = pdfdoc.context.lookupMaybe(annot, PDFDict);
+                        console.debug("Annot dict", annotDict);
+                        if (annotDict == undefined) {
+                            console.warn("Fjerner annotasjon som ikke har noe kilde fra side: " + annot.toString());
+                            // page.node.removeAnnot(annotRef);
+                            page.node.delete(PDFName.of("Annots"));
+                        }
+                    } catch (e) {
+                        console.error("Kunne ikke fjerne annotasjon", e);
+                    }
+                }
+            } catch (e) {
+                console.error("Det skjedde en feil ved fjerning ulinket annoteringer", e);
+            }
+        }
+    }
+    async function repairPDFAndOpen(ev: ChangeEvent<HTMLInputElement>) {
+        const fileBuffer = await readFile(ev);
+        const pdfdoc = await PDFDocument.load(fileBuffer);
+
+        pdfdoc.getPages().forEach((page, index) => {
+            console.log("Page number", index, page.node.toString(), page.node.Resources());
+            checkForInvalidXObjects(page, pdfdoc);
+            const group = page.node.get(PDFName.of("Group"));
+            if (group != null && group instanceof PDFDict) {
+                const sObject = group.get(PDFName.of("S"));
+                console.log("Group S object", group.toString(), sObject, sObject.toString());
+            }
+        });
+
+        //console.log(pdfdoc.getForm().acroForm.getAllFields());
+        pdfdoc
+            .getForm()
+            .acroForm.getAllFields()
+            .forEach((field) => console.log(field[1].toString(), field));
+        removeUnlinkedAnnots(pdfdoc);
+        const savedUpdatedPdfUint8Array = await pdfdoc.save();
+
+        //@ts-ignore
+        setPdfdocument(new Blob([savedUpdatedPdfUint8Array]));
+    }
     async function convertPDF(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
         const pdfdoc = await PDFDocument.load(fileBuffer);
@@ -198,7 +247,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
                             type="file"
                             name="Reparer"
                             accept="application/pdf,application/vnd.ms-excel"
-                            onChange={repairPDF}
+                            onChange={repairPDFAndOpen}
                         />
                     </div>
                 </div>
