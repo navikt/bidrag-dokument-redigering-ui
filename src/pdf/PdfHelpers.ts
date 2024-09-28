@@ -173,11 +173,10 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
     try {
         const form = pdfDoc.getForm();
         form.flatten();
-        flattenFormV2(pdfDoc);
         await removeUnlinkedAnnots(pdfDoc);
-        pdfDoc.getPages().forEach((page, index) => {
-            console.debug("Page number", index, page.node.toString(), page.node.Resources());
-        });
+        // pdfDoc.getPages().forEach((page, index) => {
+        //     console.debug("Page number", index, page.node.toString(), page.node.Resources());
+        // });
 
         if (hasInvalidXObject(pdfDoc) && !ignoreError) {
             LoggerService.warn(`Dokument er korrupt etter flatning av form felter. Ruller tilbake endringer`);
