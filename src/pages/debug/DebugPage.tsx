@@ -113,17 +113,21 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
         console.log(pdfa);
     }
     function checkForInvalidXObjects(page: PDFPage, pdfdoc: PDFDocument) {
-        const xObject = page.node.Resources().get(PDFName.of("XObject")) as PDFDict;
-        if (xObject) {
-            const xMap = xObject.asMap();
-            Array.from(xMap.keys()).forEach((key) => {
-                const stream = pdfdoc.context.lookupMaybe(xMap.get(key), PDFStream);
+        try {
+            const xObject = page.node.Resources().get(PDFName.of("XObject")) as PDFDict;
+            if (xObject) {
+                const xMap = xObject.asMap();
+                Array.from(xMap.keys()).forEach((key) => {
+                    const stream = pdfdoc.context.lookupMaybe(xMap.get(key), PDFStream);
 
-                const type = stream.dict.get(PDFName.of("Type"));
-                if (type == undefined && key.toString().includes("FlatWidget")) {
-                    console.log("Is invalid", key, xObject.toString(), stream.dict.toString(), type);
-                }
-            });
+                    const type = stream.dict.get(PDFName.of("Type"));
+                    if (type == undefined && key.toString().includes("FlatWidget")) {
+                        console.log("Is invalid", key, xObject.toString(), stream.dict.toString(), type);
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("Error in checkForInvalidXObjects", e);
         }
         return false;
     }
