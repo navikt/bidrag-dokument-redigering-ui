@@ -123,7 +123,7 @@ function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: n
             const type = stream.dict.get(PDFName.of("Type"));
             if (type == undefined && key.toString().includes("FlatWidget")) {
                 // console.log(page.node.context, stream.getContentsString(), stream.toString(), stream.getContents());
-                LoggerService.warn(`Side ${pageNumber} har ugyldig XObject fra PDF ${key}`, {
+                console.debug(`Side ${pageNumber} har ugyldig XObject fra PDF ${key}`, {
                     name: "PDFError",
                     message: `Side ${pageNumber} har ugyldig XObject fra PDF ${key}`,
                     stack: `Side ${pageNumber} har ugyldig XObject fra PDF ${key} - ${stream.getContentsString()} - ${stream.dict?.toString()}`,
@@ -132,7 +132,7 @@ function pageHasInvalidXObject(page: PDFPage, pdfdoc: PDFDocument, pageNumber: n
             }
         });
     } else {
-        LoggerService.warn(
+        console.debug(
             `pageHasInvalidXObject: XObject is not PDFDict --  type ${getObjectType(
                 xObject
             )} -- ref -- ${xObject?.toString()} -- resources -- ${page.node?.Resources()?.toString()}
@@ -173,6 +173,11 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
     try {
         const form = pdfDoc.getForm();
         form.flatten();
+        flattenFormV2(pdfDoc);
+        await removeUnlinkedAnnots(pdfDoc);
+        pdfDoc.getPages().forEach((page, index) => {
+            console.debug("Page number", index, page.node.toString(), page.node.Resources());
+        });
 
         if (hasInvalidXObject(pdfDoc) && !ignoreError) {
             LoggerService.warn(`Dokument er korrupt etter flatning av form felter. Ruller tilbake endringer`);
@@ -196,6 +201,32 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
                 );
                 await onError();
             }
+        }
+    }
+}
+
+async function removeUnlinkedAnnots(pdfdoc: PDFDocument) {
+    for (const page of pdfdoc.getPages()) {
+        console.debug("Starting to remove unlinked annots from page", page);
+        try {
+            const annots = page.node.get(PDFName.of("Annots")) as PDFArray;
+            if (annots == undefined) return;
+            for (const annot of annots.asArray()) {
+                try {
+                    const annotDict = pdfdoc.context.lookupMaybe(annot, PDFDict);
+                    console.debug("Annot dict", annotDict);
+                    if (annotDict == undefined) {
+                        LoggerService.warn("Fjerner annotasjon som ikke har noe kilde fra side: " + annot.toString());
+                        // page.node.removeAnnot(annotRef);
+                        page.node.delete(PDFName.of("Annots"));
+                    }
+                } catch (e) {
+                    console.error("Kunne ikke fjerne annotasjon", e);
+                    LoggerService.warn("Kunne ikke fjerne annotasjon", e);
+                }
+            }
+        } catch (e) {
+            console.error("Det skjedde en feil ved fjerning ulinket annoteringer", e);
         }
     }
 }
