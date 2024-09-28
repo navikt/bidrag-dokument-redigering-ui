@@ -61,7 +61,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
             console.debug("Starting to remove unlinked annots from page", page);
             try {
                 const annots = page.node.get(PDFName.of("Annots")) as PDFArray;
-                if (annots == undefined) return;
+                if (annots == undefined) continue;
                 for (const annot of annots.asArray()) {
                     try {
                         const annotDict = pdfdoc.context.lookupMaybe(annot, PDFDict);
