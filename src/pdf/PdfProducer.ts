@@ -86,6 +86,7 @@ export class PdfProducer {
         this.maskPages(itemsFiltered);
         await this.convertMaskedPagesToImage(itemsFiltered);
         await this.removePages(this.config.removedPages);
+
         return this;
     }
 
