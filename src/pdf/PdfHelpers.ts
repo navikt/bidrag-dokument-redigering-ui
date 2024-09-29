@@ -4,12 +4,14 @@ import {
     PDFCatalog,
     PDFDict,
     PDFDocument,
+    PDFFont,
     PDFHexString,
     PDFInvalidObject,
     PDFName,
     PDFNumber,
     PDFObject,
     PDFPage,
+    PDFPageLeaf,
     PDFPageTree,
     PDFRawStream,
     PDFRef,
@@ -242,17 +244,52 @@ export async function fixMissingPages(pdfDoc: PDFDocument) {
         pdfDoc.getPages();
     } catch (e) {
         console.error("Kunne hente sider for PDF. Prøver å fikse", e);
+        // const rootRef = this.context.trailerInfo.Root;
+        // console.log(this.context.trailerInfo.Root);
+
+        // for (const [ref, obj] of this.context.enumerateIndirectObjects()) {
+        //     if (obj instanceof PDFPageTree) {
+        //         console.log("YES", obj.asMap(), PDFCatalog.withContextAndPages(this.context, obj));
+        //         console.log(ref.toString(), obj.toString(), obj);
+        //     }
+        //     if (obj instanceof PDFCatalog) {
+        //         console.log("CATALOG", obj.toString(), obj);
+        //     }
+        //     if (ref == rootRef) {
+        //         console.log("ROOT", obj.toString(), obj);
+        //     }
+        // }
+
         try {
-            let pdfPageTree: PDFPageTree | undefined;
-            for (const [_, obj] of pdfDoc.context.enumerateIndirectObjects()) {
+            let pdfPageTree: PDFPageTree;
+            let pdfPageLeaf: PDFPageLeaf;
+            for (const [ref, obj] of pdfDoc.context.enumerateIndirectObjects()) {
                 if (obj instanceof PDFPageTree) {
                     pdfPageTree = obj;
-                    break;
+                }
+                if (obj instanceof PDFFont) {
+                    console.log("FONT", obj);
+                }
+                if (
+                    ref == pdfDoc.context.trailerInfo.Root &&
+                    !(obj instanceof PDFCatalog) &&
+                    obj instanceof PDFPageLeaf
+                ) {
+                    pdfPageLeaf = obj;
+                    console.log("REF er ikke catalog", obj.toString(), obj);
                 }
             }
 
-            //@ts-ignore
-            pdfDoc.catalog = PDFCatalog.withContextAndPages(pdfDoc.context, pdfPageTree);
+            if (pdfPageTree) {
+                const map = pdfPageLeaf ? pdfPageLeaf.asMap() : new Map();
+                map.set(PDFName.of("Pages"), pdfPageTree);
+                map.set(PDFName.of("Type"), PDFName.of("Catalog"));
+                const catalog = PDFCatalog.fromMapWithContext(map, pdfDoc.context);
+                console.debug("Fant PDFCatalog", catalog);
+                //@ts-ignore
+                pdfDoc.catalog = catalog;
+                pdfDoc.context.trailerInfo.Root = catalog;
+            }
         } catch (e) {
             console.error("Kunne ikke fikse manglende catalog pages", e);
         }
