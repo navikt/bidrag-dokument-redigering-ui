@@ -9,7 +9,7 @@ import { PdfDocumentType } from "../components/utils/types";
 import { EditDocumentMetadata } from "../types/EditorTypes";
 import pdf2Image from "./Pdf2Image";
 import { PdfAConverter } from "./PdfAConverter";
-import { flattenForm, PdfProducerHelpers } from "./PdfHelpers";
+import { fixMissingPages, flattenForm, PdfProducerHelpers, repairPDF } from "./PdfHelpers";
 
 type ProgressState = "MASK_PAGE" | "CONVERT_PAGE_TO_IMAGE" | "REMOVE_PAGE" | "SAVE_PDF";
 export interface IProducerProgress {
@@ -80,8 +80,10 @@ export class PdfProducer {
         }
     }
     async process(): Promise<PdfProducer> {
+        await fixMissingPages(this.pdfDocument);
         this.removeSubmitButton();
         await flattenForm(this.pdfDocument, this.loadPdf.bind(this), this.config.items.length > 0);
+        await repairPDF(this.pdfDocument);
         const itemsFiltered = this.config.items.filter((item) => !this.config.removedPages.includes(item.pageNumber));
         this.maskPages(itemsFiltered);
         await this.convertMaskedPagesToImage(itemsFiltered);

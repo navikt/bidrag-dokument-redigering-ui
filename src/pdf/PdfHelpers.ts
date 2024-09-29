@@ -1,6 +1,7 @@
 import {
     PDFArray,
     PDFBool,
+    PDFCatalog,
     PDFDict,
     PDFDocument,
     PDFHexString,
@@ -9,6 +10,7 @@ import {
     PDFNumber,
     PDFObject,
     PDFPage,
+    PDFPageTree,
     PDFRawStream,
     PDFRef,
     PDFStream,
@@ -173,11 +175,6 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
     try {
         const form = pdfDoc.getForm();
         form.flatten();
-        await removeUnlinkedAnnots(pdfDoc);
-        // pdfDoc.getPages().forEach((page, index) => {
-        //     console.debug("Page number", index, page.node.toString(), page.node.Resources());
-        // });
-
         if (hasInvalidXObject(pdfDoc) && !ignoreError) {
             LoggerService.warn(`Dokument er korrupt etter flatning av form felter. Ruller tilbake endringer`);
             await onError();
@@ -204,6 +201,64 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
     }
 }
 
+export async function repairPDF(pdfDoc: PDFDocument, debug: boolean = false) {
+    try {
+        await removeUnlinkedAnnots(pdfDoc);
+        if (debug) {
+            debugRepairPDF(pdfDoc);
+            pdfDoc.getPages().forEach((page, index) => {
+                console.debug("Page number", index, page.node.toString(), page.node.Resources());
+            });
+        }
+    } catch (e) {
+        LoggerService.error("Det skjedde en feil ved reparasjon av PDF", e);
+    }
+}
+
+async function debugRepairPDF(pdfDoc: PDFDocument) {
+    try {
+        pdfDoc.getPages().forEach((page, index) => {
+            console.log("Page number", index, page.node.toString(), page.node.Resources());
+            pageHasInvalidXObject(page, pdfDoc, index + 1);
+            const group = page.node.get(PDFName.of("Group"));
+            if (group != null && group instanceof PDFDict) {
+                const sObject = group.get(PDFName.of("S"));
+                console.log("Group S object", group.toString(), sObject, sObject.toString());
+            }
+        });
+
+        //console.log(pdfdoc.getForm().acroForm.getAllFields());
+        pdfDoc
+            .getForm()
+            .acroForm.getAllFields()
+            .forEach((field) => console.log(field[1].toString(), field));
+    } catch (e) {
+        console.debug("Det skjedde en feil i debugRepairPDF funksjonen", e);
+    }
+}
+
+export async function fixMissingPages(pdfDoc: PDFDocument) {
+    try {
+        pdfDoc.getPages();
+    } catch (e) {
+        console.error("Kunne hente sider for PDF. Prøver å fikse", e);
+        try {
+            let pdfPageTree: PDFPageTree | undefined;
+            for (const [_, obj] of pdfDoc.context.enumerateIndirectObjects()) {
+                if (obj instanceof PDFPageTree) {
+                    pdfPageTree = obj;
+                    break;
+                }
+            }
+
+            //@ts-ignore
+            pdfDoc.catalog = PDFCatalog.withContextAndPages(pdfDoc.context, pdfPageTree);
+        } catch (e) {
+            console.error("Kunne ikke fikse manglende catalog pages", e);
+        }
+    }
+}
+
 async function removeUnlinkedAnnots(pdfdoc: PDFDocument) {
     for (const page of pdfdoc.getPages()) {
         console.debug("Starting to remove unlinked annots from page", page);
@@ -213,7 +268,7 @@ async function removeUnlinkedAnnots(pdfdoc: PDFDocument) {
             for (const annot of annots.asArray()) {
                 try {
                     const annotDict = pdfdoc.context.lookupMaybe(annot, PDFDict);
-                    console.debug("Annot dict", annotDict);
+                    console.debug("Found annotation dictionary", annotDict);
                     if (annotDict == undefined) {
                         LoggerService.warn("Fjerner annotasjon som ikke har noe kilde fra side: " + annot.toString());
                         // page.node.removeAnnot(annotRef);
