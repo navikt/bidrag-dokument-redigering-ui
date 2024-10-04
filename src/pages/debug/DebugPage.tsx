@@ -1,5 +1,5 @@
 import { PDFArray, PDFDict, PDFDocument, PDFName, PDFPage, PDFPageLeaf, PDFRawStream } from "@cantoo/pdf-lib";
-import { Checkbox, Heading } from "@navikt/ds-react";
+import { Button, Checkbox, Heading } from "@navikt/ds-react";
 import { ChangeEvent, useState } from "react";
 
 import { PdfDocumentType } from "../../components/utils/types";
@@ -221,6 +221,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
                         onChange={openFile}
                     />
                 </div>
+                <Button onClick={() => setPdfdocument(undefined)}>Reset</Button>
             </div>
         );
     }
