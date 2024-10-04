@@ -31,13 +31,27 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
     }
     async function loadFileAndRepairPDF(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
-        const pdfdoc = await PDFDocument.load(fileBuffer);
+        console.log(fileBuffer);
+        console.log(arrayBufferToBase64(fileBuffer));
+        const pdfdoc = await PDFDocument.load(fileBuffer, {
+            ignoreEncryption: true,
+            warnOnInvalidObjects: true,
+            updateMetadata: true,
+        });
         await fixMissingPages(pdfdoc);
 
         await repairPDF(pdfdoc, enableDebugFunctions);
         return pdfdoc;
     }
-
+    function arrayBufferToBase64(buffer: ArrayBuffer): string {
+        let binary = "";
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    }
     async function repairPDFAndOpen(ev: ChangeEvent<HTMLInputElement>) {
         const pdfdoc = await loadFileAndRepairPDF(ev);
         const savedUpdatedPdfUint8Array = await pdfdoc.save();

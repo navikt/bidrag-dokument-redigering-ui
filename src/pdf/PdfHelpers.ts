@@ -17,6 +17,7 @@ import {
     PDFRef,
     PDFStream,
     PDFString,
+    StandardFonts,
 } from "@cantoo/pdf-lib";
 import { LoggerService } from "@navikt/bidrag-ui-common";
 export const PDF_EDITOR_PRODUCER = "bidrag-dokument-redigering-ui";
@@ -205,8 +206,8 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
 
 export async function repairPDF(pdfDoc: PDFDocument, debug: boolean = false) {
     try {
-        await removeUnlinkedAnnots(pdfDoc);
         if (debug) {
+            await removeUnlinkedAnnots(pdfDoc);
             debugRepairPDF(pdfDoc);
             pdfDoc.getPages().forEach((page, index) => {
                 console.debug("Page number", index, page.node.toString(), page.node.Resources());
@@ -261,8 +262,9 @@ export async function fixMissingPages(pdfDoc: PDFDocument) {
         // }
 
         try {
-            let pdfPageTree: PDFPageTree;
-            let pdfPageLeaf: PDFPageLeaf;
+            // const pdfDoc = this;
+            let pdfPageTree;
+            let pdfPageLeaf;
             for (const [ref, obj] of pdfDoc.context.enumerateIndirectObjects()) {
                 if (obj instanceof PDFPageTree) {
                     pdfPageTree = obj;
@@ -280,6 +282,25 @@ export async function fixMissingPages(pdfDoc: PDFDocument) {
                 }
             }
 
+            console.log("$$$$LOGPAGES$$$");
+            pdfDoc.getPages().forEach((page, index) => {
+                console.log("Page number", index, page.node.toString(), page.node.Resources());
+                const fontRef = page.node.Resources().get(PDFName.of("Font"));
+                if (fontRef) {
+                    const font = pdfDoc.context.lookupMaybe(fontRef, PDFDict);
+                    font.asMap().forEach((value, key) => {
+                        console.log("Font key", key.toString(), value.toString());
+                        console.log("Font ref", pdfDoc.context.getObjectRef(value));
+                    });
+                    console.log("Font", font.toString(), fontRef.toString());
+                    page.node.Resources().set(PDFName.of("Font"), font);
+                }
+            });
+
+            console.log("$$$$LOGPAGES_END$$$");
+            await pdfDoc.embedFont(StandardFonts.Courier);
+            await pdfDoc.embedFont(StandardFonts.Symbol);
+            await pdfDoc.embedFont(StandardFonts.Helvetica);
             if (pdfPageTree) {
                 const map = pdfPageLeaf ? pdfPageLeaf.asMap() : new Map();
                 map.set(PDFName.of("Pages"), pdfPageTree);
