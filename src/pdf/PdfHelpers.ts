@@ -206,8 +206,8 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
 
 export async function repairPDF(pdfDoc: PDFDocument, debug: boolean = false) {
     try {
+        await removeUnlinkedAnnots(pdfDoc);
         if (debug) {
-            await removeUnlinkedAnnots(pdfDoc);
             debugRepairPDF(pdfDoc);
             pdfDoc.getPages().forEach((page, index) => {
                 console.debug("Page number", index, page.node.toString(), page.node.Resources());
@@ -282,6 +282,17 @@ export async function fixMissingPages(pdfDoc: PDFDocument) {
                 }
             }
 
+            if (pdfPageTree) {
+                const map = pdfPageLeaf ? pdfPageLeaf.asMap() : new Map();
+                map.set(PDFName.of("Pages"), pdfPageTree);
+                map.set(PDFName.of("Type"), PDFName.of("Catalog"));
+                const catalog = PDFCatalog.fromMapWithContext(map, pdfDoc.context);
+                console.debug("Fant PDFCatalog", catalog);
+                //@ts-ignore
+                pdfDoc.catalog = catalog;
+                pdfDoc.context.trailerInfo.Root = catalog;
+            }
+
             console.log("$$$$LOGPAGES$$$");
             pdfDoc.getPages().forEach((page, index) => {
                 console.log("Page number", index, page.node.toString(), page.node.Resources());
@@ -296,21 +307,11 @@ export async function fixMissingPages(pdfDoc: PDFDocument) {
                     page.node.Resources().set(PDFName.of("Font"), font);
                 }
             });
-
             console.log("$$$$LOGPAGES_END$$$");
+
             await pdfDoc.embedFont(StandardFonts.Courier);
             await pdfDoc.embedFont(StandardFonts.Symbol);
             await pdfDoc.embedFont(StandardFonts.Helvetica);
-            if (pdfPageTree) {
-                const map = pdfPageLeaf ? pdfPageLeaf.asMap() : new Map();
-                map.set(PDFName.of("Pages"), pdfPageTree);
-                map.set(PDFName.of("Type"), PDFName.of("Catalog"));
-                const catalog = PDFCatalog.fromMapWithContext(map, pdfDoc.context);
-                console.debug("Fant PDFCatalog", catalog);
-                //@ts-ignore
-                pdfDoc.catalog = catalog;
-                pdfDoc.context.trailerInfo.Root = catalog;
-            }
         } catch (e) {
             console.error("Kunne ikke fikse manglende catalog pages", e);
         }
