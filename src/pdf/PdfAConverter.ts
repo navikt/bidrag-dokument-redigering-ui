@@ -15,6 +15,7 @@ import {
 import { LoggerService } from "@navikt/bidrag-ui-common";
 
 import { BIDRAG_FORSENDELSE_API } from "../api/api";
+import { PdfDocumentType } from "../components/utils/types";
 //@ts-ignore
 import colorProfile from "./files/sRGB2014.icc";
 import { PDF_EDITOR_CREATOR, PDF_EDITOR_PRODUCER, PdfProducerHelpers } from "./PdfHelpers";
@@ -232,7 +233,28 @@ export class PdfAConverter {
         return false;
     }
 }
-
+export const reparerPDF = async (documentFile: PdfDocumentType): Promise<File> => {
+    try {
+        LoggerService.info("Reparerer korrupt PDF");
+        const response = await BIDRAG_FORSENDELSE_API.api.reparerPdf(
+            new File([documentFile], "", {
+                type: "application/pdf",
+            }),
+            {
+                headers: {
+                    "Content-Type": "application/pdf",
+                },
+                format: "blob",
+                paramsSerializer: {
+                    indexes: null,
+                },
+            }
+        );
+        return response.data;
+    } catch (e) {
+        console.error("Det skjedde en feil ved reparering av korrupt PDF", e);
+    }
+};
 export const validatePDFBytes = async (documentFile: Uint8Array): Promise<void> => {
     try {
         console.log("Validerer PDF/A kompatibilitet");

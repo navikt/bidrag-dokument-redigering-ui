@@ -4,7 +4,7 @@ import { ChangeEvent, useState } from "react";
 
 import { PdfDocumentType } from "../../components/utils/types";
 import { convertTOPDFA } from "../../pdf/PdfAConverter";
-import { fixMissingPages, repairPDF } from "../../pdf/PdfHelpers";
+import { fixMissingPages, lastGyldigPDF, repairPDF } from "../../pdf/PdfHelpers";
 import DokumentMaskering from "../dokumentmaskering/DokumentMaskering";
 import PageWrapper from "../PageWrapper";
 
@@ -31,17 +31,16 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
     }
     async function loadFileAndRepairPDF(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
-        console.log(fileBuffer);
-        console.log(arrayBufferToBase64(fileBuffer));
-        const pdfdoc = await PDFDocument.load(fileBuffer, {
-            ignoreEncryption: true,
-            warnOnInvalidObjects: true,
-            updateMetadata: true,
-        });
+        const pdfdoc = await lastGyldigPDF(fileBuffer);
         await fixMissingPages(pdfdoc);
-
         await repairPDF(pdfdoc, enableDebugFunctions);
         return pdfdoc;
+    }
+
+    async function readFileAndLog(ev: ChangeEvent<HTMLInputElement>) {
+        const fileBuffer = await readFile(ev);
+        console.log(fileBuffer);
+        console.log(arrayBufferToBase64(fileBuffer));
     }
     function arrayBufferToBase64(buffer: ArrayBuffer): string {
         let binary = "";
@@ -159,7 +158,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
     }
     if (!pdfdocument) {
         return (
-            <div className="text-white flex flex-row gap-2">
+            <div className="text-white flex flex-row gap-2 flex-wrap">
                 <div className="flex flex-col gap-4">
                     <Heading className="text-white" size="medium">
                         Gjenopprett
@@ -183,6 +182,11 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
                         >
                             Skru på debug funksjonalitet
                         </Checkbox>
+                        <div className="flex flex-col gap-4">
+                            <Button size="small" variant="secondary" onClick={() => setPdfdocument(undefined)}>
+                                Reset
+                            </Button>
+                        </div>
                     </div>
                 </div>
                 <div className="flex flex-col gap-4">
@@ -235,7 +239,19 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
                         onChange={openFile}
                     />
                 </div>
-                <Button onClick={() => setPdfdocument(undefined)}>Reset</Button>
+                <div className="flex flex-col gap-4">
+                    <Heading className="text-white" size="medium">
+                        Logg base64
+                    </Heading>
+                    <div>
+                        <input
+                            type="file"
+                            name="Reparer"
+                            accept="application/pdf,application/vnd.ms-excel"
+                            onChange={readFileAndLog}
+                        />
+                    </div>
+                </div>
             </div>
         );
     }

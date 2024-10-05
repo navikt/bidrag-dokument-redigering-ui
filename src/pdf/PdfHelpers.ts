@@ -20,6 +20,9 @@ import {
     StandardFonts,
 } from "@cantoo/pdf-lib";
 import { LoggerService } from "@navikt/bidrag-ui-common";
+
+import { PdfDocumentType } from "../components/utils/types";
+import { reparerPDF } from "./PdfAConverter";
 export const PDF_EDITOR_PRODUCER = "bidrag-dokument-redigering-ui";
 export const PDF_EDITOR_CREATOR = "NAV - Arbeids- og velferdsetaten";
 
@@ -240,6 +243,19 @@ async function debugRepairPDF(pdfDoc: PDFDocument) {
     }
 }
 
+export async function lastGyldigPDF(pdfBytearray: PdfDocumentType) {
+    try {
+        const pdfDoc = await PDFDocument.load(pdfBytearray);
+        // Sjekk om sidene kan lastes. Hvis ikke så betyr det at PDF er ugyldig
+        pdfDoc.getPages();
+        return pdfDoc;
+    } catch (e) {
+        LoggerService.warn("Kunne ikke hente sider for PDF pga corrupt PDF fil. Prøver å reparere PDF med PDFBox", e);
+        const pdfFile = await reparerPDF(pdfBytearray);
+        const arraybuffer = await pdfFile.arrayBuffer();
+        return await PDFDocument.load(arraybuffer);
+    }
+}
 export async function fixMissingPages(pdfDoc: PDFDocument) {
     try {
         pdfDoc.getPages();
