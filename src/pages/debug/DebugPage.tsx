@@ -4,7 +4,7 @@ import { ChangeEvent, useState } from "react";
 
 import { PdfDocumentType } from "../../components/utils/types";
 import { convertTOPDFA } from "../../pdf/PdfAConverter";
-import { fixMissingPages, lastGyldigPDF, repairPDF } from "../../pdf/PdfHelpers";
+import { debugRepairPDF, fixMissingPages, lastGyldigPDF, repairPDF } from "../../pdf/PdfHelpers";
 import DokumentMaskering from "../dokumentmaskering/DokumentMaskering";
 import PageWrapper from "../PageWrapper";
 
@@ -31,9 +31,16 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
     }
     async function loadFileAndRepairPDF(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
-        const pdfdoc = await lastGyldigPDF(fileBuffer);
-        await fixMissingPages(pdfdoc);
-        await repairPDF(pdfdoc, enableDebugFunctions);
+        let pdfdoc = await PDFDocument.load(fileBuffer);
+        if (!enableDebugFunctions) {
+            pdfdoc = await lastGyldigPDF(fileBuffer);
+            await fixMissingPages(pdfdoc);
+            await repairPDF(pdfdoc);
+            debugRepairPDF(pdfdoc);
+            pdfdoc.getPages().forEach((page, index) => {
+                console.debug("Page number", index, page.node.toString(), page.node.Resources());
+            });
+        }
         return pdfdoc;
     }
 

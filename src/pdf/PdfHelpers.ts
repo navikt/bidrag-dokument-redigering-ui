@@ -207,21 +207,15 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
     }
 }
 
-export async function repairPDF(pdfDoc: PDFDocument, debug: boolean = false) {
+export async function repairPDF(pdfDoc: PDFDocument) {
     try {
         await removeUnlinkedAnnots(pdfDoc);
-        if (debug) {
-            debugRepairPDF(pdfDoc);
-            pdfDoc.getPages().forEach((page, index) => {
-                console.debug("Page number", index, page.node.toString(), page.node.Resources());
-            });
-        }
     } catch (e) {
         LoggerService.error("Det skjedde en feil ved reparasjon av PDF", e);
     }
 }
 
-async function debugRepairPDF(pdfDoc: PDFDocument) {
+export async function debugRepairPDF(pdfDoc: PDFDocument) {
     try {
         pdfDoc.getPages().forEach((page, index) => {
             console.log("Page number", index, page.node.toString(), page.node.Resources());

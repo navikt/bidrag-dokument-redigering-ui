@@ -80,7 +80,6 @@ export class PdfProducer {
         }
     }
     async process(): Promise<PdfProducer> {
-        // await fixMissingPages(this.pdfDocument);
         this.removeSubmitButton();
         await flattenForm(this.pdfDocument, this.loadPdf.bind(this), this.config.items.length > 0);
         await repairPDF(this.pdfDocument);
