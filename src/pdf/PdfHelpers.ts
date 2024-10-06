@@ -240,7 +240,7 @@ export async function debugRepairPDF(pdfDoc: PDFDocument) {
 export async function lastGyldigPDF(pdfBytearray: PdfDocumentType) {
     try {
         const pdfDoc = await PDFDocument.load(pdfBytearray);
-        // Sjekk om sidene kan lastes. Hvis ikke så betyr det at PDF er ugyldig
+        // Sjekk om sidene kan lastes. Hvis ikke så betyr det at PDF er korrupt
         pdfDoc.getPages();
         return pdfDoc;
     } catch (e) {
@@ -344,12 +344,11 @@ async function removeUnlinkedAnnots(pdfdoc: PDFDocument) {
                         page.node.delete(PDFName.of("Annots"));
                     }
                 } catch (e) {
-                    console.error("Kunne ikke fjerne annotasjon", e);
                     LoggerService.warn("Kunne ikke fjerne annotasjon", e);
                 }
             }
         } catch (e) {
-            console.error("Det skjedde en feil ved fjerning ulinket annoteringer", e);
+            LoggerService.warn("Det skjedde en feil ved fjerning ulinket annoteringer", e);
         }
     }
 }

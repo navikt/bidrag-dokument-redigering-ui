@@ -6,7 +6,7 @@ import { PDFDocumentProxy } from "pdfjs-dist";
 
 import { PdfDocumentType } from "../../components/utils/types";
 import { PdfAConverter } from "../../pdf/PdfAConverter";
-import { deleteGroupobjectWithSKey, flattenForm } from "../../pdf/PdfHelpers";
+import { deleteGroupobjectWithSKey, flattenForm, repairPDF } from "../../pdf/PdfHelpers";
 import { getFormValues } from "./FormHelper";
 import { PageFormProps, SingleFormProps } from "./types";
 
@@ -49,6 +49,7 @@ export class FormPdfProducer {
         try {
             await this.fillForm();
             await flattenForm(this.pdfDocument, this.loadPdf.bind(this), true);
+            await repairPDF(this.pdfDocument);
             await deleteGroupobjectWithSKey(this.pdfDocument);
         } catch (e) {
             console.error(e);
