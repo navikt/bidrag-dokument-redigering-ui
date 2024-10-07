@@ -1,18 +1,10 @@
-import {
-    PDFArray,
-    PDFDict,
-    PDFDocument,
-    PDFName,
-    PDFPage,
-    PDFPageLeaf,
-    PDFRawStream,
-    PDFStream,
-} from "@cantoo/pdf-lib";
-import { Checkbox, Heading } from "@navikt/ds-react";
+import { PDFArray, PDFDict, PDFDocument, PDFName, PDFPage, PDFPageLeaf, PDFRawStream } from "@cantoo/pdf-lib";
+import { Button, Checkbox, Heading } from "@navikt/ds-react";
 import { ChangeEvent, useState } from "react";
 
 import { PdfDocumentType } from "../../components/utils/types";
 import { convertTOPDFA } from "../../pdf/PdfAConverter";
+import { debugRepairPDF, fixMissingPages, lastGyldigPDF, repairPDF } from "../../pdf/PdfHelpers";
 import DokumentMaskering from "../dokumentmaskering/DokumentMaskering";
 import PageWrapper from "../PageWrapper";
 
@@ -23,6 +15,7 @@ type DebugPageProps = {
 export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPageProps) {
     const [pdfdocument, setPdfdocument] = useState<PdfDocumentType>();
     const [removeImages, setRemoveImages] = useState<"all" | "masked" | "none">("none");
+    const [enableDebugFunctions, setEnableDebugFunctions] = useState(true);
     async function openFile(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
         //@ts-ignore
@@ -36,75 +29,43 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
         const fileBuffer = await file.arrayBuffer();
         return fileBuffer;
     }
-    async function repairPDF(ev: ChangeEvent<HTMLInputElement>) {
+    async function loadFileAndRepairPDF(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
-        const pdfdoc = await PDFDocument.load(fileBuffer);
-
-        pdfdoc.getPages().forEach((page, index) => {
-            console.log("Page number", index, page.node.toString(), page.node.Resources());
-            checkForInvalidXObjects(page, pdfdoc);
-            const group = page.node.get(PDFName.of("Group"));
-            if (group != null && group instanceof PDFDict) {
-                const sObject = group.get(PDFName.of("S"));
-                console.log("Group S object", group.toString(), sObject, sObject.toString());
-            }
-        });
-
-        //console.log(pdfdoc.getForm().acroForm.getAllFields());
-        pdfdoc
-            .getForm()
-            .acroForm.getAllFields()
-            .forEach((field) => console.log(field[1].toString(), field));
-    }
-    async function removeUnlinkedAnnots(pdfdoc: PDFDocument) {
-        for (const page of pdfdoc.getPages()) {
-            console.debug("Starting to remove unlinked annots from page", page);
-            try {
-                const annots = page.node.get(PDFName.of("Annots")) as PDFArray;
-                if (annots == undefined) continue;
-                for (const annot of annots.asArray()) {
-                    try {
-                        const annotDict = pdfdoc.context.lookupMaybe(annot, PDFDict);
-                        console.debug("Annot dict", annotDict);
-                        if (annotDict == undefined) {
-                            console.warn("Fjerner annotasjon som ikke har noe kilde fra side: " + annot.toString());
-                            // page.node.removeAnnot(annotRef);
-                            page.node.delete(PDFName.of("Annots"));
-                        }
-                    } catch (e) {
-                        console.error("Kunne ikke fjerne annotasjon", e);
-                    }
-                }
-            } catch (e) {
-                console.error("Det skjedde en feil ved fjerning ulinket annoteringer", e);
-            }
+        let pdfdoc = await PDFDocument.load(fileBuffer);
+        if (!enableDebugFunctions) {
+            pdfdoc = await lastGyldigPDF(fileBuffer);
+            await fixMissingPages(pdfdoc);
+            await repairPDF(pdfdoc);
+            debugRepairPDF(pdfdoc);
+            pdfdoc.getPages().forEach((page, index) => {
+                console.debug("Page number", index, page.node.toString(), page.node.Resources());
+            });
         }
+        return pdfdoc;
+    }
+
+    async function readFileAndLog(ev: ChangeEvent<HTMLInputElement>) {
+        const fileBuffer = await readFile(ev);
+        console.log(fileBuffer);
+        console.log(arrayBufferToBase64(fileBuffer));
+    }
+    function arrayBufferToBase64(buffer: ArrayBuffer): string {
+        let binary = "";
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
     }
     async function repairPDFAndOpen(ev: ChangeEvent<HTMLInputElement>) {
-        const fileBuffer = await readFile(ev);
-        const pdfdoc = await PDFDocument.load(fileBuffer);
-
-        pdfdoc.getPages().forEach((page, index) => {
-            console.log("Page number", index, page.node.toString(), page.node.Resources());
-            checkForInvalidXObjects(page, pdfdoc);
-            const group = page.node.get(PDFName.of("Group"));
-            if (group != null && group instanceof PDFDict) {
-                const sObject = group.get(PDFName.of("S"));
-                console.log("Group S object", group.toString(), sObject, sObject.toString());
-            }
-        });
-
-        //console.log(pdfdoc.getForm().acroForm.getAllFields());
-        pdfdoc
-            .getForm()
-            .acroForm.getAllFields()
-            .forEach((field) => console.log(field[1].toString(), field));
-        removeUnlinkedAnnots(pdfdoc);
+        const pdfdoc = await loadFileAndRepairPDF(ev);
         const savedUpdatedPdfUint8Array = await pdfdoc.save();
 
         //@ts-ignore
         setPdfdocument(new Blob([savedUpdatedPdfUint8Array]));
     }
+
     async function convertPDF(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
         const pdfdoc = await PDFDocument.load(fileBuffer);
@@ -112,25 +73,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
         const pdfa = convertTOPDFA(new Uint8Array(fileBuffer));
         console.log(pdfa);
     }
-    function checkForInvalidXObjects(page: PDFPage, pdfdoc: PDFDocument) {
-        try {
-            const xObject = page.node.Resources().get(PDFName.of("XObject")) as PDFDict;
-            if (xObject) {
-                const xMap = xObject.asMap();
-                Array.from(xMap.keys()).forEach((key) => {
-                    const stream = pdfdoc.context.lookupMaybe(xMap.get(key), PDFStream);
 
-                    const type = stream.dict.get(PDFName.of("Type"));
-                    if (type == undefined && key.toString().includes("FlatWidget")) {
-                        console.log("Is invalid", key, xObject.toString(), stream.dict.toString(), type);
-                    }
-                });
-            }
-        } catch (e) {
-            console.error("Error in checkForInvalidXObjects", e);
-        }
-        return false;
-    }
     async function recoverAndReadFile(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
         const pdfdoc = await PDFDocument.load(fileBuffer);
@@ -222,7 +165,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
     }
     if (!pdfdocument) {
         return (
-            <div className="text-white flex flex-row gap-2">
+            <div className="text-white flex flex-row gap-2 flex-wrap">
                 <div className="flex flex-col gap-4">
                     <Heading className="text-white" size="medium">
                         Gjenopprett
@@ -240,11 +183,35 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
                         <Checkbox onChange={(value) => setRemoveImages(value.target.checked ? "masked" : "none")}>
                             Fjern bilder bare fra maskerte sider
                         </Checkbox>
+                        <Checkbox
+                            defaultChecked={enableDebugFunctions}
+                            onChange={(value) => setEnableDebugFunctions(value.target.checked)}
+                        >
+                            Skru på debug funksjonalitet
+                        </Checkbox>
+                        <div className="flex flex-col gap-4">
+                            <Button size="small" variant="secondary" onClick={() => setPdfdocument(undefined)}>
+                                Reset
+                            </Button>
+                        </div>
                     </div>
                 </div>
                 <div className="flex flex-col gap-4">
                     <Heading className="text-white" size="medium">
                         Reparer
+                    </Heading>
+                    <div>
+                        <input
+                            type="file"
+                            name="Reparer"
+                            accept="application/pdf,application/vnd.ms-excel"
+                            onChange={loadFileAndRepairPDF}
+                        />
+                    </div>
+                </div>
+                <div className="flex flex-col gap-4">
+                    <Heading className="text-white" size="medium">
+                        Reparer og åpne
                     </Heading>
                     <div>
                         <input
@@ -278,6 +245,19 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
                         accept="application/pdf,application/vnd.ms-excel"
                         onChange={openFile}
                     />
+                </div>
+                <div className="flex flex-col gap-4">
+                    <Heading className="text-white" size="medium">
+                        Logg base64
+                    </Heading>
+                    <div>
+                        <input
+                            type="file"
+                            name="Reparer"
+                            accept="application/pdf,application/vnd.ms-excel"
+                            onChange={readFileAndLog}
+                        />
+                    </div>
                 </div>
             </div>
         );

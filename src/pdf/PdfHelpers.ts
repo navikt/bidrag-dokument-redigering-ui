@@ -1,20 +1,28 @@
 import {
     PDFArray,
     PDFBool,
+    PDFCatalog,
     PDFDict,
     PDFDocument,
+    PDFFont,
     PDFHexString,
     PDFInvalidObject,
     PDFName,
     PDFNumber,
     PDFObject,
     PDFPage,
+    PDFPageLeaf,
+    PDFPageTree,
     PDFRawStream,
     PDFRef,
     PDFStream,
     PDFString,
+    StandardFonts,
 } from "@cantoo/pdf-lib";
 import { LoggerService } from "@navikt/bidrag-ui-common";
+
+import { PdfDocumentType } from "../components/utils/types";
+import { reparerPDF } from "./PdfAConverter";
 export const PDF_EDITOR_PRODUCER = "bidrag-dokument-redigering-ui";
 export const PDF_EDITOR_CREATOR = "NAV - Arbeids- og velferdsetaten";
 
@@ -173,11 +181,6 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
     try {
         const form = pdfDoc.getForm();
         form.flatten();
-        await removeUnlinkedAnnots(pdfDoc);
-        // pdfDoc.getPages().forEach((page, index) => {
-        //     console.debug("Page number", index, page.node.toString(), page.node.Resources());
-        // });
-
         if (hasInvalidXObject(pdfDoc) && !ignoreError) {
             LoggerService.warn(`Dokument er korrupt etter flatning av form felter. Ruller tilbake endringer`);
             await onError();
@@ -204,6 +207,127 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
     }
 }
 
+export async function repairPDF(pdfDoc: PDFDocument) {
+    try {
+        await removeUnlinkedAnnots(pdfDoc);
+    } catch (e) {
+        LoggerService.error("Det skjedde en feil ved reparasjon av PDF", e);
+    }
+}
+
+export async function debugRepairPDF(pdfDoc: PDFDocument) {
+    try {
+        pdfDoc.getPages().forEach((page, index) => {
+            console.log("Page number", index, page.node.toString(), page.node.Resources());
+            pageHasInvalidXObject(page, pdfDoc, index + 1);
+            const group = page.node.get(PDFName.of("Group"));
+            if (group != null && group instanceof PDFDict) {
+                const sObject = group.get(PDFName.of("S"));
+                console.log("Group S object", group.toString(), sObject, sObject.toString());
+            }
+        });
+
+        //console.log(pdfdoc.getForm().acroForm.getAllFields());
+        pdfDoc
+            .getForm()
+            .acroForm.getAllFields()
+            .forEach((field) => console.log(field[1].toString(), field));
+    } catch (e) {
+        console.debug("Det skjedde en feil i debugRepairPDF funksjonen", e);
+    }
+}
+
+export async function lastGyldigPDF(pdfBytearray: PdfDocumentType) {
+    try {
+        const pdfDoc = await PDFDocument.load(pdfBytearray);
+        // Sjekk om sidene kan lastes. Hvis ikke så betyr det at PDF er korrupt
+        pdfDoc.getPages();
+        return pdfDoc;
+    } catch (e) {
+        LoggerService.warn("Kunne ikke hente sider for PDF pga corrupt PDF fil. Prøver å reparere PDF med PDFBox", e);
+        const pdfFile = await reparerPDF(pdfBytearray);
+        const arraybuffer = await pdfFile.arrayBuffer();
+        return await PDFDocument.load(arraybuffer);
+    }
+}
+export async function fixMissingPages(pdfDoc: PDFDocument) {
+    try {
+        pdfDoc.getPages();
+    } catch (e) {
+        console.error("Kunne hente sider for PDF. Prøver å fikse", e);
+        // const rootRef = this.context.trailerInfo.Root;
+        // console.log(this.context.trailerInfo.Root);
+
+        // for (const [ref, obj] of this.context.enumerateIndirectObjects()) {
+        //     if (obj instanceof PDFPageTree) {
+        //         console.log("YES", obj.asMap(), PDFCatalog.withContextAndPages(this.context, obj));
+        //         console.log(ref.toString(), obj.toString(), obj);
+        //     }
+        //     if (obj instanceof PDFCatalog) {
+        //         console.log("CATALOG", obj.toString(), obj);
+        //     }
+        //     if (ref == rootRef) {
+        //         console.log("ROOT", obj.toString(), obj);
+        //     }
+        // }
+
+        try {
+            // const pdfDoc = this;
+            let pdfPageTree;
+            let pdfPageLeaf;
+            for (const [ref, obj] of pdfDoc.context.enumerateIndirectObjects()) {
+                if (obj instanceof PDFPageTree) {
+                    pdfPageTree = obj;
+                }
+                if (obj instanceof PDFFont) {
+                    console.log("FONT", obj);
+                }
+                if (
+                    ref == pdfDoc.context.trailerInfo.Root &&
+                    !(obj instanceof PDFCatalog) &&
+                    obj instanceof PDFPageLeaf
+                ) {
+                    pdfPageLeaf = obj;
+                    console.log("REF er ikke catalog", obj.toString(), obj);
+                }
+            }
+
+            if (pdfPageTree) {
+                const map = pdfPageLeaf ? pdfPageLeaf.asMap() : new Map();
+                map.set(PDFName.of("Pages"), pdfPageTree);
+                map.set(PDFName.of("Type"), PDFName.of("Catalog"));
+                const catalog = PDFCatalog.fromMapWithContext(map, pdfDoc.context);
+                console.debug("Fant PDFCatalog", catalog);
+                //@ts-ignore
+                pdfDoc.catalog = catalog;
+                pdfDoc.context.trailerInfo.Root = catalog;
+            }
+
+            console.log("$$$$LOGPAGES$$$");
+            pdfDoc.getPages().forEach((page, index) => {
+                console.log("Page number", index, page.node.toString(), page.node.Resources());
+                const fontRef = page.node.Resources().get(PDFName.of("Font"));
+                if (fontRef) {
+                    const font = pdfDoc.context.lookupMaybe(fontRef, PDFDict);
+                    font.asMap().forEach((value, key) => {
+                        console.log("Font key", key.toString(), value.toString());
+                        console.log("Font ref", pdfDoc.context.getObjectRef(value));
+                    });
+                    console.log("Font", font.toString(), fontRef.toString());
+                    page.node.Resources().set(PDFName.of("Font"), font);
+                }
+            });
+            console.log("$$$$LOGPAGES_END$$$");
+
+            await pdfDoc.embedFont(StandardFonts.Courier);
+            await pdfDoc.embedFont(StandardFonts.Symbol);
+            await pdfDoc.embedFont(StandardFonts.Helvetica);
+        } catch (e) {
+            console.error("Kunne ikke fikse manglende catalog pages", e);
+        }
+    }
+}
+
 async function removeUnlinkedAnnots(pdfdoc: PDFDocument) {
     for (const page of pdfdoc.getPages()) {
         console.debug("Starting to remove unlinked annots from page", page);
@@ -213,19 +337,18 @@ async function removeUnlinkedAnnots(pdfdoc: PDFDocument) {
             for (const annot of annots.asArray()) {
                 try {
                     const annotDict = pdfdoc.context.lookupMaybe(annot, PDFDict);
-                    console.debug("Annot dict", annotDict);
+                    console.debug("Found annotation dictionary", annotDict);
                     if (annotDict == undefined) {
                         LoggerService.warn("Fjerner annotasjon som ikke har noe kilde fra side: " + annot.toString());
                         // page.node.removeAnnot(annotRef);
                         page.node.delete(PDFName.of("Annots"));
                     }
                 } catch (e) {
-                    console.error("Kunne ikke fjerne annotasjon", e);
                     LoggerService.warn("Kunne ikke fjerne annotasjon", e);
                 }
             }
         } catch (e) {
-            console.error("Det skjedde en feil ved fjerning ulinket annoteringer", e);
+            LoggerService.warn("Det skjedde en feil ved fjerning ulinket annoteringer", e);
         }
     }
 }

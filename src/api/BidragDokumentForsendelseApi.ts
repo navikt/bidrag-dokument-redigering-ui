@@ -39,13 +39,16 @@ export enum DokumentArkivSystemDto {
 
 export enum Engangsbeloptype {
     DIREKTE_OPPGJOR = "DIREKTE_OPPGJOR",
+    DIREKTEOPPGJOR = "DIREKTE_OPPGJØR",
     ETTERGIVELSE = "ETTERGIVELSE",
     ETTERGIVELSE_TILBAKEKREVING = "ETTERGIVELSE_TILBAKEKREVING",
     GEBYR_MOTTAKER = "GEBYR_MOTTAKER",
     GEBYR_SKYLDNER = "GEBYR_SKYLDNER",
     INNKREVING_GJELD = "INNKREVING_GJELD",
-    SAERTILSKUDD = "SAERTILSKUDD",
     TILBAKEKREVING = "TILBAKEKREVING",
+    SAERTILSKUDD = "SAERTILSKUDD",
+    SAeRTILSKUDD = "SÆRTILSKUDD",
+    SAeRBIDRAG = "SÆRBIDRAG",
 }
 
 /** Tema forsendelsen skal opprettes med */
@@ -147,7 +150,7 @@ export enum Stonadstype {
 export enum SoktAvType {
     BIDRAGSMOTTAKER = "BIDRAGSMOTTAKER",
     BIDRAGSPLIKTIG = "BIDRAGSPLIKTIG",
-    BARN18AAR = "BARN_18_AAR",
+    BARN18AR = "BARN_18_ÅR",
     BM_I_ANNEN_SAK = "BM_I_ANNEN_SAK",
     NAV_BIDRAG = "NAV_BIDRAG",
     FYLKESNEMDA = "FYLKESNEMDA",
@@ -323,6 +326,7 @@ export interface HentDokumentValgRequest {
     enhet?: string;
     stonadType?: Stonadstype;
     engangsBelopType?: Engangsbeloptype;
+    behandlingtypeKonvertert?: string;
 }
 
 export interface DokumentMalDetaljer {
@@ -332,7 +336,17 @@ export interface DokumentMalDetaljer {
     redigerbar: boolean;
     beskrivelse: string;
     statiskInnhold: boolean;
-    innholdType?: "VARSEL" | "VEDTAK" | "VEDLEGG_VEDTAK" | "VEDLEGG_VARSEL" | "VEDLEGG" | "SKJEMA";
+    kreverVedtak: boolean;
+    kreverBehandling: boolean;
+    innholdType?:
+        | "NOTAT"
+        | "VARSEL_STANDARD"
+        | "VARSEL"
+        | "VEDTAK"
+        | "VEDLEGG_VEDTAK"
+        | "VEDLEGG_VARSEL"
+        | "VEDLEGG"
+        | "SKJEMA";
     gruppeVisningsnavn?: string;
     språk: string[];
     tilhorerEnheter: string[];
@@ -802,40 +816,6 @@ export interface ForsendelseIkkeDistribuertResponsTo {
     opprettetDato?: string;
 }
 
-export interface ForsendelseMetadata {
-    /** @format int64 */
-    forsendelseId?: number;
-    joarkJournalpostId?: string;
-    saksnummer?: string;
-    enhet?: string;
-    gjelderIdent?: string;
-    mottakerId?: string;
-    saksbehandlerIdent?: string;
-    saksbehandlerNavn?: string;
-    /** @format date-time */
-    distribuertDato?: string;
-    kanal?:
-        | "NAV_NO"
-        | "NAV_NO_UINNLOGGET"
-        | "NAV_NO_CHAT"
-        | "INNSENDT_NAV_ANSATT"
-        | "LOKAL_UTSKRIFT"
-        | "SENTRAL_UTSKRIFT"
-        | "ALTINN"
-        | "EESSI"
-        | "EIA"
-        | "EKST_OPPS"
-        | "SDP"
-        | "TRYGDERETTEN"
-        | "HELSENETTET"
-        | "INGEN_DISTRIBUSJON"
-        | "UKJENT"
-        | "DPVT"
-        | "SKAN_NETS"
-        | "SKAN_PEN"
-        | "SKAN_IM";
-}
-
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, HeadersDefaults, ResponseType } from "axios";
 import axios from "axios";
 
@@ -915,6 +895,9 @@ export class HttpClient<SecurityDataType = unknown> {
     }
 
     protected createFormData(input: Record<string, unknown>): FormData {
+        if (input instanceof FormData) {
+            return input;
+        }
         return Object.keys(input || {}).reduce((formData, key) => {
             const property = input[key];
             const propertyContent: any[] = property instanceof Array ? property : [property];
@@ -957,7 +940,7 @@ export class HttpClient<SecurityDataType = unknown> {
             ...requestParams,
             headers: {
                 ...(requestParams.headers || {}),
-                ...(type && type !== ContentType.FormData ? { "Content-Type": type } : {}),
+                ...(type ? { "Content-Type": type } : {}),
             },
             params: query,
             responseType: responseFormat,
@@ -1028,6 +1011,42 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         validerPdf: (data: File, params: RequestParams = {}) =>
             this.request<string, any>({
                 path: `/api/forsendelse/redigering/validerPDF`,
+                method: "POST",
+                body: data,
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * No description
+         *
+         * @tags rediger-dokument-kontroller
+         * @name ReparerPdf
+         * @summary Reparer PDF hvis den er korrupt
+         * @request POST:/api/forsendelse/redigering/reparerPDF
+         * @secure
+         */
+        reparerPdf: (data: File, params: RequestParams = {}) =>
+            this.request<any, ArrayBuffer>({
+                path: `/api/forsendelse/redigering/reparerPDF`,
+                method: "POST",
+                body: data,
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * No description
+         *
+         * @tags rediger-dokument-kontroller
+         * @name ReparerPdfBase64
+         * @summary Reparer PDF hvis den er korrupt
+         * @request POST:/api/forsendelse/redigering/reparerPDFBase64
+         * @secure
+         */
+        reparerPdfBase64: (data: string, params: RequestParams = {}) =>
+            this.request<any, File>({
+                path: `/api/forsendelse/redigering/reparerPDFBase64`,
                 method: "POST",
                 body: data,
                 secure: true,
@@ -1150,6 +1169,164 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
                 body: data,
                 secure: true,
                 type: ContentType.Json,
+                ...params,
+            }),
+
+        /**
+         * @description Sjekk status på dokumentene i en enkel forsendelse og oppdater status hvis det er ute av synk. Dette skal brukes hvis feks en dokument er ferdigstilt i midlertidlig brevlager men status i databasen er fortsatt "under redigering" Denne tjenesten vil sjekke om dokumentet er ferdigstilt og oppdatere status hvis det er det. Bruk denne tjenesten istedenfor å oppdatere databasen direkte da ferdigstilt notat blir automatisk arkivert i Joark.
+         *
+         * @tags admin-controller
+         * @name SynkForsendelseDistribusjonStatusForAlle
+         * @summary Sjekk status på dokumentene i en enkel forsendelse og oppdater status hvis det er ute av synk
+         * @request POST:/api/forsendelse/internal/synkForsendelseDistribusjonStatus
+         * @secure
+         */
+        synkForsendelseDistribusjonStatusForAlle: (params: RequestParams = {}) =>
+            this.request<any, void>({
+                path: `/api/forsendelse/internal/synkForsendelseDistribusjonStatus`,
+                method: "POST",
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * @description Sjekk status på dokumentene i en enkel forsendelse og oppdater status hvis det er ute av synk. Dette skal brukes hvis feks en dokument er ferdigstilt i midlertidlig brevlager men status i databasen er fortsatt "under redigering" Denne tjenesten vil sjekke om dokumentet er ferdigstilt og oppdatere status hvis det er det. Bruk denne tjenesten istedenfor å oppdatere databasen direkte da ferdigstilt notat blir automatisk arkivert i Joark.
+         *
+         * @tags admin-controller
+         * @name SynkForsendelseDistribusjonStatus
+         * @summary Sjekk status på dokumentene i en enkel forsendelse og oppdater status hvis det er ute av synk
+         * @request POST:/api/forsendelse/internal/synkForsendelseDistribusjonStatus/{forsendelseId}
+         * @secure
+         */
+        synkForsendelseDistribusjonStatus: (forsendelseId: string, params: RequestParams = {}) =>
+            this.request<any, void>({
+                path: `/api/forsendelse/internal/synkForsendelseDistribusjonStatus/${forsendelseId}`,
+                method: "POST",
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * @description Sjekk status på dokumentene i forsendelse og oppdater status hvis det er ute av synk. Dette skal brukes hvis feks en dokument er ferdigstilt i midlertidlig brevlager men status i databasen er fortsatt "under redigering" Denne tjenesten vil sjekke om dokumentet er ferdigstilt og oppdatere status hvis det er det. Bruk denne tjenesten istedenfor å oppdatere databasen direkte da ferdigstilt notat blir automatisk arkivert i Joark.
+         *
+         * @tags admin-controller
+         * @name SjekkOgOppdaterStatus
+         * @summary Sjekk status på dokumentene i forsendelser og oppdater status hvis det er ute av synk
+         * @request POST:/api/forsendelse/internal/sjekkOgOppdaterStatus
+         * @secure
+         */
+        sjekkOgOppdaterStatus: (
+            query?: {
+                /**
+                 * @format int32
+                 * @default 100
+                 */
+                limit?: number;
+                /**
+                 * @format date
+                 * @example "2023-11-01"
+                 */
+                afterDate?: string;
+                /**
+                 * @format date
+                 * @example "2023-12-31"
+                 */
+                beforeDate?: string;
+            },
+            params: RequestParams = {}
+        ) =>
+            this.request<Record<string, string>[], any>({
+                path: `/api/forsendelse/internal/sjekkOgOppdaterStatus`,
+                method: "POST",
+                query: query,
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * @description Sjekk status på dokumentene i en enkel forsendelse og oppdater status hvis det er ute av synk. Dette skal brukes hvis feks en dokument er ferdigstilt i midlertidlig brevlager men status i databasen er fortsatt "under redigering" Denne tjenesten vil sjekke om dokumentet er ferdigstilt og oppdatere status hvis det er det. Bruk denne tjenesten istedenfor å oppdatere databasen direkte da ferdigstilt notat blir automatisk arkivert i Joark.
+         *
+         * @tags admin-controller
+         * @name SjekkOgOppdaterStatus1
+         * @summary Sjekk status på dokumentene i en enkel forsendelse og oppdater status hvis det er ute av synk
+         * @request POST:/api/forsendelse/internal/sjekkOgOppdaterStatus/{forsendelseId}
+         * @secure
+         */
+        sjekkOgOppdaterStatus1: (
+            forsendelseId: string,
+            query?: {
+                /** @default false */
+                oppdaterStatus?: boolean;
+            },
+            params: RequestParams = {}
+        ) =>
+            this.request<any, Record<string, string>[]>({
+                path: `/api/forsendelse/internal/sjekkOgOppdaterStatus/${forsendelseId}`,
+                method: "POST",
+                query: query,
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * @description Resynk distribusjonkanal. Hvis forsendelse er distribuert via nav.no og mottaker ikke har åpnet dokumentet i løpet av 48 timer vil forsendelsen bli redistribuert via sentral print. Denne tjenesten trigger en resynk av alle forsendelser som er sendt via nav.no for å oppdatere til riktig distribusjonstatus. Dette kjøres også som en egen skedulert jobb.
+         *
+         * @tags admin-controller
+         * @name DistTilNavNoMenHarKanalSentralPrint
+         * @summary Resynk distribusjonkanal for forsendelser som er distribuert via nav.no
+         * @request POST:/api/forsendelse/internal/distribusjon/navno
+         * @secure
+         */
+        distTilNavNoMenHarKanalSentralPrint: (
+            query?: {
+                /** @default true */
+                simulering?: boolean;
+                /**
+                 * @format date
+                 * @example "2023-11-01"
+                 */
+                afterDate?: string;
+                /**
+                 * @format date
+                 * @example "2023-12-31"
+                 */
+                beforeDate?: string;
+                sjekketNavNoRedistribusjonTilSentralPrint?: boolean;
+                /** @format int32 */
+                pageSize?: number;
+            },
+            params: RequestParams = {}
+        ) =>
+            this.request<Record<string, string>[], any>({
+                path: `/api/forsendelse/internal/distribusjon/navno`,
+                method: "POST",
+                query: query,
+                secure: true,
+                ...params,
+            }),
+
+        /**
+         * @description Resynk distribusjonkanal. Hvis forsendelse er distribuert via nav.no og mottaker ikke har åpnet dokumentet i løpet av 48 timer vil forsendelsen bli redistribuert via sentral print. Denne tjenesten trigger en resynk av alle forsendelser som er sendt via nav.no for å oppdatere til riktig distribusjonstatus. Dette kjøres også som en egen skedulert jobb.
+         *
+         * @tags admin-controller
+         * @name DistTilNavNoMenHarKanalSentralPrintForForsendelse
+         * @summary Resynk distribusjonkanal for forsendelse
+         * @request POST:/api/forsendelse/internal/distribusjon/navno/{forsendelseId}
+         * @secure
+         */
+        distTilNavNoMenHarKanalSentralPrintForForsendelse: (
+            forsendelseId: number,
+            query?: {
+                /** @default true */
+                simulering?: boolean;
+            },
+            params: RequestParams = {}
+        ) =>
+            this.request<Record<string, string>, any>({
+                path: `/api/forsendelse/internal/distribusjon/navno/${forsendelseId}`,
+                method: "POST",
+                query: query,
+                secure: true,
                 ...params,
             }),
 
@@ -1620,34 +1797,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
             this.request<string, string>({
                 path: `/api/forsendelse/journal/distribuer/${forsendelseIdMedPrefix}/enabled`,
                 method: "GET",
-                secure: true,
-                ...params,
-            }),
-
-        /**
-         * No description
-         *
-         * @tags admin-controller
-         * @name DistTilNavNoMenHarKanalSentralPrint
-         * @summary Resynk distribuert kanal
-         * @request GET:/api/forsendelse/internal/distribusjon/navno
-         * @secure
-         */
-        distTilNavNoMenHarKanalSentralPrint: (
-            query?: {
-                /** @default true */
-                simulering?: boolean;
-                /** @format date */
-                afterDate?: string;
-                /** @format date */
-                beforeDate?: string;
-            },
-            params: RequestParams = {}
-        ) =>
-            this.request<any, ForsendelseMetadata[]>({
-                path: `/api/forsendelse/internal/distribusjon/navno`,
-                method: "GET",
-                query: query,
                 secure: true,
                 ...params,
             }),
