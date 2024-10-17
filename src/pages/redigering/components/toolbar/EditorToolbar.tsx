@@ -13,8 +13,8 @@ import UnlockPdfButton from "./UnlockPdfButton";
 export default function EditorToolbar() {
     const { onToggleSidebar, mode, dokumentMetadata } = usePdfEditorContext();
 
-    const isEditable = dokumentMetadata?.state == "EDITABLE" || mode == "remove_pages_only";
-    const isEditMode = mode == "edit";
+    const isEditable = dokumentMetadata?.state == "EDITABLE" || mode == "remove_pages_only" || mode == "edit_local";
+    const isEditMode = mode == "edit" || mode == "edit_local";
 
     return (
         <Toolbar>

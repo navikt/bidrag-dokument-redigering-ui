@@ -30,9 +30,7 @@ export default function App() {
                         path="/rediger/skjemautfylling/:forsendelseId/:dokumentreferanse"
                         element={<SkjemaUtfyllingPageWrapper />}
                     />
-                    {environment.feature.debugPage && (
-                        <Route path="/rediger/debug/:forsendelseId/:dokumentreferanse" element={<DebugWrapper />} />
-                    )}
+                    {environment.feature.debugPage && <Route path="/rediger/debug" element={<DebugWrapper />} />}
                 </Routes>
             </BrowserRouter>
         </React.StrictMode>
@@ -62,7 +60,5 @@ function SkjemaUtfyllingPageWrapper() {
 }
 
 function DebugWrapper() {
-    const { forsendelseId, dokumentreferanse } = useParams();
-
-    return <DebugPage forsendelseId={forsendelseId} dokumentreferanse={dokumentreferanse} />;
+    return <DebugPage />;
 }

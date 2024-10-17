@@ -11,7 +11,7 @@ import { validatePDFBytes } from "../../../pdf/PdfAConverter";
 import { IProducerProgress, PdfProducer } from "../../../pdf/PdfProducer";
 import { ClosingWindow, EditDocumentMetadata, IDocumentMetadata } from "../../../types/EditorTypes";
 
-export type PdfEditorMode = "view_only_unlockable" | "edit" | "remove_pages_only" | "view_only_locked";
+export type PdfEditorMode = "view_only_unlockable" | "edit" | "remove_pages_only" | "view_only_locked" | "edit_local";
 
 type ProduceAndSaveState = "PRODUCING" | "SAVING_DOCUMENT" | "SAVING_METADATA" | "IDLE" | "ERROR" | "CLOSING_WINDOW";
 interface IProduceAndSaveDocumentProgress {
@@ -57,7 +57,7 @@ interface IPdfEditorContextProviderProps {
 
 export default function PdfEditorContextProvider(props: PropsWithChildren<IPdfEditorContextProviderProps>) {
     const items = props.dokumentMetadata?.editorMetadata?.items ?? [];
-    const isEditMode = props.mode == "edit";
+    const isEditMode = props.mode == "edit" || props.mode == "edit_local";
     return (
         <MaskingContainer items={isEditMode ? items : []} enabled={isEditMode}>
             <PdfEditorContextProviderWithMasking {...props} />

@@ -8,11 +8,7 @@ import { debugRepairPDF, fixMissingPages, lastGyldigPDF, repairPDF } from "../..
 import DokumentMaskering from "../dokumentmaskering/DokumentMaskering";
 import PageWrapper from "../PageWrapper";
 
-type DebugPageProps = {
-    forsendelseId: string;
-    dokumentreferanse: string;
-};
-export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPageProps) {
+export default function DebugPage() {
     const [pdfdocument, setPdfdocument] = useState<PdfDocumentType>();
     const [removeImages, setRemoveImages] = useState<"all" | "masked" | "none">("none");
     const [enableDebugFunctions, setEnableDebugFunctions] = useState(true);
@@ -168,6 +164,17 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
             <div className="text-white flex flex-row gap-2 flex-wrap">
                 <div className="flex flex-col gap-4">
                     <Heading className="text-white" size="medium">
+                        Åpne for redigering:
+                    </Heading>
+                    <input
+                        type="file"
+                        name="Åpne"
+                        accept="application/pdf,application/vnd.ms-excel"
+                        onChange={openFile}
+                    />
+                </div>
+                <div className="flex flex-col gap-4">
+                    <Heading className="text-white" size="medium">
                         Gjenopprett
                     </Heading>
                     <div>
@@ -235,17 +242,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
                         />
                     </div>
                 </div>
-                <div className="flex flex-col gap-4">
-                    <Heading className="text-white" size="medium">
-                        Åpne:
-                    </Heading>
-                    <input
-                        type="file"
-                        name="Åpne"
-                        accept="application/pdf,application/vnd.ms-excel"
-                        onChange={openFile}
-                    />
-                </div>
+
                 <div className="flex flex-col gap-4">
                     <Heading className="text-white" size="medium">
                         Logg base64
@@ -265,7 +262,7 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
 
     return (
         <PageWrapper name={"dokumentredigering_debug"}>
-            <DokumentMaskering documentFile={pdfdocument} isLoading={false} mode="remove_pages_only" />
+            <DokumentMaskering documentFile={pdfdocument} isLoading={false} mode="edit_local" />
         </PageWrapper>
     );
 }

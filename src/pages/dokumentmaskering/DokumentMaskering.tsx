@@ -62,6 +62,7 @@ export default function DokumentMaskering({
     }
 
     function saveDocument(config: EditDocumentMetadata) {
+        if (mode == "edit_local") return new Promise<any>((resolve) => resolve());
         return new Promise<any>((resolve, reject) => {
             lagreEndringerFn.mutate(config, {
                 onSuccess: resolve,
@@ -99,6 +100,7 @@ export default function DokumentMaskering({
     }
 
     const getPdfEditorMode = (): PdfEditorMode => {
+        if (mode == "edit_local") return "edit_local";
         if (dokumentMetadata?.forsendelseState == "LOCKED") return "view_only_unlockable";
         if (dokumentMetadata?.state == "LOCKED") return "view_only_unlockable";
         return mode ?? "edit";
