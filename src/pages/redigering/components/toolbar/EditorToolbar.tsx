@@ -23,7 +23,7 @@ export default function EditorToolbar() {
                     <Hamburger />
                 </Button>
                 {dokumentMetadata?.title && (
-                    <Detail className={"pl-2 document-title text-white m-auto"}>{dokumentMetadata.title}</Detail>
+                    <div className={"pl-2 document-title text-white m-auto"}>{dokumentMetadata.title}</div>
                 )}
             </div>
             {isEditable ? (
