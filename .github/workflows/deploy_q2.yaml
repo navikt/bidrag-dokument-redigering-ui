@@ -3,6 +3,11 @@ on:
   workflow_dispatch:
   pull_request:
     types: [ ready_for_review, opened, synchronize ]
+  push:
+    branches:
+      - 'dev/**'
+      - 'q2/**'
+      - 'Q2/**'
 
 
 env:
