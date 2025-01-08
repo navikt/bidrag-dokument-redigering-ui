@@ -1,8 +1,10 @@
-const { merge } = require("webpack-merge");
-const webpackCommon = require("./webpack.common.config.js");
-const { EnvironmentPlugin } = require("webpack");
+import webpack from "webpack";
+import { merge } from "webpack-merge";
 
-module.exports = merge(webpackCommon, {
+import webpackCommon from "./webpack.common.config.mjs";
+const { EnvironmentPlugin } = webpack;
+
+export default merge(webpackCommon, {
     mode: "production",
     plugins: [
         // Defined as variable: default-value
