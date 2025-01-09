@@ -1,13 +1,18 @@
-const path = require("path");
-const webpack = require("webpack");
-const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-const CopyPlugin = require("copy-webpack-plugin");
-const { ModuleFederationPlugin } = require("webpack").container;
-const deps = require("./package.json").dependencies;
-const { EsbuildPlugin } = require("esbuild-loader");
+import { fileURLToPath } from "node:url";
 
-module.exports = {
+import { CleanWebpackPlugin } from "clean-webpack-plugin";
+import CopyPlugin from "copy-webpack-plugin";
+import MiniCssExtractPlugin from "mini-css-extract-plugin";
+import path from "path";
+import TerserPlugin from "terser-webpack-plugin";
+import webpack from "webpack";
+
+import deps from "./package.json" assert { type: "json" };
+const { ModuleFederationPlugin } = webpack.container;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+export default {
     entry: "./src/index.tsx",
     output: {
         filename: "[name].[fullhash].js",
@@ -41,7 +46,6 @@ module.exports = {
     optimization: {
         minimizer: [
             (compiler) => {
-                const TerserPlugin = require("terser-webpack-plugin");
                 new TerserPlugin({
                     terserOptions: {
                         compress: {

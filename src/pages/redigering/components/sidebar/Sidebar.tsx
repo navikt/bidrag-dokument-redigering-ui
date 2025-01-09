@@ -1,6 +1,6 @@
 import "./Sidebar.css";
 
-import { Checkbox, Detail, Popover } from "@navikt/ds-react";
+import { BodyShort, Checkbox, Detail, Popover } from "@navikt/ds-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import PdfDocument, { PdfDocumentRef } from "../../../../components/pdfcore/PdfDocument";
@@ -109,21 +109,22 @@ function PageSection({ title, pageRange, index }: IPageSectionProps) {
     return (
         <>
             {title && (
-                <div className={"pl-3 pagesection"} style={{ top: `${30 * index * 0 + 20}px` }}>
+                <div className={"pl-3 pagesection flex flex-row gap-1"} style={{ top: `${30 * index * 0 + 20}px` }}>
                     <Checkbox
                         onClick={toggleDeletePages}
                         checked={getDeletedPages().length == 0}
                         indeterminate={isSomePagesDeleted}
                         size={"small"}
                         className={"checkbox"}
-                    >
-                        <Detail
-                            style={{ color: "white" }}
-                            className={"ml-2 page-section-title w-max flex items-center flex-row gap-[5px]"}
-                        >
-                            <DocumentTitlePopover title={title} />
-                        </Detail>
+                    > 
+                       <></> 
                     </Checkbox>
+                    <BodyShort size="small" as="div"
+                        style={{ color: "white" }}
+                        className={"ml-2 page-section-title w-max flex items-center flex-row gap-[5px]"}
+                    >
+                        <DocumentTitlePopover title={title} />
+                    </BodyShort>
                 </div>
             )}
             <div className={"pt-2"}>
@@ -137,7 +138,7 @@ function PageSection({ title, pageRange, index }: IPageSectionProps) {
 
 function DocumentTitlePopover({ title }: { title: string }) {
     const [openState, setOpenState] = useState(false);
-    const buttonRef = useRef();
+    const buttonRef = useRef(null);
     return (
         <>
             <span

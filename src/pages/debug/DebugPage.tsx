@@ -16,12 +16,36 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
     const [pdfdocument, setPdfdocument] = useState<PdfDocumentType>();
     const [removeImages, setRemoveImages] = useState<"all" | "masked" | "none">("none");
     const [enableDebugFunctions, setEnableDebugFunctions] = useState(true);
+    async function base64TilPDF(ev: ChangeEvent<HTMLInputElement>) {
+        const fileBuffer = await readFileAsText(ev);
+        console.log(fileBuffer);
+
+        const file = new Blob([_base64ToArrayBuffer(fileBuffer)], { type: "application/pdf" });
+        const fileUrl = URL.createObjectURL(file);
+        window.open(fileUrl, "_blank");
+    }
     async function openFile(ev: ChangeEvent<HTMLInputElement>) {
         const fileBuffer = await readFile(ev);
+
         //@ts-ignore
         setPdfdocument(new Blob([fileBuffer]));
     }
-
+    function _base64ToArrayBuffer(base64) {
+        const binary_string = window.atob(base64);
+        const len = binary_string.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binary_string.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+    async function readFileAsText(ev: ChangeEvent<HTMLInputElement>) {
+        const files = ev.target.files;
+        if (files.length == 0) return;
+        const file = ev.target.files[0];
+        const fileBuffer = await file.text();
+        return fileBuffer;
+    }
     async function readFile(ev: ChangeEvent<HTMLInputElement>) {
         const files = ev.target.files;
         if (files.length == 0) return;
@@ -256,6 +280,19 @@ export default function DebugPage({ forsendelseId, dokumentreferanse }: DebugPag
                             name="Reparer"
                             accept="application/pdf,application/vnd.ms-excel"
                             onChange={readFileAndLog}
+                        />
+                    </div>
+                </div>
+                <div className="flex flex-col gap-4">
+                    <Heading className="text-white" size="medium">
+                        Base64 til PDF
+                    </Heading>
+                    <div>
+                        <input
+                            type="file"
+                            name="Reparer"
+                            accept="application/pdf,application/vnd.ms-excel"
+                            onChange={base64TilPDF}
                         />
                     </div>
                 </div>

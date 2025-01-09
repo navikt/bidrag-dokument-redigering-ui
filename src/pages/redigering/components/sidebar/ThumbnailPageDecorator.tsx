@@ -14,7 +14,7 @@ interface ThumbnailPageDecoratorProps extends PropsWithChildren<unknown> {
 }
 
 export default function ThumbnailPageDecorator({ pageNumber }: ThumbnailPageDecoratorProps) {
-    const decoratorRef = useRef<HTMLDivElement>();
+    const decoratorRef = useRef<HTMLDivElement>(null);
     const { removedPages, toggleDeletedPage, mode } = usePdfEditorContext();
     const { currentPage, onPageChange } = usePdfViewerContext();
     const isDeleted = removedPages.includes(pageNumber);

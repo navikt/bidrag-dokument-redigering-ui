@@ -2,11 +2,3 @@
 @import "@navikt/ds-css";
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
-
-.bidrag-dokument-redigering-ui .navds-checkbox--small .navds-checkbox__icon {
-    top: 13px;
-  }
-
-  .bidrag-dokument-redigering-ui .navds-checkbox__icon {
-    top: 7px;
-  }
