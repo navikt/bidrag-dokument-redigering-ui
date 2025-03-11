@@ -95,8 +95,8 @@ function DocumentView({ file, dokumentreferanse, forsendelseId, dokumentMetadata
     const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy>();
     const [pagesLoaded, setPagesLoaded] = useState([]);
     const [scale, setScale] = useState(1.3);
-    const pdfDocumentRef = useRef<PDFDocumentProxy>();
-    const pdfViewerDivRef = useRef<HTMLDivElement>();
+    const pdfDocumentRef = useRef<PDFDocumentProxy>(null);
+    const pdfViewerDivRef = useRef<HTMLDivElement>(null);
     const isRendering = useRef<boolean>(false);
     const producerRef = useRef(new FormPdfProducer(file));
     const lagreEndringerFn = RedigeringQueries.lagreEndringer(forsendelseId, dokumentreferanse);
@@ -200,7 +200,9 @@ function DocumentView({ file, dokumentreferanse, forsendelseId, dokumentMetadata
                     <DocumentPage
                         pageNumber={pageNumber + 1}
                         scale={scale}
-                        onPageLoaded={() => setPagesLoaded((prev) => [...prev, pageNumber + 1])}
+                        onPageLoaded={() => {
+                            setPagesLoaded((prev) => [...prev, pageNumber + 1])
+                        }}
                     />
                 ))}
             </div>
@@ -254,9 +256,9 @@ interface DocumentPageProps {
 }
 function DocumentPage({ pageNumber, onPageLoaded, scale }: DocumentPageProps) {
     const { pdfDocument } = useSkjemaUtfyllingContext();
-    const divRef = useRef<HTMLDivElement>();
+    const divRef = useRef<HTMLDivElement>(null);
     const isDrawn = useRef(false);
-    const pdfPageViewRef = useRef<PDFPageView>();
+    const pdfPageViewRef = useRef<PDFPageView>(null);
 
     useEffect(() => {
         if (isDrawn.current) return;
@@ -286,5 +288,7 @@ function DocumentPage({ pageNumber, onPageLoaded, scale }: DocumentPageProps) {
         pdfPageViewRef.current.draw().then(onPageLoaded);
     }
 
-    return <div ref={divRef}></div>;
+    return <div ref={divRef}>
+
+    </div>;
 }

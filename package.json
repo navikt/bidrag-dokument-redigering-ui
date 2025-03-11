@@ -34,7 +34,7 @@
     "core-js": "3.39.0",
     "immutable": "^5.0.3",
     "pdf-img-convert": "2.0.0",
-    "@cantoo/pdf-lib": "2.2.3",
+    "@cantoo/pdf-lib": "2.3.1",
     "pdfjs-dist": "4.10.38",
     "re-resizable": "6.10.3",
     "react": "^19.0.0",
