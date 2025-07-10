@@ -74,8 +74,8 @@ export class FormPdfProducer {
         form.getFields().forEach((field) => {
             form.markFieldAsDirty(field.ref);
             field.acroField.getWidgets().forEach((w) => {
-                field.acroField.dict.set(PDFName.of("V"), w.getOnValue());
-                w.setAppearanceState(w.getOnValue());
+                field.acroField.dict.set(PDFName.of("V"), PDFName.of("Off"));
+                w.setAppearanceState(PDFName.of("Off"));
             });
         });
         for (const pageNumber of formValues.keys()) {
@@ -120,6 +120,9 @@ export class FormPdfProducer {
                 field.setText(props.value);
             } else {
                 const field = form.getFieldMaybe(props.name);
+                console.log(
+                    `Fyller ut felt med navn ${props.name} og type ${props.type} med verdi ${props.value} og eksportverdi ${props.exportValue}`
+                );
                 if (field instanceof PDFCheckBox && props.value) {
                     const widgets = field.acroField.getWidgets();
                     const widget = this.getWidget(field, props.exportValue, props.name);
