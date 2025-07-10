@@ -1,4 +1,14 @@
-import { PDFCheckBox, PDFDocument, PDFField, PDFName } from "@cantoo/pdf-lib";
+import {
+    PDFAcroButton,
+    PDFArray,
+    PDFCheckBox,
+    PDFDict,
+    PDFDocument,
+    PDFField,
+    PDFName,
+    PDFRadioGroup,
+    PDFRef,
+} from "@cantoo/pdf-lib";
 import { PDFFont } from "@cantoo/pdf-lib";
 import { StandardFonts } from "@cantoo/pdf-lib";
 import { FileUtils, LoggerService, SecureLoggerService } from "@navikt/bidrag-ui-common";
@@ -6,7 +16,7 @@ import { PDFDocumentProxy } from "pdfjs-dist";
 
 import { PdfDocumentType } from "../../components/utils/types";
 import { PdfAConverter } from "../../pdf/PdfAConverter";
-import { deleteGroupobjectWithSKey, flattenForm, repairPDF } from "../../pdf/PdfHelpers";
+import { debugRepairPDF, deleteGroupobjectWithSKey, flattenForm, repairPDF } from "../../pdf/PdfHelpers";
 import { getFormValues } from "./FormHelper";
 import { PageFormProps, SingleFormProps } from "./types";
 
@@ -60,6 +70,14 @@ export class FormPdfProducer {
 
     private async fillForm() {
         const formValues = await getFormValues(this.formDocument);
+        const form = this.pdfDocument.getForm();
+        form.getFields().forEach((field) => {
+            form.markFieldAsDirty(field.ref);
+            field.acroField.getWidgets().forEach((w) => {
+                field.acroField.dict.set(PDFName.of("V"), w.getOnValue());
+                w.setAppearanceState(w.getOnValue());
+            });
+        });
         for (const pageNumber of formValues.keys()) {
             const annotations = formValues.get(pageNumber);
             await this.fillFormForPage(pageNumber, annotations);
@@ -113,6 +131,31 @@ export class FormPdfProducer {
                     for (const otherWidget of widgets) {
                         if (otherWidget.getOnValue() != onValue) {
                             otherWidget?.setAppearanceState(PDFName.of("Off"));
+                        }
+                    }
+                }
+                if (field instanceof PDFField) {
+                    const widgets = field.acroField.getWidgets();
+                    const kids = field.acroField.dict.get(PDFName.of("Kids"));
+                    if (kids && kids instanceof PDFArray && props.value) {
+                        const kidRef = kids.asArray().find((kid) => {
+                            const kidRefRaw = kid.toString();
+                            const simplifiedKidRef = kidRefRaw.replace(/ \d+ R$/, "R"); // Converts to "113R"
+                            return simplifiedKidRef == props.id;
+                        });
+                        const kidField = this.pdfDocument.context.lookup(kidRef) as PDFDict | undefined;
+                        const choiceNumber = kidField?.get(PDFName.of("AS"));
+                        const widget = field.acroField.getWidgets().find((w) => {
+                            return w.getOnValue()?.asString() == choiceNumber?.toString();
+                        });
+                        if (widget) {
+                            field.acroField.dict.set(PDFName.of("V"), widget.getOnValue());
+                            widget.setAppearanceState(widget.getOnValue());
+                            for (const otherWidget of widgets) {
+                                if (otherWidget.getOnValue() != choiceNumber) {
+                                    otherWidget?.setAppearanceState(PDFName.of("Off"));
+                                }
+                            }
                         }
                     }
                 }
