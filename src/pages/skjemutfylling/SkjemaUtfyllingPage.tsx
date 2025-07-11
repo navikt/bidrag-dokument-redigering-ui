@@ -85,6 +85,19 @@ function SkjemaUtfyllingContainer({ forsendelseId, dokumentreferanse, dokumenter
         />
     );
 }
+
+export function SkjemaUtfyllingContainerDebug({ file }: { file: PdfDocumentType }) {
+
+
+    return (
+        <DocumentView
+            file={file}
+            forsendelseId={"forsendelseId"}
+            dokumentreferanse={"dokumentreferanse"}
+            dokumentMetadata={{} as IDocumentMetadata<SkjemautfyllingMetadata>}
+        />
+    );
+}
 interface DocumentViewProps extends PropsWithChildren<unknown> {
     file: PdfDocumentType;
     forsendelseId: string;
