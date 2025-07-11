@@ -23,6 +23,8 @@ import { LoggerService } from "@navikt/bidrag-ui-common";
 
 import { PdfDocumentType } from "../components/utils/types";
 import { reparerPDF } from "./PdfAConverter";
+import { getFormValues } from "../pages/skjemutfylling/FormHelper";
+import { PDFDocumentProxy } from "pdfjs-dist";
 export const PDF_EDITOR_PRODUCER = "bidrag-dokument-redigering-ui";
 export const PDF_EDITOR_CREATOR = "NAV - Arbeids- og velferdsetaten";
 
@@ -207,9 +209,9 @@ export async function flattenForm(pdfDoc: PDFDocument, onError: () => void, igno
     }
 }
 
-export async function repairPDF(pdfDoc: PDFDocument) {
+export async function repairPDF(pdfDoc: PDFDocument, formDocument: PDFDocumentProxy) {
     try {
-        await removeUnlinkedAnnots(pdfDoc);
+        await removeUnlinkedAnnots(pdfDoc, formDocument);
     } catch (e) {
         LoggerService.error("Det skjedde en feil ved reparasjon av PDF", e);
     }
@@ -218,7 +220,7 @@ export async function repairPDF(pdfDoc: PDFDocument) {
 export async function debugRepairPDF(pdfDoc: PDFDocument) {
     try {
         pdfDoc.getPages().forEach((page, index) => {
-            console.log("Page number", index, page.node.toString(), page.node.Resources());
+            //console.log("Page number", index, page.node.toString(), page.node.Resources());
             pageHasInvalidXObject(page, pdfDoc, index + 1);
             const group = page.node.get(PDFName.of("Group"));
             if (group != null && group instanceof PDFDict) {
@@ -328,12 +330,17 @@ export async function fixMissingPages(pdfDoc: PDFDocument) {
     }
 }
 
-async function removeUnlinkedAnnots(pdfdoc: PDFDocument) {
+async function removeUnlinkedAnnots(pdfdoc: PDFDocument, formDocument: PDFDocumentProxy) {
     for (const page of pdfdoc.getPages()) {
         console.debug("Starting to remove unlinked annots from page", page);
         try {
-            const annots = page.node.get(PDFName.of("Annots")) as PDFArray;
+            let annots = page.node.get(PDFName.of("Annots")) as PDFArray;
+            //console.log("Found annotations on page", annots);
             if (annots == undefined) continue;
+            if (annots instanceof PDFRef) {
+                annots = pdfdoc.context.lookupMaybe(annots, PDFArray);
+                if (annots == undefined) continue;
+            }
             for (const annot of annots.asArray()) {
                 try {
                     const annotDict = pdfdoc.context.lookupMaybe(annot, PDFDict);
@@ -350,6 +357,26 @@ async function removeUnlinkedAnnots(pdfdoc: PDFDocument) {
         } catch (e) {
             LoggerService.warn("Det skjedde en feil ved fjerning ulinket annoteringer", e);
         }
+    }
+
+    try {
+        const formValues = await getFormValues(formDocument);
+        const form = pdfdoc.getForm();
+        for (const pageNumber of formValues.keys()) {
+            const annotations = formValues.get(pageNumber);
+            for (const formProp of annotations) {
+                const field = form.getFieldMaybe(formProp.name);
+                field?.acroField.getWidgets().forEach((widget) => {
+                    // console.log("AP", widget.dict.toString(), widget.AP());
+                    if (widget.P() == undefined) {
+                        const page = pdfdoc.getPage(pageNumber - 1);
+                        field.acroField.dict.set(PDFName.of("P"), page.ref);
+                    }
+                });
+            }
+        }
+    } catch (e) {
+        LoggerService.warn("Det skjedde en feil ved fjerning ulinket annoteringer", e);
     }
 }
 

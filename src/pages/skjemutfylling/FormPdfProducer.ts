@@ -44,7 +44,7 @@ export class FormPdfProducer {
         if (this.pdfBlob instanceof Blob) {
             pdfBytes = await this.pdfBlob.arrayBuffer();
         }
-        this.pdfDocument = await PDFDocument.load(pdfBytes);
+        this.pdfDocument = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
         this.font = await this.pdfDocument.embedFont(StandardFonts.TimesRoman);
         this.formDocument = formDocument;
         this.title = title;
@@ -58,8 +58,8 @@ export class FormPdfProducer {
     async process(): Promise<FormPdfProducer> {
         try {
             await this.fillForm();
+            await repairPDF(this.pdfDocument, this.formDocument);
             await flattenForm(this.pdfDocument, this.loadPdf.bind(this), true);
-            await repairPDF(this.pdfDocument);
             await deleteGroupobjectWithSKey(this.pdfDocument);
         } catch (e) {
             console.error(e);
@@ -70,14 +70,6 @@ export class FormPdfProducer {
 
     private async fillForm() {
         const formValues = await getFormValues(this.formDocument);
-        const form = this.pdfDocument.getForm();
-        form.getFields().forEach((field) => {
-            form.markFieldAsDirty(field.ref);
-            field.acroField.getWidgets().forEach((w) => {
-                field.acroField.dict.set(PDFName.of("V"), PDFName.of("Off"));
-                w.setAppearanceState(PDFName.of("Off"));
-            });
-        });
         for (const pageNumber of formValues.keys()) {
             const annotations = formValues.get(pageNumber);
             await this.fillFormForPage(pageNumber, annotations);
@@ -120,6 +112,11 @@ export class FormPdfProducer {
                 field.setText(props.value);
             } else {
                 const field = form.getFieldMaybe(props.name);
+                console.log(
+                    `Fyller ut felt med navn ${props.name} og type ${props.type} med verdi ${props.value} og eksportverdi ${props.exportValue}`,
+                    field
+                );
+
                 if (field instanceof PDFCheckBox && props.value) {
                     const widgets = field.acroField.getWidgets();
                     const widget = this.getWidget(field, props.exportValue, props.name);
@@ -130,11 +127,11 @@ export class FormPdfProducer {
 
                     for (const otherWidget of widgets) {
                         if (otherWidget.getOnValue() != onValue) {
-                            otherWidget?.setAppearanceState(PDFName.of("Off"));
+                            otherWidget?.setAppearanceState(PDFName.of("Yes"));
                         }
                     }
                 }
-                if (field instanceof PDFField) {
+                if (field instanceof PDFField || field instanceof PDFRadioGroup) {
                     const widgets = field.acroField.getWidgets();
                     const kids = field.acroField.dict.get(PDFName.of("Kids"));
                     if (kids && kids instanceof PDFArray && props.value) {
@@ -144,15 +141,16 @@ export class FormPdfProducer {
                             return simplifiedKidRef == props.id;
                         });
                         const kidField = this.pdfDocument.context.lookup(kidRef) as PDFDict | undefined;
-                        const choiceNumber = kidField?.get(PDFName.of("AS"));
+                        console.debug("KID REF", kidRef, kidField, props.id, props.name);
+                        const fieldRef = kidField?.get(PDFName.of("AP"))?.toString();
                         const widget = field.acroField.getWidgets().find((w) => {
-                            return w.getOnValue()?.asString() == choiceNumber?.toString();
+                            return w.dict.get(PDFName.of("AP"))?.toString() == fieldRef;
                         });
                         if (widget) {
                             field.acroField.dict.set(PDFName.of("V"), widget.getOnValue());
                             widget.setAppearanceState(widget.getOnValue());
                             for (const otherWidget of widgets) {
-                                if (otherWidget.getOnValue() != choiceNumber) {
+                                if (otherWidget.dict.get(PDFName.of("AP"))?.toString() != fieldRef) {
                                     otherWidget?.setAppearanceState(PDFName.of("Off"));
                                 }
                             }
