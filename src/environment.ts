@@ -4,6 +4,7 @@ const system = {
     isDevelopment: process.env.NODE_ENV === "development",
     isProduction: process.env.NODE_ENV === "production",
     environment: process.env.ENVIRONMENT,
+    legacyEnvironment: process.env.LEGACY_ENVIRONMENT,
 };
 
 const feature = {
