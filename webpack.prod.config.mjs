@@ -14,6 +14,7 @@ export default merge(webpackCommon, {
             BIDRAG_DOKUMENT_FORSENDELSE_URL: "",
             VALIDATE_PDF: "false",
             ENABLE_DEBUG_PAGE: "false",
+            LEGACY_ENVIRONMENT: "",
         }),
     ],
 });
