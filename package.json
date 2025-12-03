@@ -11,7 +11,7 @@
     "dev": "cross-env-shell NODE_ENV=development webpack serve --config webpack.dev.config.mjs",
     "dev:mock": "cross-env ENABLE_MOCK=true NODE_ENV=development webpack serve --config webpack.dev.config.mjs",
     "build": "webpack --config webpack.prod.config.mjs",
-    "types:dokument": "swagger-typescript-api -p https://bidrag-dokument-feature.dev.intern.nav.no/bidrag-dokument/v3/api-docs --axios -n BidragDokumentApi.ts -o src/api",
+    "types:dokument": "swagger-typescript-api -p https://bidrag-dokument-feature.intern.dev.nav.no/bidrag-dokument/v3/api-docs --axios -n BidragDokumentApi.ts -o src/api",
     "types:forsendelse": "swagger-typescript-api -p http://localhost:8999/v3/api-docs --axios -n BidragDokumentForsendelseApi.ts -o src/api",
     "types:produksjon": "swagger-typescript-api -p http://localhost:8183/v3/api-docs --extract-enums --axios -n BidragDokumentProduksjonApi.ts -o src/api"
   },
