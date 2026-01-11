@@ -40,6 +40,22 @@ export const DokumentQueryKeys = {
         dokumentId,
     ],
 };
+
+export const useHentRTFDokument = (
+    journalpostId: string,
+    dokumentId: string
+): UseSuspenseQueryResult<string> => {
+    return useSuspenseQuery({
+        queryKey: DokumentQueryKeys.hentDokument(dokumentId),
+        queryFn: () => {
+            return BIDRAG_DOKUMENT_API.dokument.hentDokument1(journalpostId, dokumentId, {rtf: true});
+        },
+        select: (response) => {
+            LoggerService.info(`Hentet RTF dokument ${dokumentId} for journalpost ${journalpostId}.`);
+            return response.data;
+        },
+    });
+}
 export const lastDokumenter = (
     journalpostId: string,
     dokumentId?: string,

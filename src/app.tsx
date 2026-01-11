@@ -7,11 +7,13 @@ import environment from "./environment";
 import DebugPage from "./pages/debug/DebugPage";
 import DokumentMaskeringPage from "./pages/dokumentmaskering/DokumentMaskeringPage";
 import DokumentRedigeringPage from "./pages/dokumentredigering/DokumentRedigeringPage";
+import WysiwygEditorPage from "./pages/wysiwygeditor/WysiwygEditorPage";
 const SkjemaUtfyllingPage = React.lazy(() => import("./pages/skjemutfylling/SkjemaUtfyllingPage"));
 
 // This file is only used for development. The entrypoint is under pages folder
 
 export default function App() {
+    console.log("HERER")
     return (
         <React.StrictMode>
             <BrowserRouter>
@@ -29,6 +31,10 @@ export default function App() {
                     <Route
                         path="/rediger/skjemautfylling/:forsendelseId/:dokumentreferanse"
                         element={<SkjemaUtfyllingPageWrapper />}
+                    />
+                    <Route
+                        path="/rediger/editor/:journalpostId/:dokumentreferanse"
+                        element={<WysiwygEditorPageWrapper />}
                     />
                     {environment.feature.debugPage && (
                         <Route path="/rediger/debug/:forsendelseId/:dokumentreferanse" element={<DebugWrapper />} />
@@ -65,4 +71,10 @@ function DebugWrapper() {
     const { forsendelseId, dokumentreferanse } = useParams();
 
     return <DebugPage forsendelseId={forsendelseId} dokumentreferanse={dokumentreferanse} />;
+}
+
+function WysiwygEditorPageWrapper() {
+    const { journalpostId, dokumentreferanse } = useParams<{ journalpostId: string; dokumentreferanse: string }>();
+    console.log("WysiwygEditorPageWrapper params:", { journalpostId, dokumentreferanse });
+    return <WysiwygEditorPage journalpostId={journalpostId!} dokumentreferanse={dokumentreferanse!} />;
 }

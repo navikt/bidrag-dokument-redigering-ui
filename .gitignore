@@ -26,3 +26,5 @@ dist-ssr
 public/*.pdf
 *.iml
 test.html
+skills/*
+example/*

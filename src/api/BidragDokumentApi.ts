@@ -14,7 +14,7 @@ export interface AktorDto {
     /** Identifaktor til aktøren */
     ident: string;
     /** Hvilken identtype som skal brukes */
-    type?: string;
+    type?: "AKTOERID" | "FNR" | "ORGNR";
 }
 
 /**
@@ -28,21 +28,11 @@ export interface AvsenderMottakerDto {
     /** Person ident eller organisasjonsnummer */
     ident?: string;
     /** Identtype */
-    type: AvsenderMottakerDtoIdType;
+    type: "FNR" | "SAMHANDLER" | "ORGNR" | "UTENLANDSK_ORGNR" | "UKJENT";
     /** Adresse til mottaker hvis dokumentet skal sendes/er sendt gjennom sentral print */
     adresse?: MottakerAdresseTo;
 }
 
-/** Identtype */
-export enum AvsenderMottakerDtoIdType {
-    FNR = "FNR",
-    SAMHANDLER = "SAMHANDLER",
-    ORGNR = "ORGNR",
-    UTENLANDSK_ORGNR = "UTENLANDSK_ORGNR",
-    UKJENT = "UKJENT",
-}
-
-/** Adresse til mottaker hvis dokumentet skal sendes/er sendt gjennom sentral print */
 export interface MottakerAdresseTo {
     adresselinje1: string;
     adresselinje2?: string;
@@ -60,8 +50,13 @@ export interface MottakerAdresseTo {
 export interface OpprettDokumentDto {
     /** Dokumentets tittel */
     tittel: string;
-    /** Typen dokument. Brevkoden sier noe om dokumentets innhold og oppbygning. */
+    /**
+     * Typen dokument. Brevkoden sier noe om dokumentets innhold og oppbygning.
+     * @deprecated
+     */
     brevkode?: string;
+    /** Typen dokument. Dokumentmal sier noe om dokumentets innhold og oppbygning. */
+    dokumentmalId?: string;
     /** Referansen til dokumentet hvis det er lagret i et annet arkivsystem */
     dokumentreferanse?: string;
     /**
@@ -69,8 +64,26 @@ export interface OpprettDokumentDto {
      * @deprecated
      */
     dokument?: string;
-    /** @format byte */
+    /**
+     * Selve PDF dokumentet formatert som Base64
+     * @format byte
+     */
     fysiskDokument?: string;
+}
+
+export interface OpprettEttersendingsoppgaveVedleggDto {
+    tittel?: string;
+    url?: string;
+    vedleggsnr: string;
+}
+
+export interface OpprettEttersendingsppgaveDto {
+    tittel: string;
+    skjemaId: string;
+    språk: Sprak;
+    /** @format int32 */
+    innsendingsFristDager: number;
+    vedleggsliste: OpprettEttersendingsoppgaveVedleggDto[];
 }
 
 /** Metadata for opprettelse av journalpost */
@@ -82,7 +95,7 @@ export interface OpprettJournalpostRequest {
      * @deprecated
      */
     tittel?: string;
-    /** Metadata om en aktør */
+    /** Bruker som journalposten gjelder */
     gjelder?: AktorDto;
     /** Ident til brukeren som journalposten gjelder */
     gjelderIdent?: string;
@@ -113,18 +126,8 @@ export interface OpprettJournalpostRequest {
      * @format date-time
      */
     datoDokument?: string;
-    /**
-     *
-     *     Mottak/Utsendingskanal som settes ved opprettelse av journalpost
-     *
-     *     DIGITAL - Skal bare settes for inngående journalpost. Oversettes til NAV_NO. Dette er default for inngående
-     *
-     *     SKANNING_BIDRAG - Skal settes hvis inngående journalpost er mottatt via Bidrag skanning
-     *
-     *     LOKAL_UTSKRIFT - Skal settes hvis utgående journalpost er sendt via lokal utskrift. Kanal for utgående journalposter blir ellers satt av dokumentdistribusjons løsningen.
-     * @default "DIGITALT"
-     */
-    kanal?: "DIGITALT" | "SKANNING_BIDRAG" | "LOKAL_UTSKRIFT";
+    /** Type kanal som benyttes ved mottak/utsending av journalpost */
+    kanal?: "DIGITALT" | "SKANNING_BIDRAG" | "LOKAL_UTSKRIFT" | "INGEN_DISTRIBUSJON";
     /**
      * Tema (Gyldige verdier er FAR og BID). Hvis det ikke settes opprettes journalpost med tema BID
      * @default "BID"
@@ -143,6 +146,41 @@ export interface OpprettJournalpostRequest {
     journalførendeEnhet?: string;
     /** Ident til saksbehandler som oppretter journalpost. Dette vil prioriteres over ident som tilhører tokenet til kallet. */
     saksbehandlerIdent?: string;
+    ettersendingsoppgave?: OpprettEttersendingsppgaveDto;
+}
+
+export enum Sprak {
+    NB = "NB",
+    NN = "NN",
+    AR = "AR",
+    DA = "DA",
+    DE = "DE",
+    EN = "EN",
+    EL = "EL",
+    ET = "ET",
+    ES = "ES",
+    FI = "FI",
+    FR = "FR",
+    IS = "IS",
+    IT = "IT",
+    JA = "JA",
+    HR = "HR",
+    LV = "LV",
+    LT = "LT",
+    NL = "NL",
+    PL = "PL",
+    PT = "PT",
+    RO = "RO",
+    RU = "RU",
+    SR = "SR",
+    SL = "SL",
+    SK = "SK",
+    SV = "SV",
+    TH = "TH",
+    TR = "TR",
+    UK = "UK",
+    HU = "HU",
+    VI = "VI",
 }
 
 /** Metadata til en respons etter journalpost ble opprettet */
@@ -163,7 +201,7 @@ export interface Avvikshendelse {
     detaljer: Record<string, string>;
     /** Saksnummer til sak når journalpost er journalført */
     saksnummer?: string;
-    /** Adresse for hvor brev sendes ved sentral print */
+    /** Addresse som skal brukes ved bestilling av ny distribusjon av utgående journalpost. Benyttes ved avvik BESTILL_NY_DISTRIBUSJON */
     adresse?: DistribuerTilAdresse;
     /** Dokumenter som brukes ved kopiering ny journalpost. Benyttes ved avvik KOPIER_FRA_ANNEN_FAGOMRADE */
     dokumenter?: DokumentDto[];
@@ -178,15 +216,6 @@ export interface DistribuerTilAdresse {
     land?: string;
     postnummer?: string;
     poststed?: string;
-}
-
-/** Arkivsystem hvor dokumentet er produsert og lagret */
-export enum DokumentArkivSystemDto {
-    JOARK = "JOARK",
-    MIDLERTIDLIG_BREVLAGER = "MIDLERTIDLIG_BREVLAGER",
-    UKJENT = "UKJENT",
-    BIDRAG = "BIDRAG",
-    FORSENDELSE = "FORSENDELSE",
 }
 
 /** Metadata for et dokument */
@@ -212,21 +241,11 @@ export interface DokumentDto {
     /** Typen dokument. Dokumentmal sier noe om dokumentets innhold og oppbygning. */
     dokumentmalId?: string;
     /** Dokumentets status. Benyttes hvis journalposten er av typen forsendelse */
-    status?: DokumentStatusDto;
+    status?: "IKKE_BESTILT" | "BESTILLING_FEILET" | "UNDER_PRODUKSJON" | "UNDER_REDIGERING" | "FERDIGSTILT" | "AVBRUTT";
     /** Arkivsystem hvor dokumentet er produsert og lagret */
-    arkivSystem?: DokumentArkivSystemDto;
+    arkivSystem?: "JOARK" | "MIDLERTIDLIG_BREVLAGER" | "UKJENT" | "BIDRAG" | "FORSENDELSE";
     /** Metadata om dokumentet */
     metadata: Record<string, string>;
-}
-
-/** Dokumentets status. Benyttes hvis journalposten er av typen forsendelse */
-export enum DokumentStatusDto {
-    IKKE_BESTILT = "IKKE_BESTILT",
-    BESTILLING_FEILET = "BESTILLING_FEILET",
-    UNDER_PRODUKSJON = "UNDER_PRODUKSJON",
-    UNDER_REDIGERING = "UNDER_REDIGERING",
-    FERDIGSTILT = "FERDIGSTILT",
-    AVBRUTT = "AVBRUTT",
 }
 
 /** Responsen til en avvikshendelse */
@@ -254,6 +273,7 @@ export interface DistribuerJournalpostRequest {
     lokalUtskrift: boolean;
     /** Adresse for hvor brev sendes ved sentral print */
     adresse?: DistribuerTilAdresse;
+    ettersendingsoppgave?: OpprettEttersendingsppgaveDto;
 }
 
 /** Respons etter bestilt distribusjon */
@@ -262,6 +282,11 @@ export interface DistribuerJournalpostResponse {
     journalpostId: string;
     /** Bestillingid som unikt identifiserer distribusjonsbestillingen. Vil være null hvis ingen distribusjon er bestilt. */
     bestillingsId?: string;
+    ettersendingsoppgave?: OpprettEttersendingsoppgaveResponseDto;
+}
+
+export interface OpprettEttersendingsoppgaveResponseDto {
+    innsendingsId: string;
 }
 
 /** Metadata for endring av et dokument */
@@ -315,13 +340,13 @@ export interface EndreJournalpostCommand {
     /** Endre fagområde */
     fagomrade?: string;
     /** Type ident for gjelder: FNR, ORGNR, AKTOERID */
-    gjelderType?: string;
+    gjelderType?: "AKTOERID" | "FNR" | "ORGNR";
     /** Tittel på journalposten */
     tittel?: string;
     /** Skal journalposten journalføres aka. registreres */
     skalJournalfores: boolean;
     /** Liste med retur detaljer som skal endres */
-    endreReturDetaljer?: EndreReturDetaljer[];
+    endreReturDetaljer: EndreReturDetaljer[];
 }
 
 /** Metadata for endring av et retur detalj */
@@ -361,6 +386,46 @@ export interface DokumentTilgangResponse {
     type: string;
 }
 
+export interface EttersendingsoppgaveVedleggDto {
+    tittel?: string;
+    url?: string;
+    vedleggsnr: string;
+    status:
+        | "IKKE_VALGT"
+        | "LASTET_OPP"
+        | "INNSENDT"
+        | "SEND_SENERE"
+        | "SENDES_AV_ANDRE"
+        | "SENDES_IKKE"
+        | "LASTET_OPP_IKKE_RELEVANT_LENGER"
+        | "LEVERT_DOKUMENTASJON_TIDLIGERE"
+        | "HAR_IKKE_DOKUMENTASJONEN"
+        | "NAV_KAN_HENTE_DOKUMENTASJON"
+        | "UKJENT";
+}
+
+export interface EttersendingsppgaveDto {
+    tittel: string;
+    skjemaId: string;
+    innsendingsId?: string;
+    språk: string;
+    status:
+        | "OPPRETTET"
+        | "UTFYLT"
+        | "INNSENDT"
+        | "SLETTET_AV_BRUKER"
+        | "AUTOMATISK_SLETTET"
+        | "UKJENT"
+        | "IKKE_OPPRETTET";
+    /** @format date */
+    opprettetDato?: string;
+    /** @format date */
+    fristDato?: string;
+    /** @format date */
+    slettesDato?: string;
+    vedleggsliste: EttersendingsoppgaveVedleggDto[];
+}
+
 /** Metadata til en journalpost */
 export interface JournalpostDto {
     /**
@@ -368,11 +433,7 @@ export interface JournalpostDto {
      * @deprecated
      */
     avsenderNavn?: string;
-    /**
-     *
-     * Avsender journalposten ble sendt fra hvis utgående.
-     * Mottaker journalposten skal sendes til hvis inngående.
-     */
+    /** Informasjon om avsender eller mottaker */
     avsenderMottaker?: AvsenderMottakerDto;
     /** Dokumentene som følger journalposten */
     dokumenter: DokumentDto[];
@@ -395,7 +456,7 @@ export interface JournalpostDto {
     fagomrade?: string;
     /** Ident for hvem/hva dokumente(t/ne) gjelder */
     gjelderIdent?: string;
-    /** Metadata om en aktør */
+    /** Aktøren for hvem/hva dokumente(t/ne) gjelder */
     gjelderAktor?: AktorDto;
     /** Kort oppsummert av journalført innhold */
     innhold?: string;
@@ -410,10 +471,37 @@ export interface JournalpostDto {
     journalfortDato?: string;
     /** Identifikator av journalpost i midlertidig brevlager eller fra joark på formatet [BID|JOARK]-<journalpostId> */
     journalpostId?: string;
-    /** Journalposten ble mottatt/sendt ut i kanal */
-    kilde?: Kanal;
-    /** Journalposten ble mottatt/sendt ut i kanal */
-    kanal?: Kanal;
+    /**
+     * Kanalen som er kilden til at journalposten ble registrert
+     * @deprecated
+     */
+    kilde?:
+        | "NAV_NO"
+        | "NAV_NO_BID"
+        | "SKAN_BID"
+        | "SKAN_NETS"
+        | "SKAN_IM"
+        | "LOKAL_UTSKRIFT"
+        | "SENTRAL_UTSKRIFT"
+        | "SDP"
+        | "INGEN_DISTRIBUSJON"
+        | "INNSENDT_NAV_ANSATT"
+        | "NAV_NO_UINNLOGGET"
+        | "NAV_NO_CHAT";
+    /** Kanalen journalposten ble mottatt i eller sendt ut på */
+    kanal?:
+        | "NAV_NO"
+        | "NAV_NO_BID"
+        | "SKAN_BID"
+        | "SKAN_NETS"
+        | "SKAN_IM"
+        | "LOKAL_UTSKRIFT"
+        | "SENTRAL_UTSKRIFT"
+        | "SDP"
+        | "INGEN_DISTRIBUSJON"
+        | "INNSENDT_NAV_ANSATT"
+        | "NAV_NO_UINNLOGGET"
+        | "NAV_NO_CHAT";
     /**
      * Dato for når dokument er mottat, dvs. dato for journalføring eller skanning
      * @format date
@@ -427,16 +515,39 @@ export interface JournalpostDto {
      */
     journalstatus?: string;
     /** Journalpostens status */
-    status?: JournalpostStatus;
+    status?:
+        | "AVVIK_ENDRE_FAGOMRADE"
+        | "AVVIK_BESTILL_RESKANNING"
+        | "AVVIK_BESTILL_SPLITTING"
+        | "MOTTATT"
+        | "JOURNALFØRT"
+        | "EKSPEDERT"
+        | "EKSPEDERT_JOARK"
+        | "MOTTAKSREGISTRERT"
+        | "UKJENT"
+        | "DISTRIBUERT"
+        | "AVBRUTT"
+        | "KLAR_FOR_DISTRIBUSJON"
+        | "DOKUMENT_SLETTET"
+        | "RETUR"
+        | "FERDIGSTILT"
+        | "FEILREGISTRERT"
+        | "RESERVERT"
+        | "UTGÅR"
+        | "SLETTET"
+        | "UNDER_OPPRETTELSE"
+        | "TIL_LAGRING"
+        | "OPPRETTET"
+        | "UNDER_PRODUKSJON";
     /** Om journalposten er feilført på bidragssak */
     feilfort?: boolean;
-    /** Metadata for kode vs dekode i et kodeobjekt */
+    /** Brevkoden til en journalpost */
     brevkode?: KodeDto;
-    /** Metadata for retur detaljer */
+    /** Informasjon om returdetaljer til journalpost */
     returDetaljer?: ReturDetaljer;
     /** Joark journalpostid for bidrag journalpost som er arkivert i Joark */
     joarkJournalpostId?: string;
-    /** Adresse for hvor brev sendes ved sentral print */
+    /** Adresse som utgående journalpost var distribuert til ved sentral print */
     distribuertTilAdresse?: DistribuerTilAdresse;
     /** Informasjon om returdetaljer til journalpost */
     sakstilknytninger: string[];
@@ -446,40 +557,7 @@ export interface JournalpostDto {
     opprettetAvIdent?: string;
     /** Referanse til originale kilden til journalposten. Kan være referanse til forsendelse eller bidrag journalpost med prefiks. Feks BID_12323 eller BIF_123213 */
     eksternReferanseId?: string;
-}
-
-/** Journalpostens status */
-export enum JournalpostStatus {
-    MOTTATT = "MOTTATT",
-    JOURNALFORT = "JOURNALFØRT",
-    EKSPEDERT = "EKSPEDERT",
-    DISTRIBUERT = "DISTRIBUERT",
-    AVBRUTT = "AVBRUTT",
-    KLAR_FOR_DISTRIBUSJON = "KLAR_FOR_DISTRIBUSJON",
-    RETUR = "RETUR",
-    FERDIGSTILT = "FERDIGSTILT",
-    FEILREGISTRERT = "FEILREGISTRERT",
-    RESERVERT = "RESERVERT",
-    UTGAR = "UTGÅR",
-    UNDER_OPPRETTELSE = "UNDER_OPPRETTELSE",
-    UNDER_PRODUKSJON = "UNDER_PRODUKSJON",
-    UKJENT = "UKJENT",
-}
-
-/** Journalposten ble mottatt/sendt ut i kanal */
-export enum Kanal {
-    NAV_NO = "NAV_NO",
-    NAV_NO_BID = "NAV_NO_BID",
-    SKAN_BID = "SKAN_BID",
-    SKAN_IM = "SKAN_IM",
-    SKAN_NETS = "SKAN_NETS",
-    LOKAL_UTSKRIFT = "LOKAL_UTSKRIFT",
-    SENTRAL_UTSKRIFT = "SENTRAL_UTSKRIFT",
-    SDP = "SDP",
-    INGEN_DISTRIBUSJON = "INGEN_DISTRIBUSJON",
-    INNSENDT_NAV_ANSATT = "INNSENDT_NAV_ANSATT",
-    NAV_NO_UINNLOGGET = "NAV_NO_UINNLOGGET",
-    NAV_NO_CHAT = "NAV_NO_CHAT",
+    ettersendingsppgave?: EttersendingsppgaveDto;
 }
 
 /** Metadata for kode vs dekode i et kodeobjekt */
@@ -505,7 +583,7 @@ export interface ReturDetaljer {
      */
     antall?: number;
     /** Liste med logg av alle registrerte returer */
-    logg?: ReturDetaljerLog[];
+    logg: ReturDetaljerLog[];
 }
 
 /** Metadata for retur detaljer log */
@@ -523,7 +601,7 @@ export interface ReturDetaljerLog {
 
 /** Metadata til en respons etter journalpost med tilhørende data */
 export interface JournalpostResponse {
-    /** Metadata til en journalpost */
+    /** journalposten som er etterspurt */
     journalpost?: JournalpostDto;
     /** alle saker som journalposten er tilknyttet */
     sakstilknytninger: string[];
@@ -531,20 +609,29 @@ export interface JournalpostResponse {
 
 export interface DistribusjonInfoDto {
     journalstatus:
+        | "AVVIK_ENDRE_FAGOMRADE"
+        | "AVVIK_BESTILL_RESKANNING"
+        | "AVVIK_BESTILL_SPLITTING"
         | "MOTTATT"
         | "JOURNALFØRT"
         | "EKSPEDERT"
+        | "EKSPEDERT_JOARK"
+        | "MOTTAKSREGISTRERT"
+        | "UKJENT"
         | "DISTRIBUERT"
         | "AVBRUTT"
         | "KLAR_FOR_DISTRIBUSJON"
+        | "DOKUMENT_SLETTET"
         | "RETUR"
         | "FERDIGSTILT"
         | "FEILREGISTRERT"
         | "RESERVERT"
         | "UTGÅR"
+        | "SLETTET"
         | "UNDER_OPPRETTELSE"
-        | "UNDER_PRODUKSJON"
-        | "UKJENT";
+        | "TIL_LAGRING"
+        | "OPPRETTET"
+        | "UNDER_PRODUKSJON";
     kanal: string;
     utsendingsinfo?: UtsendingsInfoDto;
     /** @format date-time */
@@ -560,7 +647,8 @@ export interface UtsendingsInfoDto {
     varslingstekst?: string;
 }
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, HeadersDefaults, ResponseType } from "axios";
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, HeadersDefaults, ResponseType } from "axios";
+import axios from "axios";
 
 export type QueryParamsType = Record<string | number, any>;
 
@@ -641,6 +729,9 @@ export class HttpClient<SecurityDataType = unknown> {
     }
 
     protected createFormData(input: Record<string, unknown>): FormData {
+        if (input instanceof FormData) {
+            return input;
+        }
         return Object.keys(input || {}).reduce((formData, key) => {
             const property = input[key];
             const propertyContent: any[] = property instanceof Array ? property : [property];
@@ -683,7 +774,7 @@ export class HttpClient<SecurityDataType = unknown> {
             ...requestParams,
             headers: {
                 ...(requestParams.headers || {}),
-                ...(type && type !== ContentType.FormData ? { "Content-Type": type } : {}),
+                ...(type ? { "Content-Type": type } : {}),
             },
             params: query,
             responseType: responseFormat,
@@ -924,6 +1015,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
                 resizeToA4?: boolean;
                 /** @default true */
                 optimizeForPrint?: boolean;
+                rtf?: boolean;
             },
             params: RequestParams = {}
         ) =>
@@ -966,6 +1058,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
                 resizeToA4?: boolean;
                 /** @default true */
                 optimizeForPrint?: boolean;
+                rtf?: boolean;
             },
             params: RequestParams = {}
         ) =>
@@ -1110,6 +1203,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
                 resizeToA4?: boolean;
                 /** @default true */
                 optimizeForPrint?: boolean;
+                rtf?: boolean;
             },
             params: RequestParams = {}
         ) =>

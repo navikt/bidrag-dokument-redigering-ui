@@ -23,6 +23,8 @@ import { LoggerService } from "@navikt/bidrag-ui-common";
 
 import { PdfDocumentType } from "../components/utils/types";
 import { reparerPDF } from "./PdfAConverter";
+export { PdfRepair, repairPdf, repairPdfWithDetails } from "./PdfRepair";
+export type { RepairResult, RepairLogEntry } from "./PdfRepair";
 export const PDF_EDITOR_PRODUCER = "bidrag-dokument-redigering-ui";
 export const PDF_EDITOR_CREATOR = "NAV - Arbeids- og velferdsetaten";
 
