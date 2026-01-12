@@ -3,7 +3,7 @@
  *
  * Converts RTF (Rich Text Format) content to HTML for use in the Lexical editor.
  * Supports text formatting, tables, and embedded images.
- * 
+ *
  * Based on Nav bidrag document format (testdata1.rtf):
  * - Images embedded in \shp groups with \shppict\pict
  * - Norwegian special characters (å, æ, ø, Å, Æ, Ø)
@@ -28,7 +28,7 @@ interface RTFParserState {
     pictureHeight: number;
     inTable: boolean;
     skipContent: boolean;
-    alignment: 'left' | 'center' | 'right' | 'justify';
+    alignment: "left" | "center" | "right" | "justify";
 }
 
 interface ExtractedImage {
@@ -86,14 +86,14 @@ export function convertRTFToHTML(rtfContent: string): string {
 function extractColorTable(rtf: string): ColorTable {
     const colorTable: ColorTable = { 0: "#000000" }; // Default black
     const colorTableMatch = rtf.match(/\{\\colortbl;([^}]+)\}/);
-    
+
     if (colorTableMatch) {
         const colorDefs = colorTableMatch[1].split(";");
         colorDefs.forEach((colorDef, index) => {
             const r = colorDef.match(/\\red(\d+)/);
             const g = colorDef.match(/\\green(\d+)/);
             const b = colorDef.match(/\\blue(\d+)/);
-            
+
             if (r && g && b) {
                 const red = parseInt(r[1], 10);
                 const green = parseInt(g[1], 10);
@@ -102,66 +102,139 @@ function extractColorTable(rtf: string): ColorTable {
             }
         });
     }
-    
+
     return colorTable;
 }
 
 /**
  * Extract all images from RTF and replace with placeholders
  * Handles both direct \pict groups and images nested in \shp shapes
+ * Uses an iterative approach to avoid regex backtracking issues in Chrome
  */
 function extractImages(rtf: string): { rtfWithPlaceholders: string; images: ExtractedImage[] } {
     const images: ExtractedImage[] = [];
     let result = rtf;
     let imageIndex = 0;
 
-    // First, find images in \shp groups (common in Nav documents)
-    // Pattern: {\shp...{\shptxt...{\*\shppict{\pict...HEX_DATA}}}}
-    const shpRegex = /\{\\shp[^{}]*(?:\{(?:[^{}]*|\{(?:[^{}]*|\{[^{}]*\})*\})*\})*\}/g;
-    
-    result = result.replace(shpRegex, (match) => {
+    // Helper function to find matching closing brace
+    function findMatchingBrace(str: string, startIndex: number): number {
+        let depth = 1;
+        let i = startIndex;
+        const maxIterations = 100000; // Prevent infinite loops
+        let iterations = 0;
+
+        while (i < str.length && depth > 0 && iterations < maxIterations) {
+            if (str[i] === "{") depth++;
+            else if (str[i] === "}") depth--;
+            i++;
+            iterations++;
+        }
+
+        return depth === 0 ? i : -1;
+    }
+
+    // Extract \shp groups iteratively (common in Nav documents)
+    let searchStart = 0;
+    const maxShpIterations = 1000; // Limit number of shapes to process
+    let shpIterations = 0;
+
+    while (searchStart < result.length && shpIterations < maxShpIterations) {
+        const shpIndex = result.indexOf("{\\shp", searchStart);
+        if (shpIndex === -1) break;
+
+        const endIndex = findMatchingBrace(result, shpIndex + 1);
+        if (endIndex === -1) {
+            searchStart = shpIndex + 5;
+            continue;
+        }
+
+        const shpContent = result.substring(shpIndex, endIndex);
+
         // Look for \pict inside the shape
-        const pictMatch = match.match(/\{\\pict([^{}]*(?:\{[^{}]*\}[^{}]*)*?)([0-9a-fA-F\s]{100,})\s*\}/);
-        if (pictMatch) {
-            const fullPictContent = pictMatch[0];
-            const img = parsePictGroup(fullPictContent);
-            if (img && img.data.length > 100) {
-                const placeholder = `__IMG_PLACEHOLDER_${imageIndex}__`;
-                images.push({ ...img, placeholder });
-                imageIndex++;
-                return placeholder;
+        const pictIndex = shpContent.indexOf("\\pict");
+        if (pictIndex !== -1) {
+            // Find the pict group boundaries
+            const pictStart = shpContent.lastIndexOf("{", pictIndex);
+            if (pictStart !== -1) {
+                const pictEnd = findMatchingBrace(shpContent, pictStart + 1);
+                if (pictEnd !== -1) {
+                    const pictContent = shpContent.substring(pictStart, pictEnd);
+                    const img = parsePictGroup(pictContent);
+                    if (img && img.data.length > 100) {
+                        const placeholder = `__IMG_PLACEHOLDER_${imageIndex}__`;
+                        images.push({ ...img, placeholder });
+                        imageIndex++;
+                        result = result.substring(0, shpIndex) + placeholder + result.substring(endIndex);
+                        searchStart = shpIndex + placeholder.length;
+                        shpIterations++;
+                        continue;
+                    }
+                }
             }
         }
-        return ""; // Remove shape if no valid image
-    });
 
-    // Find images in \shppict groups
-    const shppictRegex = /\{\\\*\\shppict\s*\{\\pict([^{}]*(?:\{[^{}]*\}[^{}]*)*?)([0-9a-fA-F\s]{100,})\s*\}\}/g;
+        // Remove shape if no valid image
+        result = result.substring(0, shpIndex) + result.substring(endIndex);
+        shpIterations++;
+    }
 
-    result = result.replace(shppictRegex, (match) => {
-        const img = parsePictGroup(match);
+    // Extract \shppict groups iteratively
+    searchStart = 0;
+    let shppictIterations = 0;
+
+    while (searchStart < result.length && shppictIterations < maxShpIterations) {
+        const shppictIndex = result.indexOf("{\\*\\shppict", searchStart);
+        if (shppictIndex === -1) break;
+
+        const endIndex = findMatchingBrace(result, shppictIndex + 1);
+        if (endIndex === -1) {
+            searchStart = shppictIndex + 11;
+            continue;
+        }
+
+        const shppictContent = result.substring(shppictIndex, endIndex);
+        const img = parsePictGroup(shppictContent);
+
         if (img && img.data.length > 100) {
             const placeholder = `__IMG_PLACEHOLDER_${imageIndex}__`;
             images.push({ ...img, placeholder });
             imageIndex++;
-            return placeholder;
+            result = result.substring(0, shppictIndex) + placeholder + result.substring(endIndex);
+            searchStart = shppictIndex + placeholder.length;
+        } else {
+            result = result.substring(0, shppictIndex) + result.substring(endIndex);
         }
-        return "";
-    });
+        shppictIterations++;
+    }
 
-    // Find direct \pict groups
-    const pictRegex = /\{\\pict([^{}]*(?:\{[^{}]*\}[^{}]*)*?)([0-9a-fA-F\s]{100,})\s*\}/g;
+    // Extract direct \pict groups iteratively
+    searchStart = 0;
+    let pictIterations = 0;
 
-    result = result.replace(pictRegex, (match) => {
-        const img = parsePictGroup(match);
+    while (searchStart < result.length && pictIterations < maxShpIterations) {
+        const pictIndex = result.indexOf("{\\pict", searchStart);
+        if (pictIndex === -1) break;
+
+        const endIndex = findMatchingBrace(result, pictIndex + 1);
+        if (endIndex === -1) {
+            searchStart = pictIndex + 6;
+            continue;
+        }
+
+        const pictContent = result.substring(pictIndex, endIndex);
+        const img = parsePictGroup(pictContent);
+
         if (img && img.data.length > 100) {
             const placeholder = `__IMG_PLACEHOLDER_${imageIndex}__`;
             images.push({ ...img, placeholder });
             imageIndex++;
-            return placeholder;
+            result = result.substring(0, pictIndex) + placeholder + result.substring(endIndex);
+            searchStart = pictIndex + placeholder.length;
+        } else {
+            searchStart = endIndex;
         }
-        return "";
-    });
+        pictIterations++;
+    }
 
     return { rtfWithPlaceholders: result, images };
 }
@@ -225,28 +298,30 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
     let skipDepth = 0;
 
     // Table tracking
-    let tableRows: string[][] = [];
-    let currentRowCells: string[] = [];
+    let tableRows: { content: string; alignment: string; width?: number }[][] = [];
+    let currentRowCells: { content: string; alignment: string; width?: number }[] = [];
     let currentCellContent: string[] = [];
-    let cellAlignments: string[] = [];
-    let currentCellAlignment = 'left';
+    let currentCellAlignment = "left";
+    let currentCellWidths: number[] = []; // Store cellx values for current row
     let inTable = false;
     let inRow = false;
     let inCell = false;
+    let lastRowEndIndex = -1; // Track where the last row ended to detect table continuity
 
     const flushTextBuffer = () => {
         if (textBuffer.length > 0) {
             // Clean out any remaining hex data or shape metadata
-            let cleanedText = textBuffer
+            const cleanedText = textBuffer
                 .replace(/[0-9A-Fa-f]{20,}/g, "")
                 .replace(
                     /\b(shapeType|fFlipH|fFlipV|fFilled|fLine|lTxid|dxText|dyText|pibFlags|pib|picscale|piccrop|bliptag|blipuid)\d*/gi,
                     ""
                 )
-                .replace(/\s{2,}/g, " ")
-                .trim();
+                .replace(/\s{2,}/g, " ");
 
-            if (cleanedText.length > 0 && cleanedText !== " ") {
+            // Don't trim - preserve leading/trailing spaces for proper text joining
+            // Only skip if the text is completely empty after cleaning hex data
+            if (cleanedText.length > 0) {
                 const formatted = applyFormattingToText(cleanedText, currentState);
                 if (inCell) {
                     currentCellContent.push(formatted);
@@ -271,11 +346,18 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
         if (inCell) {
             flushTextBuffer();
             const cellContent = currentCellContent.join("").trim() || "&nbsp;";
-            currentRowCells.push(cellContent);
-            cellAlignments.push(currentCellAlignment);
+            // Calculate width from cellx values (difference between current and previous cellx)
+            const cellIndex = currentRowCells.length;
+            let cellWidth: number | undefined;
+            if (currentCellWidths.length > cellIndex) {
+                const currentCellX = currentCellWidths[cellIndex];
+                const previousCellX = cellIndex > 0 ? currentCellWidths[cellIndex - 1] : 0;
+                cellWidth = currentCellX - previousCellX;
+            }
+            currentRowCells.push({ content: cellContent, alignment: currentCellAlignment, width: cellWidth });
             currentCellContent = [];
             inCell = false;
-            currentCellAlignment = 'left';
+            currentCellAlignment = "left";
         }
     };
 
@@ -284,20 +366,36 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
         if (currentRowCells.length > 0) {
             tableRows.push([...currentRowCells]);
             currentRowCells = [];
-            cellAlignments = [];
         }
+        currentCellWidths = []; // Reset cell widths for next row
         inRow = false;
     };
 
     const closeTable = () => {
         closeRow();
         if (tableRows.length > 0) {
+            // Calculate total width from the first row to determine percentages
+            const firstRow = tableRows[0];
+            const totalWidth = firstRow.reduce((sum, cell) => sum + (cell.width || 0), 0);
+
             let tableHtml =
-                '<table border="1" style="border-collapse: collapse; width: 100%; margin: 16px 0;"><tbody>';
+                '<table style="border-collapse: collapse; width: 100%; margin: 16px 0; border: 1px solid #ccc;"><tbody>';
             for (const row of tableRows) {
                 tableHtml += "<tr>";
                 for (const cell of row) {
-                    tableHtml += `<td style="border: 1px solid #ccc; padding: 8px 12px;">${cell}</td>`;
+                    const styles: string[] = ["border: 1px solid #ccc", "padding: 8px 12px"];
+
+                    // Calculate width percentage if we have width data
+                    if (cell.width && totalWidth > 0) {
+                        const widthPercent = Math.round((cell.width / totalWidth) * 100);
+                        styles.push(`width: ${widthPercent}%`);
+                    }
+
+                    if (cell.alignment !== "left") {
+                        styles.push(`text-align: ${cell.alignment}`);
+                    }
+
+                    tableHtml += `<td style="${styles.join("; ")};">${cell.content}</td>`;
                 }
                 tableHtml += "</tr>";
             }
@@ -415,23 +513,23 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
                     break;
                 case "qc":
                     // Center alignment
-                    currentState.alignment = 'center';
-                    if (inCell) currentCellAlignment = 'center';
+                    currentState.alignment = "center";
+                    if (inCell) currentCellAlignment = "center";
                     break;
                 case "qr":
                     // Right alignment
-                    currentState.alignment = 'right';
-                    if (inCell) currentCellAlignment = 'right';
+                    currentState.alignment = "right";
+                    if (inCell) currentCellAlignment = "right";
                     break;
                 case "ql":
                     // Left alignment
-                    currentState.alignment = 'left';
-                    if (inCell) currentCellAlignment = 'left';
+                    currentState.alignment = "left";
+                    if (inCell) currentCellAlignment = "left";
                     break;
                 case "qj":
                     // Justified alignment
-                    currentState.alignment = 'justify';
-                    if (inCell) currentCellAlignment = 'justify';
+                    currentState.alignment = "justify";
+                    if (inCell) currentCellAlignment = "justify";
                     break;
                 case "plain":
                     flushTextBuffer();
@@ -475,14 +573,38 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
 
                 // Table commands
                 case "trowd":
+                    // If we're already in a table, this is a continuation
+                    // Tables in RTF are defined row by row, each with its own \trowd
                     if (!inTable) {
-                        closeTable();
+                        // Start a new table - but only close previous if there's actual text content between
+                        // Check if there's been any visible text since last row (not just RTF commands)
+                        if (lastRowEndIndex >= 0 && tableRows.length > 0) {
+                            const between = rtf.substring(lastRowEndIndex, i);
+                            // Look for text content that's not just RTF control words or whitespace
+                            // Remove RTF commands, braces, and whitespace to see if there's actual text
+                            const textContent = between
+                                .replace(/\\[a-z]+\d*/gi, "") // Remove control words
+                                .replace(/[{}\\]/g, "") // Remove braces and backslashes
+                                .replace(/\s+/g, ""); // Remove whitespace
+
+                            if (textContent.length > 0) {
+                                closeTable(); // There's actual text between tables
+                            }
+                        }
                         inTable = true;
                     }
                     inRow = true;
+                    currentCellWidths = []; // Reset cell widths for new row definition
+                    break;
+                case "cellx":
+                    // Store cell right edge position (in twips)
+                    if (result.param !== undefined) {
+                        currentCellWidths.push(result.param);
+                    }
                     break;
                 case "row":
                     closeRow();
+                    lastRowEndIndex = i; // Track where this row ended
                     break;
                 case "cell":
                     closeCell();
@@ -492,7 +614,9 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
                     currentState.inTable = true;
                     break;
                 case "pard":
-                    if (!currentState.inTable && inTable && !inRow) closeTable();
+                    // Don't close table on pard - tables continue until we see non-table content
+                    // The table will be closed when we encounter text outside of \intbl context
+                    currentState.inTable = false;
                     break;
 
                 // Groups to skip entirely
@@ -535,13 +659,8 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
                 case "langfe":
                 case "langfenp":
                 case "f":
-                case "cf":
                 case "cb":
                 case "highlight":
-                case "qc":
-                case "qr":
-                case "ql":
-                case "qj":
                 case "li":
                 case "ri":
                 case "fi":
@@ -553,6 +672,11 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
                 case "tqr":
                 case "tqc":
                 case "sect":
+                    // Section break - close any open table
+                    if (inTable && !inRow) {
+                        closeTable();
+                    }
+                    break;
                 case "sbknone":
                 case "sbkpage":
                 case "cols":
@@ -600,7 +724,6 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
                 case "clpadb":
                 case "clftsWidth":
                 case "clwWidth":
-                case "cellx":
                 case "clbrdrt":
                 case "clbrdrb":
                 case "clbrdrl":
@@ -669,13 +792,19 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
     result = result
         .replace(/\*+/g, "")
         .replace(/[0-9A-Fa-f]{30,}/g, "")
+        // Normalize multiple spaces to single space, but preserve single spaces
+        .replace(/[ \t]{2,}/g, " ")
+        // Trim spaces at the start and end of paragraphs and cells
+        .replace(/<p>\s+/g, "<p>")
+        .replace(/\s+<\/p>/g, "</p>")
+        .replace(/<td([^>]*)>\s+/g, "<td$1>")
+        .replace(/\s+<\/td>/g, "</td>")
         .replace(/<p>\s*<\/p>/g, "")
         .replace(/<p>\s*<br\/>/g, "<p>")
         .replace(/<br\/>\s*<\/p>/g, "</p>")
         .replace(/<p>\s*<table/g, "<table")
         .replace(/<\/table>\s*<\/p>/g, "</table>")
         .replace(/(<\/p>)\s*(<p>)/g, "$1\n$2")
-        .replace(/\s{3,}/g, " ")
         .trim();
 
     if (!result || result === "<p></p>") {
@@ -717,10 +846,7 @@ function applyFormattingToText(text: string, state: RTFParserState): string {
 /**
  * Parse a control word
  */
-function parseControlWord(
-    rtf: string,
-    startIndex: number
-): { word: string; param?: number; newIndex: number } {
+function parseControlWord(rtf: string, startIndex: number): { word: string; param?: number; newIndex: number } {
     let i = startIndex + 1;
     let word = "";
     let paramStr = "";
@@ -796,7 +922,7 @@ function createInitialState(): RTFParserState {
         pictureHeight: 0,
         inTable: false,
         skipContent: false,
-        alignment: 'left',
+        alignment: "left",
     };
 }
 
@@ -866,7 +992,7 @@ function getMimeType(pictureType: string): string {
  * Extract plain text (fallback)
  */
 export function extractPlainTextFromRTF(rtf: string): string {
-    let text = rtf
+    const text = rtf
         .replace(/\{\\fonttbl[^}]*\}/gi, "")
         .replace(/\{\\colortbl[^}]*\}/gi, "")
         .replace(/\{\\stylesheet[^}]*\}/gi, "")

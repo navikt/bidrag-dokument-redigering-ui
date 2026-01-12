@@ -16,6 +16,7 @@ const url = {
     static_url: process.env.STATIC_FILES_URL,
     bidragDokument: process.env.BIDRAG_DOKUMENT_URL,
     bidragDokumentForsendelse: process.env.BIDRAG_DOKUMENT_FORSENDELSE_URL,
+    bidragDokumentProduksjon: process.env.BIDRAG_DOKUMENT_PRODUKSJON_URL,
 };
 
 export default { url, system, feature };

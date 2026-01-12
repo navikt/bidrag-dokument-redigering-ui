@@ -21,6 +21,9 @@
     position: sticky;
     top: 0;
     z-index: 10;
+    overflow-x: auto;
+    overflow-y: hidden;
+    align-items: center;
 }
 
 .lexical-editor-toolbar-group {
@@ -36,41 +39,107 @@
     margin: 0 8px;
 }
 
-.lexical-editor-toolbar button {
+.lexical-editor-toolbar button,
+.lexical-editor-toolbar .toolbar-item {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
+    min-width: 32px;
     height: 32px;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     background-color: transparent;
     cursor: pointer;
-    color: #333;
+    color: #444;
     font-size: 14px;
     font-weight: 600;
-    transition: background-color 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    padding: 0 6px;
 }
 
-.lexical-editor-toolbar button:hover {
+.lexical-editor-toolbar button:hover,
+.lexical-editor-toolbar .toolbar-item:hover {
     background-color: #f0f0f0;
 }
 
-.lexical-editor-toolbar button.active {
+.lexical-editor-toolbar button.active,
+.lexical-editor-toolbar .toolbar-item.active {
     background-color: #e3f2fd;
     color: #1976d2;
 }
 
-.lexical-editor-toolbar button:disabled {
+.lexical-editor-toolbar button:disabled,
+.lexical-editor-toolbar .toolbar-item:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+.lexical-editor-toolbar button svg {
+    flex-shrink: 0;
+}
+
+
+/* Block type select dropdown */
+
+.lexical-editor-toolbar .block-type-select {
+    height: 32px;
+    padding: 4px 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background-color: #ffffff;
+    font-size: 13px;
+    cursor: pointer;
+    min-width: 100px;
+}
+
+.lexical-editor-toolbar .block-type-select:hover {
+    border-color: #bdbdbd;
+}
+
+
+/* Font size controls */
+
+.lexical-editor-toolbar .font-size-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.lexical-editor-toolbar .font-size-btn {
+    min-width: 28px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+}
+
+.lexical-editor-toolbar .font-size-input {
+    width: 36px;
+    height: 28px;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    -moz-appearance: textfield;
+}
+
+.lexical-editor-toolbar .font-size-input::-webkit-outer-spin-button,
+.lexical-editor-toolbar .font-size-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.lexical-editor-toolbar .font-size-input:focus {
+    outline: none;
+    border-color: #1976d2;
 }
 
 .lexical-editor-toolbar select {
     height: 32px;
     padding: 4px 8px;
     border: 1px solid #e0e0e0;
-    border-radius: 4px;
+    border-radius: 6px;
     background-color: #ffffff;
     font-size: 13px;
     cursor: pointer;
@@ -123,6 +192,44 @@
 }
 
 
+/* Multi-column layout support */
+
+.lexical-editor-content div[data-layout="two-column"],
+.lexical-editor-content div[data-layout="three-column"] {
+    display: inline-block;
+    vertical-align: top;
+    box-sizing: border-box;
+}
+
+.lexical-editor-content div[data-layout="two-column"] {
+    width: 48%;
+    margin-right: 2%;
+}
+
+.lexical-editor-content div[data-layout="three-column"] {
+    width: 32%;
+    margin-right: 1%;
+}
+
+
+/* Flex row layout for side-by-side content */
+
+.lexical-editor-content div[data-layout="flex-row"] {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+
+/* Clear floats after column containers */
+
+.lexical-editor-content div[data-layout="two-column"]:last-of-type,
+.lexical-editor-content div[data-layout="three-column"]:last-of-type {
+    margin-right: 0;
+}
+
+
 /* Text formatting styles */
 
 .lexical-editor-content p {
@@ -167,8 +274,17 @@
     padding-left: 32px;
 }
 
+.lexical-editor-content ul {
+    list-style-type: disc;
+}
+
+.lexical-editor-content ol {
+    list-style-type: decimal;
+}
+
 .lexical-editor-content li {
     margin: 4px 0;
+    display: list-item;
 }
 
 .lexical-editor-content ul ul,
@@ -176,6 +292,49 @@
 .lexical-editor-content ul ol,
 .lexical-editor-content ol ul {
     margin: 4px 0;
+}
+
+
+/* Nested list styles */
+
+.lexical-editor-content ul ul {
+    list-style-type: circle;
+}
+
+.lexical-editor-content ul ul ul {
+    list-style-type: square;
+}
+
+.lexical-editor-content ol ol {
+    list-style-type: lower-alpha;
+}
+
+.lexical-editor-content ol ol ol {
+    list-style-type: lower-roman;
+}
+
+
+/* Lexical list classes */
+
+.lexical-list-ul {
+    list-style-type: disc;
+    margin: 8px 0 16px 0;
+    padding-left: 32px;
+}
+
+.lexical-list-ol {
+    list-style-type: decimal;
+    margin: 8px 0 16px 0;
+    padding-left: 32px;
+}
+
+.lexical-listitem {
+    margin: 4px 0;
+    display: list-item;
+}
+
+.lexical-nested-listitem {
+    list-style-type: none;
 }
 
 
@@ -192,26 +351,339 @@
 
 /* Table styles */
 
+
+/* Base table styles - use document font size for proper width calculations */
+
 .lexical-editor-content table {
-    width: 100%;
     border-collapse: collapse;
+    /* Use the same font size as the source document for width calculations */
+    font-size: 11px;
+    line-height: 16px;
+    /* Don't force width - allow inline styles to control */
+}
+
+
+/* Layout tables (used for spacing/alignment) - minimal styling, no borders */
+
+.lexical-editor-content table[data-table-type="layout"],
+.lexical-editor-content table:not([data-table-type]):not(:has(thead)):not(:has(colgroup)) {
+    margin: 4px 0;
+}
+
+.lexical-editor-content table[data-table-type="layout"] td,
+.lexical-editor-content table[data-table-type="layout"] th,
+.lexical-editor-content table:not([data-table-type]):not(:has(thead)):not(:has(colgroup)) td,
+.lexical-editor-content table:not([data-table-type]):not(:has(thead)):not(:has(colgroup)) th {
+    border: none;
+    padding: 2px 5px 2px 0;
+    vertical-align: top;
+    background: transparent;
+}
+
+
+/* Data tables - full styling with borders */
+
+.lexical-editor-content table[data-table-type="data"],
+.lexical-editor-content table:has(thead),
+.lexical-editor-content table:has(colgroup) {
     margin: 16px 0;
 }
 
-.lexical-editor-content th,
-.lexical-editor-content td {
+.lexical-editor-content table[data-table-type="data"] th,
+.lexical-editor-content table[data-table-type="data"] td,
+.lexical-editor-content table:has(thead) th,
+.lexical-editor-content table:has(thead) td,
+.lexical-editor-content table:has(colgroup) th,
+.lexical-editor-content table:has(colgroup) td {
     border: 1px solid #ccc;
     padding: 8px 12px;
     text-align: left;
+    box-sizing: border-box;
 }
 
-.lexical-editor-content th {
+.lexical-editor-content table[data-table-type="data"] th,
+.lexical-editor-content table:has(thead) th,
+.lexical-editor-content table:has(colgroup) th {
     background-color: #f0f0f0;
     font-weight: 600;
 }
 
-.lexical-editor-content tr:hover td {
+.lexical-editor-content table[data-table-type="data"] tr:hover td,
+.lexical-editor-content table:has(thead) tr:hover td,
+.lexical-editor-content table:has(colgroup) tr:hover td {
     background-color: #fafafa;
+}
+
+
+/* Width handling - tables should default to full width like in the source document */
+
+.lexical-editor-content table {
+    width: 100%;
+}
+
+.lexical-editor-content table[data-table-type="layout"] {
+    width: auto;
+    max-width: 100%;
+}
+
+
+/* Tables with defined column widths should use fixed layout for consistent rendering */
+
+.lexical-editor-content table[style*="table-layout"] {
+    table-layout: fixed;
+}
+
+
+/* Layout table cells should not wrap labels */
+
+.lexical-editor-content table[data-table-type="layout"] td:first-child,
+.lexical-editor-content table:not([data-table-type]):not(:has(thead)):not(:has(colgroup)) td:first-child {
+    white-space: nowrap;
+}
+
+
+/* Preserve colgroup/col widths */
+
+.lexical-editor-content colgroup {
+    display: table-column-group;
+}
+
+.lexical-editor-content col {
+    display: table-column;
+}
+
+
+/* Table Action Menu styles */
+
+.table-cell-action-button {
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.lexical-editor-content table:hover .table-cell-action-button,
+.table-cell-action-button:hover,
+.table-cell-action-button:focus {
+    opacity: 1;
+}
+
+.table-action-menu {
+    animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.table-action-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: #333;
+    text-align: left;
+    transition: background-color 0.15s ease;
+}
+
+.table-action-menu-item:hover {
+    background-color: #f5f5f5;
+}
+
+.table-action-menu-item svg {
+    flex-shrink: 0;
+}
+
+.table-action-menu-item-danger {
+    color: #d32f2f;
+}
+
+.table-action-menu-item-danger:hover {
+    background-color: #ffebee;
+}
+
+
+/* Image styles */
+
+.lexical-image {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 8px 0;
+    border-radius: 4px;
+    cursor: default;
+}
+
+.lexical-image:hover {
+    outline: 2px solid #1976d2;
+    outline-offset: 2px;
+}
+
+.lexical-image-selected {
+    outline: 2px solid #1976d2;
+    outline-offset: 2px;
+}
+
+
+/* Comment styles - visible marker with icon indicator */
+
+.comment-mark {
+    position: relative;
+    background: linear-gradient(to bottom, transparent 0%, transparent 85%, #ffc107 85%, #ffc107 100%);
+    border-right: 3px solid #ffc107;
+    cursor: pointer;
+    padding: 0 4px 0 2px;
+    margin-right: 2px;
+    transition: all 0.15s ease;
+}
+
+
+/* Comment indicator icon */
+
+.comment-mark::after {
+    content: '💬';
+    position: absolute;
+    right: -16px;
+    top: -8px;
+    font-size: 10px;
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+}
+
+.comment-mark:hover,
+.comment-mark-active {
+    background: linear-gradient(to bottom, #fff9c4 0%, #fff9c4 85%, #ffa000 85%, #ffa000 100%);
+    border-right-color: #ffa000;
+}
+
+.comment-mark:hover::after,
+.comment-mark-active::after {
+    opacity: 1;
+}
+
+.comment-input-popup {
+    animation: fadeIn 0.15s ease;
+}
+
+.comment-preview-popup {
+    animation: fadeIn 0.15s ease;
+}
+
+.comment-marker-icon {
+    animation: popIn 0.2s ease;
+}
+
+.comment-marker-icon:hover {
+    transform: scale(1.15);
+}
+
+
+/* Always visible side comment cards */
+
+.comment-side-card {
+    animation: slideInFromRight 0.2s ease;
+}
+
+.comment-side-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.comment-side-card-active {
+    animation: pulseActive 0.3s ease;
+}
+
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulseActive {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
+    }
+    100% {
+        box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+    }
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.comments-sidebar {
+    animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+.comment-card {
+    transition: all 0.15s ease;
+}
+
+.comment-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.comment-card-active {
+    box-shadow: 0 2px 12px rgba(255, 193, 7, 0.3);
+}
+
+.add-comment-button,
+.toggle-comments-button {
+    transition: all 0.2s ease;
+}
+
+.add-comment-button:hover,
+.toggle-comments-button:hover {
+    transform: scale(1.1);
+}
+
+.add-comment-button:active,
+.toggle-comments-button:active {
+    transform: scale(0.95);
 }
 
 
@@ -463,51 +935,151 @@
 }
 
 
-/* Draggable Block Menu Styles */
+/* Draggable Block Menu Styles - Lexical Playground Style */
 
 .draggable-block-menu {
     position: absolute;
-    left: -32px;
+    left: 0;
     top: 0;
-    padding: 4px;
+    padding: 2px 1px;
     cursor: grab;
     opacity: 0;
-    transition: opacity 0.2s ease;
+    will-change: transform, opacity;
+    display: flex;
+    gap: 2px;
+    transition: transform 140ms ease-in-out, opacity 160ms ease-in-out;
     border-radius: 4px;
     z-index: 100;
-}
-
-.draggable-block-menu:hover {
-    background-color: #f0f0f0;
 }
 
 .draggable-block-menu:active {
     cursor: grabbing;
 }
 
-.lexical-editor-content-area:hover .draggable-block-menu,
-.draggable-block-menu:hover {
+.draggable-block-add-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: none;
+    cursor: pointer;
+    background-color: transparent;
+    color: #666;
+    border-radius: 4px;
+    padding: 0;
+    opacity: 0.5;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.draggable-block-add-button:hover {
+    background-color: #efefef;
     opacity: 1;
 }
 
-.draggable-block-menu-icon {
+.draggable-block-handle {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 20px;
     height: 20px;
     color: #666;
+    opacity: 0.3;
+    border-radius: 4px;
+    cursor: grab;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.draggable-block-handle:hover {
+    background-color: #efefef;
+    opacity: 1;
+}
+
+.draggable-block-handle:active {
+    cursor: grabbing;
 }
 
 .draggable-block-target-line {
+    pointer-events: none;
+    background: deepskyblue;
+    height: 4px;
     position: absolute;
     left: 0;
-    right: 0;
-    height: 4px;
-    background-color: #1976d2;
-    pointer-events: none;
-    z-index: 100;
+    top: 0;
+    opacity: 0;
+    will-change: transform;
     border-radius: 2px;
+}
+
+
+/* Component Picker from Draggable Block */
+
+.draggable-block-component-picker {
+    min-width: 220px;
+    max-width: 260px;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+}
+
+.draggable-block-component-picker .component-picker-search {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 0;
+    outline: none;
+    font-size: 14px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.draggable-block-component-picker .component-picker-search:focus {
+    outline: none;
+}
+
+.draggable-block-component-picker .component-picker-list {
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.draggable-block-component-picker .component-picker-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    gap: 10px;
+}
+
+.draggable-block-component-picker .component-picker-item:hover,
+.draggable-block-component-picker .component-picker-item.selected {
+    background-color: #f5f5f5;
+}
+
+.draggable-block-component-picker .component-picker-item.selected {
+    background-color: #e3f2fd;
+}
+
+.draggable-block-component-picker .component-picker-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.draggable-block-component-picker .component-picker-title {
+    font-size: 14px;
+    color: #333;
 }
 
 

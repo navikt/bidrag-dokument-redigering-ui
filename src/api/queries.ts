@@ -4,7 +4,7 @@ import { useSuspenseQuery, UseSuspenseQueryResult } from "@tanstack/react-query"
 
 import { PdfDocumentType } from "../components/utils/types";
 import { IDocumentMetadata } from "../types/EditorTypes";
-import { BIDRAG_DOKUMENT_API } from "./api";
+import { BIDRAG_DOKUMENT_API, BIDRAG_DOKUMENT_PRODUKSJON_API } from "./api";
 import { BIDRAG_FORSENDELSE_API } from "./api";
 import { DokumentStatusTo, FerdigstillDokumentRequest } from "./BidragDokumentForsendelseApi";
 
@@ -41,21 +41,19 @@ export const DokumentQueryKeys = {
     ],
 };
 
-export const useHentRTFDokument = (
-    journalpostId: string,
-    dokumentId: string
-): UseSuspenseQueryResult<string> => {
+export const useHentRTFDokument = (journalpostId: string, dokumentId: string): UseSuspenseQueryResult<string> => {
     return useSuspenseQuery({
-        queryKey: DokumentQueryKeys.hentDokument(dokumentId),
+        queryKey: ["hentRTFDokument", journalpostId, dokumentId],
         queryFn: () => {
-            return BIDRAG_DOKUMENT_API.dokument.hentDokument1(journalpostId, dokumentId, {rtf: true});
+            return BIDRAG_DOKUMENT_PRODUKSJON_API.api.generateHtmlDebug();
+            // return BIDRAG_DOKUMENT_API.dokument.hentDokument1(journalpostId, dokumentId, { rtf: true });
         },
         select: (response) => {
-            LoggerService.info(`Hentet RTF dokument ${dokumentId} for journalpost ${journalpostId}.`);
+            console.log(`Hentet RTF dokument ${dokumentId} for journalpost ${journalpostId}.`, response.data);
             return response.data;
         },
     });
-}
+};
 export const lastDokumenter = (
     journalpostId: string,
     dokumentId?: string,

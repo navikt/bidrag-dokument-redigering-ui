@@ -1,34 +1,26 @@
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { LexicalEditor } from "lexical";
-import { MutableRefObject, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
-import { importContentToEditor, importHTMLToEditor, importJSONToEditor, importRTFToEditor } from "../utils/editorImportExport";
+import {
+    importContentToEditor,
+    importHTMLToEditor,
+    importJSONToEditor,
+    importRTFToEditor,
+} from "../utils/editorImportExport";
 import { isRTFContent } from "../utils/rtfConverter";
 
 interface InitialContentPluginProps {
     content: string;
     contentType?: "html" | "rtf" | "json" | "auto";
-    editorRef?: MutableRefObject<LexicalEditor | null>;
 }
 
 /**
  * Plugin to load initial content into the Lexical editor.
  * Supports HTML, RTF, JSON, and plain text content.
  */
-export default function InitialContentPlugin({
-    content,
-    contentType = "auto",
-    editorRef,
-}: InitialContentPluginProps) {
+export default function InitialContentPlugin({ content, contentType = "auto" }: InitialContentPluginProps) {
     const [editor] = useLexicalComposerContext();
     const hasLoaded = useRef(false);
-
-    // Store editor reference
-    useEffect(() => {
-        if (editorRef) {
-            editorRef.current = editor;
-        }
-    }, [editor, editorRef]);
 
     // Load initial content
     useEffect(() => {
@@ -47,6 +39,7 @@ export default function InitialContentPlugin({
             }
         }
 
+        console.log("InitialContentPlugin detected content type:", detectedType);
         // Import content based on type
         try {
             switch (detectedType) {

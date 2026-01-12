@@ -22,6 +22,15 @@ import EditorToolbar from "./EditorToolbar";
 import InitialContentPlugin from "./plugins/InitialContentPlugin";
 import DraggableBlockPlugin from "./plugins/DraggableBlockPlugin";
 import ComponentPickerPlugin from "./plugins/ComponentPickerPlugin";
+import TableActionMenuPlugin from "./plugins/TableActionMenuPlugin";
+import CommentsPlugin, { CommentsProvider, Comment, useComments } from "./plugins/CommentsPlugin";
+import PdfPreviewPlugin from "./plugins/PdfPreviewPlugin";
+import ListShortcutPlugin from "./plugins/ListShortcutPlugin";
+import ImagePastePlugin from "./plugins/ImagePastePlugin";
+import EditorRefPlugin from "./plugins/EditorRefPlugin";
+import { ImageNode } from "./nodes/ImageNode";
+import { ExtendedTableCellNode } from "./nodes/ExtendedTableCellNode";
+import { ExtendedTableNode } from "./nodes/ExtendedTableNode";
 
 export interface WysiwygEditorProps {
     /** Initial content - can be HTML, RTF, or JSON */
@@ -31,7 +40,9 @@ export interface WysiwygEditorProps {
     /** Callback when content changes */
     onChange?: (editorState: EditorState, editor: LexicalEditor) => void;
     /** Callback to save content */
-    onSave?: (content: { html: string; json: string }) => Promise<void>;
+    onSave?: (content: { html: string; json: string; notes: Comment[] }) => Promise<void>;
+    /** Callback to load notes from backend */
+    onLoadNotes?: () => Promise<Comment[]>;
     /** Whether the editor is read-only */
     readonly?: boolean;
     /** Placeholder text */
@@ -82,9 +93,12 @@ const editorNodes = [
     ListNode,
     ListItemNode,
     TableNode,
+    ExtendedTableNode,
     TableCellNode,
+    ExtendedTableCellNode,
     TableRowNode,
     LinkNode,
+    ImageNode,
 ];
 
 function onError(error: Error): void {
@@ -96,6 +110,7 @@ export default function WysiwygEditor({
     contentType = "auto",
     onChange,
     onSave,
+    onLoadNotes,
     readonly = false,
     placeholder = "Start typing your document...",
     title,
@@ -107,6 +122,127 @@ export default function WysiwygEditor({
     const [isSaving, setIsSaving] = useState(false);
     const [wordCount, setWordCount] = useState(0);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [showPdfPreview, setShowPdfPreview] = useState(false);
+    const [initialNotes, setInitialNotes] = useState<Comment[]>([]);
+
+    const onContentEditableRef = useCallback((contentEditableElem: HTMLDivElement | null) => {
+        if (contentEditableElem !== null && floatingAnchorElemRef.current !== contentEditableElem) {
+            floatingAnchorElemRef.current = contentEditableElem;
+            setIsFloatingAnchorReady(true);
+        }
+    }, []);
+
+    // Load notes from backend on mount
+    useEffect(() => {
+        if (onLoadNotes) {
+            onLoadNotes()
+                .then(notes => setInitialNotes(notes))
+                .catch(error => console.error("Failed to load notes:", error));
+        }
+    }, [onLoadNotes]);
+
+    const initialConfig = {
+        namespace: "BidragWysiwygEditor",
+        theme: editorTheme,
+        nodes: editorNodes,
+        onError,
+        editable: !readonly,
+    };
+
+    const handleChange = useCallback(
+        (editorState: EditorState, editor: LexicalEditor) => {
+            // Update word count
+            editorState.read(() => {
+                const text = editor.getRootElement()?.textContent || "";
+                const words = text.trim().split(/\s+/).filter(Boolean).length;
+                setWordCount(words);
+            });
+
+            // Call external onChange handler
+            if (onChange) {
+                onChange(editorState, editor);
+            }
+        },
+        [onChange]
+    );
+
+    const handleSave = useCallback(async () => {
+        if (!editorRef.current || !onSave) return;
+
+        setIsSaving(true);
+        try {
+            const html = await exportEditorToHTML(editorRef.current);
+            const json = exportEditorToJSON(editorRef.current);
+            
+            // Get notes from CommentsPlugin via context
+            const commentsElement = document.querySelector('[data-comments-root]');
+            let notes: Comment[] = [];
+            if (commentsElement) {
+                // Notes will be collected from the CommentsContext via getCommentsForSave
+                const event = new CustomEvent('getCommentsForSave');
+                document.dispatchEvent(event);
+                notes = (event as any).comments || [];
+            }
+            
+            await onSave({ html, json, notes });
+            setLastSaved(new Date());
+        } catch (error) {
+            console.error("Failed to save:", error);
+        } finally {
+            setIsSaving(false);
+        }
+    }, [onSave]);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+                e.preventDefault();
+                handleSave();
+            }
+        };
+
+        document.addEventListener("keydown", handleKeyDown);
+        return () => document.removeEventListener("keydown", handleKeyDown);
+    }, [handleSave]);
+
+    return (
+        <CommentsProvider initialNotes={initialNotes} onSaveNotes={onSave ? async (notes: Comment[]) => {
+            // Notes will be saved with the document when user clicks save
+        } : undefined}>
+            <EditorContentWrapper
+                initialContent={initialContent}
+                contentType={contentType}
+                onChange={onChange}
+                onSave={onSave}
+                readonly={readonly}
+                placeholder={placeholder}
+                title={title}
+                onTitleChange={onTitleChange}
+            />
+        </CommentsProvider>
+    );
+}
+
+// Inner component that has access to CommentsContext
+function EditorContentWrapper({
+    initialContent,
+    contentType,
+    onChange,
+    onSave,
+    readonly,
+    placeholder,
+    title,
+    onTitleChange,
+}: WysiwygEditorProps) {
+    const { comments } = useComments();
+    const editorRef = useRef<LexicalEditor | null>(null);
+    const floatingAnchorElemRef = useRef<HTMLDivElement | null>(null);
+    const [isFloatingAnchorReady, setIsFloatingAnchorReady] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [wordCount, setWordCount] = useState(0);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [showPdfPreview, setShowPdfPreview] = useState(false);
 
     const onContentEditableRef = useCallback((contentEditableElem: HTMLDivElement | null) => {
         if (contentEditableElem !== null && floatingAnchorElemRef.current !== contentEditableElem) {
@@ -147,14 +283,16 @@ export default function WysiwygEditor({
         try {
             const html = await exportEditorToHTML(editorRef.current);
             const json = exportEditorToJSON(editorRef.current);
-            await onSave({ html, json });
+            
+            // Pass comments collected from context
+            await onSave({ html, json, notes: comments });
             setLastSaved(new Date());
         } catch (error) {
             console.error("Failed to save:", error);
         } finally {
             setIsSaving(false);
         }
-    }, [onSave]);
+    }, [onSave, comments]);
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -176,61 +314,76 @@ export default function WysiwygEditor({
                     onSave={handleSave} 
                     isSaving={isSaving} 
                     editorRef={editorRef}
+                    onPreviewPdf={() => setShowPdfPreview(true)}
                 />
-                
-                <div className="lexical-editor-content-wrapper">
-                    <RichTextPlugin
-                        contentEditable={
-                            <div ref={onContentEditableRef} className="lexical-editor-content-area">
-                                <ContentEditable className="lexical-editor-content" />
-                            </div>
-                        }
-                        placeholder={
-                            <div className="lexical-editor-placeholder">
-                                {placeholder}
-                            </div>
-                        }
-                        ErrorBoundary={LexicalErrorBoundary}
-                    />
-                </div>
+            
+            <div className="lexical-editor-content-wrapper">
+                <RichTextPlugin
+                    contentEditable={
+                        <div ref={onContentEditableRef} className="lexical-editor-content-area">
+                            <ContentEditable className="lexical-editor-content" />
+                        </div>
+                    }
+                    placeholder={
+                        <div className="lexical-editor-placeholder">
+                            {placeholder}
+                        </div>
+                    }
+                    ErrorBoundary={LexicalErrorBoundary}
+                />
+            </div>
 
-                {/* Plugins */}
-                <HistoryPlugin />
-                <ListPlugin />
-                <TablePlugin />
-                <TabIndentationPlugin />
-                <AutoFocusPlugin />
-                <ComponentPickerPlugin />
-                
-                {/* Draggable block plugin - only render when anchor element is ready */}
-                {isFloatingAnchorReady && floatingAnchorElemRef.current && (
+            {/* Plugins */}
+            <HistoryPlugin />
+            <ListPlugin />
+            <TablePlugin />
+            <TabIndentationPlugin />
+            <AutoFocusPlugin />
+            <ComponentPickerPlugin />
+            <ListShortcutPlugin />
+            <ImagePastePlugin />
+            
+            {/* Capture editor reference for use in save handlers */}
+            <EditorRefPlugin editorRef={editorRef} />
+            
+            {/* Draggable block plugin - only render when anchor element is ready */}
+            {isFloatingAnchorReady && floatingAnchorElemRef.current && (
+                <>
                     <DraggableBlockPlugin anchorElem={floatingAnchorElemRef.current} />
-                )}
-                
-                <OnChangePlugin onChange={handleChange} />
-                
-                {/* Initial content loading plugin */}
-                {initialContent && (
-                    <InitialContentPlugin 
-                        content={initialContent} 
-                        contentType={contentType}
-                        editorRef={editorRef}
-                    />
-                )}
+                    <TableActionMenuPlugin anchorElem={floatingAnchorElemRef.current} />
+                    <CommentsPlugin anchorElem={floatingAnchorElemRef.current} />
+                </>
+            )}
+            
+            <OnChangePlugin onChange={handleChange} />
+            
+            {/* PDF Preview Plugin */}
+            <PdfPreviewPlugin 
+                isOpen={showPdfPreview} 
+                onClose={() => setShowPdfPreview(false)} 
+            />
+            
+            {/* Initial content loading plugin */}
+            {initialContent && (
+                <InitialContentPlugin 
+                    content={initialContent} 
+                    contentType={contentType}
+                />
+            )}
 
-                {/* Status bar */}
-                <div className="lexical-editor-statusbar">
-                    <div className="lexical-editor-statusbar-left">
-                        <span>Words: {wordCount}</span>
-                    </div>
-                    <div className="lexical-editor-statusbar-right">
-                        {isSaving && <span>Saving...</span>}
-                        {lastSaved && !isSaving && (
-                            <span>Last saved: {lastSaved.toLocaleTimeString()}</span>
-                        )}
-                    </div>
+            {/* Status bar */}
+            <div className="lexical-editor-statusbar">
+                <div className="lexical-editor-statusbar-left">
+                    <span>Words: {wordCount}</span>
                 </div>
-            </LexicalComposer>
-        </div>
+                <div className="lexical-editor-statusbar-right">
+                    {isSaving && <span>Saving...</span>}
+                    {lastSaved && !isSaving && (
+                        <span>Last saved: {lastSaved.toLocaleTimeString()}</span>
+                    )}
+                </div>
+            </div>
+        </LexicalComposer>
+    </div>
     );
 }
