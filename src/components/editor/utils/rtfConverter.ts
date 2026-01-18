@@ -18,6 +18,7 @@ interface RTFParserState {
     strikethrough: boolean;
     fontSize: number;
     fontFamily: string;
+    fontIndex: number;
     color: string;
     colorIndex: number;
     backgroundColor: string;
@@ -43,6 +44,10 @@ interface ColorTable {
     [index: number]: string;
 }
 
+interface FontTable {
+    [index: number]: string;
+}
+
 /**
  * Converts RTF content string to HTML
  */
@@ -58,14 +63,15 @@ export function convertRTFToHTML(rtfContent: string): string {
     }
 
     try {
-        // Extract color table for styling
+        // Extract color table and font table for styling
         const colorTable = extractColorTable(cleanedRtf);
+        const fontTable = extractFontTable(cleanedRtf);
 
         // First pass: extract all images and replace with placeholders
         const { rtfWithPlaceholders, images } = extractImages(cleanedRtf);
 
         // Second pass: parse the RTF content
-        let html = parseRTF(rtfWithPlaceholders, colorTable);
+        let html = parseRTF(rtfWithPlaceholders, colorTable, fontTable);
 
         // Third pass: replace placeholders with actual images
         for (const img of images) {
@@ -104,6 +110,33 @@ function extractColorTable(rtf: string): ColorTable {
     }
 
     return colorTable;
+}
+
+/**
+ * Extract font table from RTF
+ */
+function extractFontTable(rtf: string): FontTable {
+    const fontTable: FontTable = { 0: "Arial" }; // Default Arial
+    const fontTableMatch = rtf.match(/\{\\fonttbl([^}]+)\}/);
+
+    if (fontTableMatch) {
+        const fontContent = fontTableMatch[1];
+        // Match font definitions like {\f0\froman\fcharset0\fprq2 Times New Roman;}
+        const fontRegex = /\{\\f(\d+)[^}]*?\s([^;}]+)[;}]/g;
+        let match;
+
+        while ((match = fontRegex.exec(fontContent)) !== null) {
+            const fontIndex = parseInt(match[1], 10);
+            let fontName = match[2].trim();
+            // Clean up the font name
+            fontName = fontName.replace(/;$/, '').replace(/^\s*/, '').replace(/\s*$/, '');
+            if (fontName && fontName.length > 0) {
+                fontTable[fontIndex] = fontName;
+            }
+        }
+    }
+
+    return fontTable;
 }
 
 /**
@@ -288,7 +321,7 @@ function createImageTagFromExtracted(img: ExtractedImage): string {
 /**
  * Main RTF parser function
  */
-function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): string {
+function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }, fontTable: FontTable = { 0: "Arial" }): string {
     const html: string[] = [];
     let currentState: RTFParserState = createInitialState();
     const stateStack: RTFParserState[] = [];
@@ -298,11 +331,12 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
     let skipDepth = 0;
 
     // Table tracking
-    let tableRows: { content: string; alignment: string; width?: number }[][] = [];
-    let currentRowCells: { content: string; alignment: string; width?: number }[] = [];
+    let tableRows: { content: string; alignment: string; width?: number; height?: number }[][] = [];
+    let currentRowCells: { content: string; alignment: string; width?: number; height?: number }[] = [];
     let currentCellContent: string[] = [];
     let currentCellAlignment = "left";
     let currentCellWidths: number[] = []; // Store cellx values for current row
+    let currentRowHeight: number = 0; // Store row height in twips
     let inTable = false;
     let inRow = false;
     let inCell = false;
@@ -364,10 +398,17 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
     const closeRow = () => {
         closeCell();
         if (currentRowCells.length > 0) {
+            // Store row height in each cell for later use
+            if (currentRowHeight > 0) {
+                currentRowCells.forEach(cell => {
+                    cell.height = currentRowHeight;
+                });
+            }
             tableRows.push([...currentRowCells]);
             currentRowCells = [];
         }
         currentCellWidths = []; // Reset cell widths for next row
+        currentRowHeight = 0; // Reset row height
         inRow = false;
     };
 
@@ -381,7 +422,16 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
             let tableHtml =
                 '<table style="border-collapse: collapse; width: 100%; margin: 16px 0; border: 1px solid #ccc;"><tbody>';
             for (const row of tableRows) {
-                tableHtml += "<tr>";
+                // Calculate row height - convert twips to pixels (1 twip = 1/20 point, 72 points = 1 inch)
+                let rowHeightStyle = "";
+                if (row.length > 0 && row[0].height && row[0].height > 0) {
+                    // 1 twip = 1/20 point, 1 point ≈ 1.33 pixels, so 1 twip ≈ 0.0667 pixels
+                    // For practical purposes, we'll use 1 twip ≈ 0.05px to get reasonable heights
+                    const heightPx = Math.max(20, row[0].height * 0.05);
+                    rowHeightStyle = `height: ${heightPx}px;`;
+                }
+
+                tableHtml += `<tr style="${rowHeightStyle}">`;
                 for (const cell of row) {
                     const styles: string[] = ["border: 1px solid #ccc", "padding: 8px 12px"];
 
@@ -606,6 +656,12 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
                     closeRow();
                     lastRowEndIndex = i; // Track where this row ended
                     break;
+                case "trrh":
+                    // Table row height (in twips)
+                    if (result.param !== undefined) {
+                        currentRowHeight = result.param;
+                    }
+                    break;
                 case "cell":
                     closeCell();
                     break;
@@ -659,6 +715,13 @@ function parseRTF(rtf: string, colorTable: ColorTable = { 0: "#000000" }): strin
                 case "langfe":
                 case "langfenp":
                 case "f":
+                    // Font index selection
+                    flushTextBuffer();
+                    if (result.param !== undefined) {
+                        currentState.fontIndex = result.param;
+                        currentState.fontFamily = fontTable[result.param] || "Arial";
+                    }
+                    break;
                 case "cb":
                 case "highlight":
                 case "li":
@@ -832,6 +895,9 @@ function applyFormattingToText(text: string, state: RTFParserState): string {
     if (state.fontSize !== 24) {
         styles.push(`font-size: ${state.fontSize / 2}pt`);
     }
+    if (state.fontFamily && state.fontFamily !== "Arial") {
+        styles.push(`font-family: "${state.fontFamily}"`);
+    }
     if (state.color && state.color !== "#000000") {
         styles.push(`color: ${state.color}`);
     }
@@ -912,6 +978,7 @@ function createInitialState(): RTFParserState {
         strikethrough: false,
         fontSize: 24,
         fontFamily: "Arial",
+        fontIndex: 0,
         color: "#000000",
         colorIndex: 0,
         backgroundColor: "",

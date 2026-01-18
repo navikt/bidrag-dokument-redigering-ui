@@ -23,6 +23,7 @@ import InitialContentPlugin from "./plugins/InitialContentPlugin";
 import DraggableBlockPlugin from "./plugins/DraggableBlockPlugin";
 import ComponentPickerPlugin from "./plugins/ComponentPickerPlugin";
 import TableActionMenuPlugin from "./plugins/TableActionMenuPlugin";
+import { TableResizeHandlesPlugin } from "./plugins/TableResizeHandlesPlugin";
 import CommentsPlugin, { CommentsProvider, Comment, useComments } from "./plugins/CommentsPlugin";
 import PdfPreviewPlugin from "./plugins/PdfPreviewPlugin";
 import ListShortcutPlugin from "./plugins/ListShortcutPlugin";
@@ -31,6 +32,7 @@ import EditorRefPlugin from "./plugins/EditorRefPlugin";
 import { ImageNode } from "./nodes/ImageNode";
 import { ExtendedTableCellNode } from "./nodes/ExtendedTableCellNode";
 import { ExtendedTableNode } from "./nodes/ExtendedTableNode";
+import { ExtendedTextNode } from "./nodes/ExtendedTextNode";
 
 export interface WysiwygEditorProps {
     /** Initial content - can be HTML, RTF, or JSON */
@@ -99,6 +101,7 @@ const editorNodes = [
     TableRowNode,
     LinkNode,
     ImageNode,
+    ExtendedTextNode,
 ];
 
 function onError(error: Error): void {
@@ -342,6 +345,7 @@ function EditorContentWrapper({
             <ComponentPickerPlugin />
             <ListShortcutPlugin />
             <ImagePastePlugin />
+            <TableResizeHandlesPlugin />
             
             {/* Capture editor reference for use in save handlers */}
             <EditorRefPlugin editorRef={editorRef} />

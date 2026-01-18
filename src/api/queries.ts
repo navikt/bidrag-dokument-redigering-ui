@@ -45,8 +45,8 @@ export const useHentRTFDokument = (journalpostId: string, dokumentId: string): U
     return useSuspenseQuery({
         queryKey: ["hentRTFDokument", journalpostId, dokumentId],
         queryFn: () => {
-            return BIDRAG_DOKUMENT_PRODUKSJON_API.api.generateHtmlDebug();
-            // return BIDRAG_DOKUMENT_API.dokument.hentDokument1(journalpostId, dokumentId, { rtf: true });
+            // return BIDRAG_DOKUMENT_PRODUKSJON_API.api.generateHtmlDebug();
+            return BIDRAG_DOKUMENT_API.dokument.hentDokument1(journalpostId, dokumentId, { rtf: true });
         },
         select: (response) => {
             console.log(`Hentet RTF dokument ${dokumentId} for journalpost ${journalpostId}.`, response.data);

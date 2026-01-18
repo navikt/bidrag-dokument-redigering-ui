@@ -19,6 +19,122 @@ import {
 import { convertRTFToHTML, isRTFContent } from "./rtfConverter";
 
 /**
+ * Extract CSS rules from style elements and return a map of selectors to styles
+ */
+function extractCSSRules(doc: Document): Map<string, Record<string, string>> {
+    const cssMap = new Map<string, Record<string, string>>();
+    const styleElements = doc.querySelectorAll("style");
+
+    styleElements.forEach((styleEl) => {
+        const cssText = styleEl.textContent || "";
+        // Parse CSS rules using regex - matches .className { properties }
+        const ruleRegex = /\.([a-zA-Z0-9_-]+)\s*\{([^}]+)\}/g;
+        let match;
+
+        while ((match = ruleRegex.exec(cssText)) !== null) {
+            const className = match[1];
+            const propertiesText = match[2];
+
+            // Parse properties
+            const properties: Record<string, string> = {};
+            const propRegex = /([a-zA-Z-]+)\s*:\s*([^;]+)/g;
+            let propMatch;
+
+            while ((propMatch = propRegex.exec(propertiesText)) !== null) {
+                const propName = propMatch[1].trim();
+                const propValue = propMatch[2].trim();
+                properties[propName] = propValue;
+            }
+
+            if (Object.keys(properties).length > 0) {
+                cssMap.set(className, properties);
+            }
+        }
+    });
+
+    return cssMap;
+}
+
+/**
+ * Apply CSS class rules as inline styles to elements
+ */
+function applyClassStylesToElements(doc: Document, cssMap: Map<string, Record<string, string>>): void {
+    // Get all elements with class attributes
+    const elements = doc.querySelectorAll("[class]");
+
+    elements.forEach((element) => {
+        const classes = element.getAttribute("class")?.split(/\s+/) || [];
+        const existingStyle = element.getAttribute("style") || "";
+        const styleParts: string[] = existingStyle ? [existingStyle.replace(/;$/, "")] : [];
+        const tagName = element.tagName.toLowerCase();
+
+        classes.forEach((className) => {
+            const classStyles = cssMap.get(className);
+            if (classStyles) {
+                // Properties for text styling (includes line-height for proper text spacing)
+                const textProps = ["color", "font-weight", "font-style", "text-decoration", "font-size", "font-family", "line-height", "background-color", "background"];
+                
+                // Properties for layout (tables, columns, rows, cells)
+                const layoutProps = ["width", "height", "min-width", "max-width", "vertical-align", "text-align"];
+                
+                // Properties for table cell styling
+                const cellProps = tagName === "td" || tagName === "th" || tagName === "table"
+                    ? ["padding", "padding-top", "padding-right", "padding-bottom", "padding-left", 
+                       "border", "border-top", "border-right", "border-bottom", "border-left", "border-width", "border-style", "border-color",
+                       "table-layout"]
+                    : [];
+                
+                const allProps = [...textProps, ...layoutProps, ...cellProps];
+                
+                // Apply properties, being careful not to duplicate (use word boundary check)
+                allProps.forEach((prop) => {
+                    if (classStyles[prop]) {
+                        // Check if this exact property (with colon) already exists in style
+                        const propPattern = new RegExp(`(^|;)\\s*${prop}\\s*:`, 'i');
+                        if (!propPattern.test(existingStyle)) {
+                            styleParts.push(`${prop}: ${classStyles[prop]}`);
+                        }
+                    }
+                });
+
+                // Handle shorthand font property
+                if (classStyles["font"] && !existingStyle.includes("font")) {
+                    const fontValue = classStyles["font"];
+                    // Extract bold from font shorthand
+                    if (fontValue.includes("bold") && !existingStyle.includes("font-weight")) {
+                        styleParts.push("font-weight: bold");
+                    }
+                    // Extract italic from font shorthand
+                    if (fontValue.includes("italic") && !existingStyle.includes("font-style")) {
+                        styleParts.push("font-style: italic");
+                    }
+                    // Extract font-size from font shorthand (e.g., "bold 14.67px 'Times New Roman'")
+                    const fontSizeMatch = fontValue.match(/(\d+(?:\.\d+)?)(px|pt|em|rem)/i);
+                    if (fontSizeMatch && !existingStyle.includes("font-size")) {
+                        styleParts.push(`font-size: ${fontSizeMatch[1]}${fontSizeMatch[2]}`);
+                    }
+                    // Extract font-family from font shorthand
+                    const fontFamilyMatch = fontValue.match(/(["'][^"']+["'](?:,\s*["'][^"']+["'])*(?:,\s*\w+)*)/i);
+                    if (fontFamilyMatch && !existingStyle.includes("font-family")) {
+                        styleParts.push(`font-family: ${fontFamilyMatch[1]}`);
+                    }
+                }
+
+                // Remove position: absolute from page classes to prevent content from being positioned off-screen
+                if (className.startsWith("page") && classStyles["position"] === "absolute") {
+                    // Don't apply position, top, left, right, bottom for page elements
+                    // They should flow normally in the editor
+                }
+            }
+        });
+
+        if (styleParts.length > 0) {
+            element.setAttribute("style", styleParts.join("; "));
+        }
+    });
+}
+
+/**
  * Preprocess HTML to convert unsupported elements to Lexical-friendly structures.
  * This handles complex document structures like NAV notat documents.
  */
@@ -26,11 +142,17 @@ function preprocessHTML(html: string): string {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
 
+    // Extract CSS rules from style tags BEFORE removing them
+    const cssMap = extractCSSRules(doc);
+
+    // Apply CSS class styles as inline styles to preserve formatting
+    applyClassStylesToElements(doc, cssMap);
+
     // Remove script tags
     const scripts = doc.querySelectorAll("script");
     scripts.forEach((script) => script.remove());
 
-    // Remove style tags (but keep inline styles)
+    // Remove style tags (inline styles are now preserved)
     const styles = doc.querySelectorAll("style");
     styles.forEach((style) => style.remove());
 
@@ -41,6 +163,120 @@ function preprocessHTML(html: string): string {
     // Remove meta, link, title elements
     const metaElements = doc.querySelectorAll("meta, link, title");
     metaElements.forEach((el) => el.remove());
+
+    // Handle absolute positioning intelligently - preserve tables but convert to relative flow
+    // The original HTML uses position: absolute with large top/left values, which breaks the editor flow
+    // We need to convert all positioned elements to normal flow while preserving their content
+    // First, handle page wrapper divs - these define page boundaries and may have absolute positioning
+    const pageElements = doc.querySelectorAll("[class*='page']");
+    pageElements.forEach((page) => {
+        const style = page.getAttribute("style") || "";
+        // Remove positioning from page wrappers so content flows naturally
+        if (style.includes("position")) {
+            const cleanedStyle = style
+                .replace(/position\s*:\s*[^;]+;?/gi, "")
+                .replace(/(?:^|;)\s*top\s*:\s*[^;]+;?/gi, ";")
+                .replace(/(?:^|;)\s*left\s*:\s*[^;]+;?/gi, ";")
+                .replace(/(?:^|;)\s*right\s*:\s*[^;]+;?/gi, ";")
+                .replace(/(?:^|;)\s*bottom\s*:\s*[^;]+;?/gi, ";")
+                .replace(/(?:^|;)\s*width\s*:\s*[^;]+;?/gi, ";")
+                .replace(/(?:^|;)\s*height\s*:\s*[^;]+;?/gi, ";")
+                .replace(/^;+/, "")
+                .replace(/;+/g, ";")
+                .trim();
+            if (cleanedStyle && cleanedStyle !== ";") {
+                page.setAttribute("style", cleanedStyle);
+            } else {
+                page.removeAttribute("style");
+            }
+        }
+    });
+
+    // Then handle all other absolutely positioned elements
+    const allElements = doc.querySelectorAll("*");
+    allElements.forEach((el) => {
+        const style = el.getAttribute("style") || "";
+        if (style.includes("position") && style.includes("absolute")) {
+            // For tables and data-heavy elements, preserve them but convert to relative positioning
+            if (el.tagName.toLowerCase() === "table" || el.classList.toString().includes("table")) {
+                // Convert position: absolute to relative so it flows naturally
+                const convertedStyle = style
+                    .replace(/position\s*:\s*absolute/gi, "position: relative")
+                    .replace(/(?:^|;)\s*top\s*:\s*[^;]+;?/gi, ";")
+                    .replace(/(?:^|;)\s*left\s*:\s*[^;]+;?/gi, ";")
+                    .replace(/(?:^|;)\s*right\s*:\s*[^;]+;?/gi, ";")
+                    .replace(/(?:^|;)\s*bottom\s*:\s*[^;]+;?/gi, ";")
+                    .replace(/^;+/, "")
+                    .replace(/;+/g, ";")
+                    .trim();
+                if (convertedStyle && convertedStyle !== ";") {
+                    el.setAttribute("style", convertedStyle);
+                } else {
+                    el.removeAttribute("style");
+                }
+            } else if (el.tagName.toLowerCase() === "div") {
+                // For divs with absolute positioning, check if they contain tables
+                const containsTable = el.querySelector("table") !== null;
+                if (containsTable) {
+                    // Unwrap the div - move its children to its parent
+                    const parent = el.parentNode;
+                    if (parent) {
+                        while (el.firstChild) {
+                            parent.insertBefore(el.firstChild, el);
+                        }
+                        parent.removeChild(el);
+                    }
+                } else {
+                    // For non-table divs, remove positioning completely
+                    const cleanedStyle = style
+                        .replace(/position\s*:\s*[^;]+;?/gi, "")
+                        .replace(/(?:^|;)\s*top\s*:\s*[^;]+;?/gi, ";")
+                        .replace(/(?:^|;)\s*left\s*:\s*[^;]+;?/gi, ";")
+                        .replace(/(?:^|;)\s*right\s*:\s*[^;]+;?/gi, ";")
+                        .replace(/(?:^|;)\s*bottom\s*:\s*[^;]+;?/gi, ";")
+                        .replace(/^;+/, "")
+                        .replace(/;+/g, ";")
+                        .trim();
+                    if (cleanedStyle && cleanedStyle !== ";") {
+                        el.setAttribute("style", cleanedStyle);
+                    } else {
+                        el.removeAttribute("style");
+                    }
+                }
+            } else {
+                // For non-table elements, remove positioning completely
+                const cleanedStyle = style
+                    .replace(/position\s*:\s*[^;]+;?/gi, "")
+                    .replace(/(?:^|;)\s*top\s*:\s*[^;]+;?/gi, ";")
+                    .replace(/(?:^|;)\s*left\s*:\s*[^;]+;?/gi, ";")
+                    .replace(/(?:^|;)\s*right\s*:\s*[^;]+;?/gi, ";")
+                    .replace(/(?:^|;)\s*bottom\s*:\s*[^;]+;?/gi, ";")
+                    .replace(/^;+/, "")
+                    .replace(/;+/g, ";")
+                    .trim();
+                if (cleanedStyle && cleanedStyle !== ";") {
+                    el.setAttribute("style", cleanedStyle);
+                } else {
+                    el.removeAttribute("style");
+                }
+            }
+        } else if (style.includes("top:") || style.includes("left:") || style.includes("right:") || style.includes("bottom:")) {
+            // Also clean up positioning values even without explicit position property
+            const cleanedStyle = style
+                .replace(/(?:^|;)\s*top\s*:\s*[^;]+;?/gi, ";")
+                .replace(/(?:^|;)\s*left\s*:\s*[^;]+;?/gi, ";")
+                .replace(/(?:^|;)\s*right\s*:\s*[^;]+;?/gi, ";")
+                .replace(/(?:^|;)\s*bottom\s*:\s*[^;]+;?/gi, ";")
+                .replace(/^;+/, "")
+                .replace(/;+/g, ";")
+                .trim();
+            if (cleanedStyle && cleanedStyle !== ";") {
+                el.setAttribute("style", cleanedStyle);
+            } else {
+                el.removeAttribute("style");
+            }
+        }
+    });
 
     // Get the body content or the whole document if no body
     const body = doc.body || doc.documentElement;
@@ -118,23 +354,55 @@ function processElement(element: Element): void {
     }
 }
 
+function hasVisibleBorder(style: string | null, borderAttr?: string | null): boolean {
+    if (borderAttr && borderAttr.trim() !== "" && borderAttr.trim() !== "0") {
+        return true;
+    }
+
+    if (!style) return false;
+
+    const normalized = style.toLowerCase();
+
+    // Explicitly declared no-border wins
+    if (/(border(?:-(?:top|right|bottom|left))?|border-style)\s*:\s*none/.test(normalized)) {
+        return false;
+    }
+    if (/(border(?:-(?:top|right|bottom|left))?|border-width)\s*:\s*0\b/.test(normalized)) {
+        return false;
+    }
+
+    // Look for any border declarations that imply a visible line (width, style keyword, or numeric value)
+    return (
+        /border(?:-(?:top|right|bottom|left))?\s*:\s*[^;]*(\d|solid|dashed|dotted)/.test(normalized) ||
+        /border-width\s*:\s*(?!0\b)\d/.test(normalized)
+    );
+}
+
 /**
  * Handle table elements - preserve column widths and table layout
  * Also mark data tables vs layout tables
  */
 function handleTableElement(element: Element): void {
-    // Check if this is a data table (has thead, colgroup, or class="table")
+    let tableStyle = element.getAttribute("style") || "";
+    const borderAttr = element.getAttribute("border");
+
     const hasColgroup = element.querySelector("colgroup") !== null;
     const hasThead = element.querySelector("thead") !== null;
     const hasTableClass = element.classList.contains("table");
-    const isDataTable = hasColgroup || hasThead || hasTableClass;
 
-    // Mark data tables with a data attribute (survives Lexical processing)
-    if (isDataTable) {
-        element.setAttribute("data-table-type", "data");
-    } else {
-        element.setAttribute("data-table-type", "layout");
-    }
+    const hasBorderInCells = Array.from(element.querySelectorAll("th, td")).some((cell) => {
+        const cellStyle = cell.getAttribute("style") || "";
+        const cellBorderAttr = cell.getAttribute("border");
+        return hasVisibleBorder(cellStyle, cellBorderAttr);
+    });
+
+    const hasExplicitBorder = hasVisibleBorder(tableStyle, borderAttr) || hasBorderInCells;
+
+    // Mark tables with an explicit border as data tables. Colgroup alone should not force a border.
+    const isDataTable = hasThead || hasTableClass || hasExplicitBorder;
+
+    element.setAttribute("data-table-type", isDataTable ? "data" : "layout");
+    element.setAttribute("data-has-border", hasExplicitBorder ? "true" : "false");
 
     // Get column widths from colgroup/col elements
     const colgroup = element.querySelector("colgroup");
@@ -145,10 +413,40 @@ function handleTableElement(element: Element): void {
         return widthMatch ? widthMatch[1].trim() : null;
     });
 
-    // Get table width from inline style
-    const tableStyle = element.getAttribute("style") || "";
-    const tableWidthMatch = tableStyle.match(/width:\s*([^;]+)/);
-    const tableWidth = tableWidthMatch ? tableWidthMatch[1].trim() : null;
+    // Get table width from inline style or parent wrapper div
+    let tableWidthMatch = tableStyle.match(/width:\s*([^;]+)/);
+    let tableWidth = tableWidthMatch ? tableWidthMatch[1].trim() : null;
+
+    // If table doesn't have width, check parent div for width
+    if (!tableWidth) {
+        const parentDiv = element.parentElement;
+        if (parentDiv && parentDiv.tagName.toLowerCase() === "div") {
+            const parentStyle = parentDiv.getAttribute("style") || "";
+            const parentWidthMatch = parentStyle.match(/width:\s*([^;]+)/);
+            if (parentWidthMatch) {
+                tableWidth = parentWidthMatch[1].trim();
+            }
+        }
+    }
+
+    // Calculate total width from cell widths if no table width found
+    if (!tableWidth) {
+        const firstRow = element.querySelector("tr");
+        if (firstRow) {
+            let totalWidth = 0;
+            const cells = firstRow.querySelectorAll("th, td");
+            cells.forEach((cell) => {
+                const cellStyle = cell.getAttribute("style") || "";
+                const cellWidthMatch = cellStyle.match(/width:\s*(\d+(?:\.\d+)?)(px)?/);
+                if (cellWidthMatch) {
+                    totalWidth += parseFloat(cellWidthMatch[1]);
+                }
+            });
+            if (totalWidth > 0) {
+                tableWidth = `${totalWidth}px`;
+            }
+        }
+    }
 
     // Apply widths to ALL row cells, not just first row
     const rows = element.querySelectorAll("tr");
@@ -165,8 +463,9 @@ function handleTableElement(element: Element): void {
                 if (colIndex < columnWidths.length && columnWidths[colIndex] && colspan === 1) {
                     let existingStyle = cell.getAttribute("style") || "";
                     // Only add width if not already defined
-                    if (!existingStyle.includes("width:")) {
-                        existingStyle = `width: ${columnWidths[colIndex]}; ${existingStyle}`;
+                    const widthPattern = /width\s*:/i;
+                    if (!widthPattern.test(existingStyle)) {
+                        existingStyle = `width: ${columnWidths[colIndex]}; min-width: ${columnWidths[colIndex]}; ${existingStyle}`;
                         cell.setAttribute("style", existingStyle.trim());
                     }
                 }
@@ -176,17 +475,29 @@ function handleTableElement(element: Element): void {
         });
     }
 
-    // Ensure table has proper width style
+    // Ensure table has proper width style and table-layout
     let existingStyle = element.getAttribute("style") || "";
     if (tableWidth) {
-        if (!existingStyle.includes("width:")) {
+        const widthPattern = /width\s*:/i;
+        if (!widthPattern.test(existingStyle)) {
             existingStyle = `width: ${tableWidth}; ${existingStyle}`;
         }
     }
-    // Add table-layout: fixed for consistent column widths if we have defined widths
-    if (columnWidths.some(w => w !== null) && !existingStyle.includes("table-layout:")) {
+    // Add table-layout: fixed for consistent column widths if we have cell widths defined
+    const hasCellWidths = Array.from(element.querySelectorAll("th, td")).some(cell => {
+        const cellStyle = cell.getAttribute("style") || "";
+        return /width\s*:/i.test(cellStyle);
+    });
+    const tableLayoutPattern = /table-layout\s*:/i;
+    if ((columnWidths.some(w => w !== null) || hasCellWidths) && !tableLayoutPattern.test(existingStyle)) {
         existingStyle = `table-layout: fixed; ${existingStyle}`;
     }
+    
+    // Ensure table has minimum width to prevent collapse
+    if (!tableWidth && !existingStyle.includes("width:")) {
+        existingStyle = `width: 100%; ${existingStyle}`;
+    }
+    
     if (existingStyle) {
         element.setAttribute("style", existingStyle.trim());
     }
@@ -296,37 +607,97 @@ function handleDivElement(element: Element): void {
 }
 
 /**
- * Handle span elements - preserve formatting
+ * Handle span elements - preserve formatting including color
  */
 function handleSpanElement(element: Element): void {
     const style = element.getAttribute("style") || "";
+    let innerElement: Element = element;
 
     // Check for font-weight: bold in style
     if (style.includes("font-weight") && (style.includes("bold") || style.includes("600") || style.includes("700"))) {
         // Wrap content in strong
         const strong = element.ownerDocument.createElement("strong");
-        while (element.firstChild) {
-            strong.appendChild(element.firstChild);
+        while (innerElement.firstChild) {
+            strong.appendChild(innerElement.firstChild);
         }
-        element.appendChild(strong);
+        innerElement.appendChild(strong);
+        innerElement = strong;
     }
 
     // Check for font-style: italic
     if (style.includes("font-style") && style.includes("italic")) {
         const em = element.ownerDocument.createElement("em");
-        while (element.firstChild) {
-            em.appendChild(element.firstChild);
+        while (innerElement.firstChild) {
+            em.appendChild(innerElement.firstChild);
         }
-        element.appendChild(em);
+        innerElement.appendChild(em);
+        innerElement = em;
     }
 
     // Check for text-decoration: underline
     if (style.includes("text-decoration") && style.includes("underline")) {
         const u = element.ownerDocument.createElement("u");
-        while (element.firstChild) {
-            u.appendChild(element.firstChild);
+        while (innerElement.firstChild) {
+            u.appendChild(innerElement.firstChild);
         }
-        element.appendChild(u);
+        innerElement.appendChild(u);
+        innerElement = u;
+    }
+
+    // Preserve important text styles in the span
+    // Extract color, font-size, font-family, and line-height to keep text formatting
+    const preservedStyles: string[] = [];
+
+    // Preserve font-weight even after wrapping in <strong> to ensure bold survives theme overrides
+    const fontWeightMatch = style.match(/font-weight\s*:\s*([^;]+)/i);
+    if (fontWeightMatch) {
+        preservedStyles.push(`font-weight: ${fontWeightMatch[1].trim()}`);
+    }
+
+    // Preserve font-style (italic) inline as a fallback
+    const fontStyleMatch = style.match(/font-style\s*:\s*([^;]+)/i);
+    if (fontStyleMatch) {
+        preservedStyles.push(`font-style: ${fontStyleMatch[1].trim()}`);
+    }
+
+    // Preserve text-decoration inline (e.g., underline)
+    const textDecorationMatch = style.match(/text-decoration\s*:\s*([^;]+)/i);
+    if (textDecorationMatch) {
+        preservedStyles.push(`text-decoration: ${textDecorationMatch[1].trim()}`);
+    }
+    
+    // Preserve color (non-black only)
+    const colorMatch = style.match(/(?:^|;)\s*color\s*:\s*([^;]+)/i);
+    if (colorMatch) {
+        const colorValue = colorMatch[1].trim();
+        if (colorValue.toLowerCase() !== "#000000" && colorValue.toLowerCase() !== "black" && colorValue !== "rgb(0, 0, 0)") {
+            preservedStyles.push(`color: ${colorValue}`);
+        }
+    }
+    
+    // Preserve font-size
+    const fontSizeMatch = style.match(/font-size\s*:\s*([^;]+)/i);
+    if (fontSizeMatch) {
+        preservedStyles.push(`font-size: ${fontSizeMatch[1].trim()}`);
+    }
+    
+    // Preserve font-family
+    const fontFamilyMatch = style.match(/font-family\s*:\s*([^;]+)/i);
+    if (fontFamilyMatch) {
+        preservedStyles.push(`font-family: ${fontFamilyMatch[1].trim()}`);
+    }
+    
+    // Preserve line-height
+    const lineHeightMatch = style.match(/line-height\s*:\s*([^;]+)/i);
+    if (lineHeightMatch) {
+        preservedStyles.push(`line-height: ${lineHeightMatch[1].trim()}`);
+    }
+    
+    // Set the preserved styles or remove the style attribute if none
+    if (preservedStyles.length > 0) {
+        element.setAttribute("style", preservedStyles.join("; "));
+    } else {
+        element.removeAttribute("style");
     }
 }
 

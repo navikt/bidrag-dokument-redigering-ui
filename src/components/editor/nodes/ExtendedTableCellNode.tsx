@@ -39,10 +39,27 @@ function convertTableCellElement(domNode: HTMLElement): DOMConversionOutput {
     const bgMatch = style.match(/background(?:-color)?:\s*([^;]+)/);
     const backgroundColor = bgMatch ? bgMatch[1].trim() : undefined;
 
+    // Extract all border properties
+    const borderProps = [
+        "border", "border-top", "border-right", "border-bottom", "border-left",
+        "border-width", "border-style", "border-color"
+    ];
+    const borderStyles: Record<string, string> = {};
+    borderProps.forEach(prop => {
+        const regex = new RegExp(`${prop}:\\s*([^;]+)`, "i");
+        const match = style.match(regex);
+        if (match) {
+            borderStyles[prop] = match[1].trim();
+        }
+    });
+
     const tableCellNode = $createExtendedTableCellNode(headerState, colSpan, width);
     tableCellNode.setRowSpan(rowSpan);
     if (backgroundColor) {
         tableCellNode.setBackgroundColor(backgroundColor);
+    }
+    if (Object.keys(borderStyles).length > 0) {
+        tableCellNode.__borderStyles = borderStyles;
     }
 
     return { node: tableCellNode };
@@ -63,6 +80,8 @@ export function $isExtendedTableCellNode(
 }
 
 export class ExtendedTableCellNode extends TableCellNode {
+    __borderStyles?: Record<string, string>;
+
     static getType(): string {
         return "extended-table-cell";
     }
@@ -76,6 +95,7 @@ export class ExtendedTableCellNode extends TableCellNode {
         );
         clone.__rowSpan = node.__rowSpan;
         clone.__backgroundColor = node.__backgroundColor;
+        clone.__borderStyles = node.__borderStyles;
         return clone;
     }
 
@@ -137,6 +157,12 @@ export class ExtendedTableCellNode extends TableCellNode {
         if (bgColor) {
             styles.push(`background-color: ${bgColor}`);
         }
+        // Apply border styles
+        if (this.__borderStyles) {
+            Object.entries(this.__borderStyles).forEach(([prop, value]) => {
+                styles.push(`${prop}: ${value}`);
+            });
+        }
         if (styles.length > 0) {
             element.style.cssText = styles.join("; ");
         }
@@ -152,6 +178,15 @@ export class ExtendedTableCellNode extends TableCellNode {
         if (width) {
             element.style.width = `${width}px`;
             element.style.minWidth = `${width}px`;
+        }
+
+        // Apply border styles if set
+        if (this.__borderStyles) {
+            Object.entries(this.__borderStyles).forEach(([prop, value]) => {
+                // Convert property name to camelCase for style object
+                const camelProp = prop.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+                (element.style as any)[camelProp] = value;
+            });
         }
 
         return element;

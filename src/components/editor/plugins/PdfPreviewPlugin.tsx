@@ -10,29 +10,96 @@ interface PdfPreviewPluginProps {
 
 // CSS styles to inject into the PDF HTML
 const PDF_STYLES = `
+    :root {
+        --page-width: 210mm;
+        --page-height: 297mm;
+        --page-padding-top: 15mm;
+        --page-padding-bottom: 15mm;
+        --page-padding-left: 15mm;
+        --page-padding-right: 15mm;
+        --page-gap: 24px;
+        --page-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+    }
+
+    * { box-sizing: border-box; }
+
     body {
         font-family: 'Times New Roman', Times, serif;
-        font-size: 12pt;
+        font-size: 11pt;
         line-height: 1.5;
         color: #000;
-        max-width: 210mm;
-        margin: 0 auto;
-        padding: 20mm;
-        background: white;
+        margin: 0;
+        background: #d8dadd;
+        display: flex;
+        justify-content: center;
     }
-    h1 { font-size: 24pt; font-weight: bold; margin: 24pt 0 12pt 0; }
-    h2 { font-size: 20pt; font-weight: bold; margin: 20pt 0 10pt 0; }
-    h3 { font-size: 16pt; font-weight: bold; margin: 16pt 0 8pt 0; }
-    h4 { font-size: 14pt; font-weight: bold; margin: 14pt 0 7pt 0; }
-    h5 { font-size: 12pt; font-weight: bold; margin: 12pt 0 6pt 0; }
-    p { margin: 0 0 12pt 0; }
-    ul, ol { margin: 8pt 0 16pt 0; padding-left: 32pt; }
+
+    #page-container {
+        width: 100%;
+        padding: 24px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: var(--page-gap);
+    }
+
+    .page {
+        width: var(--page-width);
+        min-height: var(--page-height);
+        background: white;
+        box-shadow: var(--page-shadow);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .page.measuring {
+        position: absolute;
+        visibility: hidden;
+        pointer-events: none;
+        box-shadow: none;
+    }
+
+    .page-content {
+        min-height: calc(var(--page-height) - var(--page-padding-top) - var(--page-padding-bottom));
+        padding: 20mm 20mm;
+        background: white;
+        font-size: 11pt;
+        line-height: 1.5;
+    }
+
+    h1 { font-size: 22pt; font-weight: bold; margin: 18pt 0 10pt 0; }
+    h2 { font-size: 18pt; font-weight: bold; margin: 14pt 0 8pt 0; }
+    h3 { font-size: 14pt; font-weight: bold; margin: 10pt 0 6pt 0; }
+    h4 { font-size: 12pt; font-weight: bold; margin: 8pt 0 4pt 0; }
+    h5 { font-size: 11pt; font-weight: bold; margin: 6pt 0 3pt 0; }
+    p { margin: 0 0 10pt 0; font-size: 11pt; }
+    ul, ol { margin: 6pt 0 12pt 0; padding-left: 28pt; font-size: 11pt; }
     ul { list-style-type: disc; }
     ol { list-style-type: decimal; }
-    li { margin: 4pt 0; }
-    table { width: 100%; border-collapse: collapse; margin: 16pt 0; }
-    th, td { border: 1px solid #000; padding: 8pt 12pt; text-align: left; }
-    th { background-color: #f0f0f0; font-weight: bold; }
+    li { margin: 3pt 0; font-size: 11pt; }
+    
+    /* Table styles - default without borders */
+    table { 
+        width: 100%; 
+        border-collapse: collapse; 
+        margin: 12pt 0; 
+        font-size: 10pt;
+    }
+    th, td { 
+        padding: 6pt 8pt; 
+        text-align: left; 
+    }
+    
+    /* Only add borders if table has data-has-border attribute */
+    table[data-has-border="true"] th,
+    table[data-has-border="true"] td {
+        border: 1px solid #000;
+    }
+    table[data-has-border="true"] th {
+        background-color: #f0f0f0;
+        font-weight: bold;
+    }
+    
     blockquote { margin: 16pt 0; padding: 12pt 20pt; border-left: 4pt solid #333; background-color: #f5f5f5; font-style: italic; }
     a { color: #0000EE; text-decoration: underline; }
     .lexical-text-bold { font-weight: bold; }
@@ -73,8 +140,12 @@ const PDF_STYLES = `
     }
     
     @media print {
-        body { padding: 0; }
-        @page { margin: 20mm; }
+        body { background: white; }
+        #page-container { padding: 0; }
+        .page { box-shadow: none; margin: 0 auto; page-break-after: always; }
+        .page:last-child { page-break-after: auto; }
+        .page-content { padding: 15mm 15mm; }
+        @page { margin: 15mm; }
         /* Ensure comment styling is hidden in print */
         .comment-mark,
         .comment-mark-active,
@@ -117,7 +188,24 @@ export default function PdfPreviewPlugin({ isOpen, onClose }: PdfPreviewPluginPr
                     <style>${PDF_STYLES}</style>
                 </head>
                 <body>
-                    ${htmlContent}
+                    <div id="page-container"></div>
+                    <template id="doc-source">${htmlContent}</template>
+                    <script>
+                        (function() {
+                            const container = document.getElementById('page-container');
+                            const template = document.getElementById('doc-source');
+                            if (!container || !template || !(template instanceof HTMLTemplateElement)) return;
+
+                            const fragment = template.content.cloneNode(true);
+                            const page = document.createElement('div');
+                            page.className = 'page';
+                            const content = document.createElement('div');
+                            content.className = 'page-content';
+                            content.appendChild(fragment);
+                            page.appendChild(content);
+                            container.appendChild(page);
+                        })();
+                    </script>
                 </body>
                 </html>
             `;
@@ -185,9 +273,9 @@ export default function PdfPreviewPlugin({ isOpen, onClose }: PdfPreviewPluginPr
             <div
                 className="pdf-preview-modal"
                 style={{
-                    width: "90%",
-                    maxWidth: "900px",
-                    height: "90%",
+                    width: "96%",
+                    maxWidth: "1400px",
+                    height: "95%",
                     backgroundColor: "#fff",
                     borderRadius: "12px",
                     boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
@@ -253,11 +341,12 @@ export default function PdfPreviewPlugin({ isOpen, onClose }: PdfPreviewPluginPr
                 <div
                     style={{
                         flex: 1,
-                        padding: "20px",
-                        backgroundColor: "#e0e0e0",
+                        padding: "24px",
+                        backgroundColor: "#d8dadd",
                         overflow: "auto",
                         display: "flex",
                         justifyContent: "center",
+                        alignItems: "flex-start",
                     }}
                 >
                     {isGenerating ? (
@@ -312,11 +401,11 @@ export default function PdfPreviewPlugin({ isOpen, onClose }: PdfPreviewPluginPr
                     ) : pdfBlobUrl ? (
                         <div
                             style={{
-                                width: "210mm",
-                                minHeight: "297mm",
-                                backgroundColor: "white",
-                                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.2)",
-                                overflow: "hidden",
+                                width: "100%",
+                                height: "calc(100vh - 220px)",
+                                backgroundColor: "transparent",
+                                margin: "0 auto",
+                                overflow: "auto",
                             }}
                         >
                             <iframe
@@ -325,8 +414,8 @@ export default function PdfPreviewPlugin({ isOpen, onClose }: PdfPreviewPluginPr
                                 style={{
                                     width: "100%",
                                     height: "100%",
-                                    minHeight: "297mm",
                                     border: "none",
+                                    backgroundColor: "transparent",
                                 }}
                                 title="PDF Preview"
                             />

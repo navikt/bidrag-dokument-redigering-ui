@@ -1,9 +1,11 @@
 import { Loader } from "@navikt/ds-react";
-import React, { Suspense } from "react";
+import React, { Suspense, use } from "react";
 
 import { useHentRTFDokument } from "../../api/queries";
 import { WysiwygEditor } from "../../components/editor";
 import PageWrapper from "../PageWrapper";
+import { useHentHtml, useHentRedigeringmetadata, useLagreEndringer } from "../../api/useQueriesNew";
+import type { Comment } from "../../components/editor/plugins/CommentsPlugin";
 
 interface WysiwygEditorPageProps {
     journalpostId: string;
@@ -16,7 +18,6 @@ interface WysiwygEditorPageProps {
  * then opens it in the Lexical-based WYSIWYG editor.
  */
 export default function WysiwygEditorPage({ journalpostId, dokumentreferanse }: WysiwygEditorPageProps) {
-    console.log("WysiwygEditorPage props:", { journalpostId, dokumentreferanse });
     return (
         <PageWrapper name="wysiwyg-editor">
             <Suspense
@@ -33,9 +34,20 @@ export default function WysiwygEditorPage({ journalpostId, dokumentreferanse }: 
 }
 
 function WysiwygEditorContainer({ journalpostId, dokumentreferanse }: WysiwygEditorPageProps) {
-    const { data: rtfContent, isLoading, isError, error } = useHentRTFDokument(journalpostId, dokumentreferanse);
+    // First, try to fetch metadata (editor data with notes)
+    const { data: metadata, isLoading: metadataLoading, isError: metadataError } = useHentRedigeringmetadata<any>(journalpostId, dokumentreferanse);
+    
+    // If metadata doesn't exist or has no editorMetadata, fetch RTF document as fallback
+    const shouldFetchRtf = true; // !metadata?.editorMetadata;
+    // const { data: rtfContent, isLoading: rtfLoading, isError: rtfError, error } = useHentRTFDokument(journalpostId, dokumentreferanse);
+    const { data: htmlContent, isLoading: htmlLoading, isError: htmlError, error: htmlErrorObj } = useHentHtml(journalpostId, dokumentreferanse);
+    
+    // Use metadata's editorMetadata if available, otherwise use RTF content
+    const content = metadata?.editorMetadata?.json ?? htmlContent;
+    const isLoading = shouldFetchRtf ? htmlLoading : metadataLoading;
+    const isError = shouldFetchRtf ? htmlError : metadataError;
 
-    console.log("WysiwygEditorContainer state:", { rtfContent, isLoading, isError, error });
+    const saveMetadata = useLagreEndringer<any>(journalpostId, dokumentreferanse);
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[600px]">
@@ -59,7 +71,7 @@ function WysiwygEditorContainer({ journalpostId, dokumentreferanse }: WysiwygEdi
         );
     }
 
-    if (!rtfContent) {
+    if (!content) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[600px]">
                 <div className="text-gray-600">Ingen dokumentinnhold funnet</div>
@@ -67,14 +79,13 @@ function WysiwygEditorContainer({ journalpostId, dokumentreferanse }: WysiwygEdi
         );
     }
 
-    const handleSave = async (content: { html: string; json: string }) => {
+    const handleSave = async (content: { html: string; json: string; notes: Comment[]}) => {
         console.log("Saving document:", {
             journalpostId,
             dokumentreferanse,
             content,
         });
-        // TODO: Implement save to backend
-        // await BIDRAG_FORSENDELSE_API.api.lagreDokument(journalpostId, dokumentreferanse, content);
+        saveMetadata.mutate(content)
     };
 
     return (
@@ -88,7 +99,7 @@ function WysiwygEditorContainer({ journalpostId, dokumentreferanse }: WysiwygEdi
 
             <div className="flex-1 overflow-hidden">
                 <WysiwygEditor
-                    initialContent={rtfContent}
+                    initialContent={htmlContent}
                     contentType="auto"
                     onSave={handleSave}
                     placeholder="Start å skrive dokumentet ditt..."
