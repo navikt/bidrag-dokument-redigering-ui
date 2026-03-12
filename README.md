@@ -1,4 +1,5 @@
 ## Bidrag-dokument-redigering-ui
+## !!Repoet er overført til [bidrag-ui](https://github.com/navikt/bidrag-ui)
 Bidrag mikrofrontend applikasjon for å lese og redigere PDF dokumenter
 <br/>
 Dette er bare en mikrofrontend og har derfor ingen autentisering og innlogging av bruker. Det håndteres av [bidrag-ui](https://github.com/navikt/bidrag-ui) hvor token eksponeres av `/token` endepunktet.
