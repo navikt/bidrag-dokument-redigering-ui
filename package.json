@@ -20,7 +20,7 @@
     "@dnd-kit/modifiers": "9.0.0",
     "@emotion/react": "^11.14.0",
     "@mdx-js/react": "3.1.0",
-    "@navikt/aksel-icons": "7.9.0",
+    "@navikt/aksel-icons": "7.33.5",
     "@navikt/bidrag-ui-common": "2.0.2",
     "@navikt/ds-css": "7.9.0",
     "@navikt/ds-css-internal": "3.4.3",

@@ -809,10 +809,10 @@
     "@napi-rs/canvas-linux-x64-musl" "0.1.65"
     "@napi-rs/canvas-win32-x64-msvc" "0.1.65"
 
-"@navikt/aksel-icons@7.9.0", "@navikt/aksel-icons@^7.9.0":
-  version "7.9.0"
-  resolved "https://npm.pkg.github.com/download/@navikt/aksel-icons/7.9.0/d55434e48dc21d31d7c77f8fdbe4193c73f900aa#d55434e48dc21d31d7c77f8fdbe4193c73f900aa"
-  integrity sha512-uN+wZKDIoIWs1R4SZHmvjS1mnO/Ft5DYWj1xmAD8vaLuX5dASPOOSu4cgPafVXqQ/k+Rpm9TfctwNcfHMVVcfA==
+"@navikt/aksel-icons@7.33.5", "@navikt/aksel-icons@^7.9.0":
+  version "7.33.5"
+  resolved "https://npm.pkg.github.com/download/@navikt/aksel-icons/7.33.5/918c3505112af3b273a10a64e45c487dc17ba8f1#918c3505112af3b273a10a64e45c487dc17ba8f1"
+  integrity sha512-zdF3d8YIFYAHaUMN39ALeHwkTOESDOGsmzDEUscF/1jUxDAL8RA+N3L2iN9wX21efr/hXg9Z3BpbbRupAmmu3A==
 
 "@navikt/aksel-icons@^3.4.2":
   version "3.4.2"
